@@ -39,6 +39,7 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
   const [hasDrawn, setHasDrawn] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showTermsModal, setShowTermsModal] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const isDrawing = useRef(false);
@@ -175,10 +176,11 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
   const docCount = application.documents?.length || 0;
 
   return (
-    <form onSubmit={handleFormSubmit} className="flex flex-col flex-1 max-w-md mx-auto w-full py-2 animate-in fade-in duration-300">
-      {/* Header */}
-      <div className="space-y-1 mb-4">
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+    <>
+      <form onSubmit={handleFormSubmit} className="flex flex-col flex-1 max-w-md mx-auto w-full py-2 animate-in fade-in duration-300">
+        {/* Header */}
+        <div className="space-y-1 mb-4">
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
           {t(language, 'reviewTitle')}
         </h1>
         <p className="text-sm text-slate-500 leading-relaxed">
@@ -191,7 +193,7 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
         {/* Borrower Details Card */}
         <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-2">
           <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
+            <span className="text-xs font-bold text-slate-800">
               {t(language, 'borrowerDetailsTitle')}
             </span>
             <button
@@ -225,7 +227,7 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
         {/* Residency & Visa Card */}
         <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-2">
           <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
+            <span className="text-xs font-bold text-slate-800">
               {t(language, 'residencyDetailsTitle')}
             </span>
             <button
@@ -259,7 +261,7 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
         {/* Employment & Income Card */}
         <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-2">
           <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
+            <span className="text-xs font-bold text-slate-800">
               {t(language, 'employmentDetailsTitle')}
             </span>
             <button
@@ -293,7 +295,7 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
         {/* Loan Request Summary Card */}
         <div className="p-3.5 rounded-2xl bg-blue-950 text-white shadow-xs space-y-2">
           <div className="flex items-center justify-between border-b border-blue-800 pb-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-blue-200">
+            <span className="text-xs font-bold text-blue-200">
               {t(language, 'loanDetailsTitle')}
             </span>
             <button
@@ -344,7 +346,7 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
 
       {/* Mandatory Legal Consents */}
       <div className="space-y-3 mb-6 p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
-        <div className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+        <div className="text-xs font-bold text-slate-800 ">
           Legal Consents & Authorization
         </div>
 
@@ -380,7 +382,7 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
       {/* Digital Signature Pad */}
       <div className="space-y-3 mb-6 p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
         <div className="flex items-center justify-between">
-          <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider">
+          <label className="block text-xs font-bold text-slate-800 ">
             {t(language, 'digitalSignatureLabel')} <span className="text-red-500">*</span>
           </label>
           {/* Tabs */}
@@ -498,6 +500,55 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
           )}
         </button>
       </div>
-    </form>
+      </form>
+
+      {/* Terms & Conditions Modal */}
+      {showTermsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] flex flex-col shadow-xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <h2 className="text-lg font-bold text-slate-900">{t(language, 'termsAndConditionsTitle') || 'Terms & Conditions'}</h2>
+              <button 
+                onClick={() => setShowTermsModal(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-200/50 transition-colors"
+              >
+                <AlertTriangle className="w-5 h-5 opacity-0 hidden" />
+                <span className="text-xl leading-none">&times;</span>
+              </button>
+            </div>
+            
+            <div className="p-5 overflow-y-auto text-sm text-slate-600 space-y-4">
+              <p>Please read and accept the following terms and conditions to proceed with your loan application.</p>
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl h-48 overflow-y-auto text-xs space-y-3 shadow-inner">
+                <p>1. By submitting this application, you declare that all provided information is accurate and truthful.</p>
+                <p>2. You authorize the funding entity to perform background and credit history checks.</p>
+                <p>3. You agree to the proposed repayment schedule, which includes processing fees and interest rates as specified in the estimate.</p>
+                <p>4. In the event of default, you agree that your employer may be contacted, and late fees may be applied.</p>
+                <p>5. Your digital signature carries the same legal weight as a physical signature under applicable laws.</p>
+                <p>6. All documents uploaded are certified as true copies of the originals.</p>
+                <p>7. You understand that this application is subject to final approval by the credit committee.</p>
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setShowTermsModal(false)}
+                className="flex-1 py-3 px-4 rounded-xl border border-slate-300 bg-white text-slate-700 font-semibold text-sm hover:bg-slate-50 transition-colors"
+              >
+                {t(language, 'decline') || 'Decline'}
+              </button>
+              <button
+                type="button"
+                onClick={handleFinalSubmit}
+                className="flex-1 py-3 px-4 rounded-xl bg-blue-900 text-white font-semibold text-sm hover:bg-blue-800 transition-colors shadow-sm"
+              >
+                {t(language, 'acceptAndSubmit') || 'Accept & Submit'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };

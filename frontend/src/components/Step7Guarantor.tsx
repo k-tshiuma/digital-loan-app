@@ -17,22 +17,18 @@ export const Step7Guarantor: React.FC<Step7GuarantorProps> = ({
   onSaveAndNext,
   onBack,
 }) => {
-  const [hasGuarantor, setHasGuarantor] = useState<boolean>(
-    initialData?.hasGuarantor || false
-  );
-
   const [formData, setFormData] = useState<GuarantorDetails>({
-    hasGuarantor: initialData?.hasGuarantor || false,
+    hasGuarantor: true,
     fullName: initialData?.fullName || '',
     passportOrIdNumber: initialData?.passportOrIdNumber || '',
     mobilePhoneNumber: initialData?.mobilePhoneNumber || '',
     relationship: initialData?.relationship || 'Co-worker',
+    otherRelationshipDetails: initialData?.otherRelationshipDetails || '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validate = (): boolean => {
-    if (!hasGuarantor) return true;
     const errs: Record<string, string> = {};
 
     if (!formData.fullName?.trim()) {
@@ -44,6 +40,9 @@ export const Step7Guarantor: React.FC<Step7GuarantorProps> = ({
     if (!formData.mobilePhoneNumber?.trim()) {
       errs.mobilePhoneNumber = t(language, 'requiredField');
     }
+    if (formData.relationship === 'Other' && (!formData.otherRelationshipDetails || !formData.otherRelationshipDetails.trim())) {
+      errs.otherRelationshipDetails = 'Please provide details for the relationship';
+    }
 
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -54,7 +53,7 @@ export const Step7Guarantor: React.FC<Step7GuarantorProps> = ({
     if (validate()) {
       onSaveAndNext({
         ...formData,
-        hasGuarantor,
+        hasGuarantor: true,
       });
     }
   };
@@ -72,134 +71,103 @@ export const Step7Guarantor: React.FC<Step7GuarantorProps> = ({
       </div>
 
       <div className="space-y-5 mb-8">
-        {/* Toggle Yes/No cards */}
-        <div className="space-y-2">
-          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-            {t(language, 'hasGuarantorQuestion')}
-          </label>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              id="guarantor-no-btn"
-              onClick={() => {
-                setHasGuarantor(false);
-                setFormData((prev) => ({ ...prev, hasGuarantor: false }));
-              }}
-              className={`p-4 rounded-2xl border text-center transition-all ${
-                !hasGuarantor
-                  ? 'border-blue-900 bg-white ring-2 ring-blue-900/10 shadow-xs'
-                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
-              }`}
-            >
-              <div className="text-sm font-bold text-slate-900">
-                {t(language, 'noGuarantor')}
-              </div>
-              <div className="text-[11px] text-slate-500 mt-0.5">
-                Apply on your own
-              </div>
-            </button>
-
-            <button
-              type="button"
-              id="guarantor-yes-btn"
-              onClick={() => {
-                setHasGuarantor(true);
-                setFormData((prev) => ({ ...prev, hasGuarantor: true }));
-              }}
-              className={`p-4 rounded-2xl border text-center transition-all ${
-                hasGuarantor
-                  ? 'border-blue-900 bg-white ring-2 ring-blue-900/10 shadow-xs'
-                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
-              }`}
-            >
-              <div className="text-sm font-bold text-slate-900">
-                {t(language, 'yesGuarantor')}
-              </div>
-              <div className="text-[11px] text-slate-500 mt-0.5">
-                Add co-signer
-              </div>
-            </button>
+        <div className="space-y-4 p-4 bg-slate-50/80 rounded-2xl border border-slate-200 animate-in fade-in slide-in-from-top-2">
+          <div className="text-xs font-bold text-blue-900 ">
+            Guarantor Information
           </div>
+
+          {/* Full Name */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold text-slate-700 ">
+              {t(language, 'Guarantor Full Name')} <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="guarantor-fullname-input"
+              type="text"
+              required
+              placeholder="Full legal name"
+              value={formData.fullName || ''}
+              onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm focus:border-blue-900 focus:outline-none"
+            />
+            {errors.fullName && <p className="text-xs text-red-600">{errors.fullName}</p>}
+          </div>
+
+          {/* Passport / ID */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold text-slate-700 ">
+              {t(language, 'Guarantor Passport Or Id')} <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="guarantor-passport-input"
+              type="text"
+              required
+              placeholder="Passport or Israeli ID number"
+              value={formData.passportOrIdNumber || ''}
+              onChange={(e) => setFormData({ ...formData, passportOrIdNumber: e.target.value.toUpperCase() })}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm font-mono focus:border-blue-900 focus:outline-none"
+            />
+            {errors.passportOrIdNumber && <p className="text-xs text-red-600">{errors.passportOrIdNumber}</p>}
+          </div>
+
+          {/* Phone */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold text-slate-700 ">
+              {t(language, 'Guarantor Phone')} <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="guarantor-phone-input"
+              type="tel"
+              required
+              placeholder="+972-5X-XXXXXXX"
+              value={formData.mobilePhoneNumber || ''}
+              onChange={(e) => setFormData({ ...formData, mobilePhoneNumber: e.target.value })}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm focus:border-blue-900 focus:outline-none"
+            />
+            {errors.mobilePhoneNumber && <p className="text-xs text-red-600">{errors.mobilePhoneNumber}</p>}
+          </div>
+
+          {/* Relationship */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold text-slate-700 ">
+              {t(language, 'Guarantor Relationship')}
+            </label>
+            <select
+              id="guarantor-rel-select"
+              value={formData.relationship || 'Co-worker'}
+              onChange={(e) => setFormData({ ...formData, relationship: e.target.value as any })}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm focus:border-blue-900 focus:outline-none cursor-pointer"
+            >
+              {GUARANTOR_RELATIONSHIPS.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Other Relationship Details */}
+          {formData.relationship === 'Other' && (
+            <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-300">
+              <label htmlFor="other-relationship-input" className="block text-xs font-bold text-slate-700 ">
+                {t(language, 'pleaseSpecify')} <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="other-relationship-input"
+                type="text"
+                required
+                placeholder={t(language, 'provideDetails')}
+                value={formData.otherRelationshipDetails || ''}
+                onChange={(e) => setFormData({ ...formData, otherRelationshipDetails: e.target.value })}
+                className={`w-full px-4 py-2.5 rounded-xl border bg-white text-slate-900 text-sm font-medium focus:outline-none focus:ring-2 transition-all ${errors.otherRelationshipDetails
+                  ? 'border-red-400 focus:ring-red-200'
+                  : 'border-slate-300 focus:border-blue-900 focus:ring-blue-900/20'
+                  }`}
+              />
+              {errors.otherRelationshipDetails && <p className="text-xs text-red-600">{errors.otherRelationshipDetails}</p>}
+            </div>
+          )}
         </div>
-
-        {/* If Yes, render guarantor fields */}
-        {hasGuarantor && (
-          <div className="space-y-4 p-4 bg-slate-50/80 rounded-2xl border border-slate-200 animate-in fade-in slide-in-from-top-2">
-            <div className="text-xs font-bold text-blue-900 uppercase tracking-wider">
-              Guarantor Information
-            </div>
-
-            {/* Full Name */}
-            <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                {t(language, 'guarantorFullName')} <span className="text-red-500">*</span>
-              </label>
-              <input
-                id="guarantor-fullname-input"
-                type="text"
-                required={hasGuarantor}
-                placeholder="Full legal name"
-                value={formData.fullName || ''}
-                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm focus:border-blue-900 focus:outline-none"
-              />
-              {errors.fullName && <p className="text-xs text-red-600">{errors.fullName}</p>}
-            </div>
-
-            {/* Passport / ID */}
-            <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                {t(language, 'guarantorPassportOrId')} <span className="text-red-500">*</span>
-              </label>
-              <input
-                id="guarantor-passport-input"
-                type="text"
-                required={hasGuarantor}
-                placeholder="Passport or Israeli ID number"
-                value={formData.passportOrIdNumber || ''}
-                onChange={(e) => setFormData({ ...formData, passportOrIdNumber: e.target.value.toUpperCase() })}
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm font-mono focus:border-blue-900 focus:outline-none"
-              />
-              {errors.passportOrIdNumber && <p className="text-xs text-red-600">{errors.passportOrIdNumber}</p>}
-            </div>
-
-            {/* Phone */}
-            <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                {t(language, 'guarantorPhone')} <span className="text-red-500">*</span>
-              </label>
-              <input
-                id="guarantor-phone-input"
-                type="tel"
-                required={hasGuarantor}
-                placeholder="+972-5X-XXXXXXX"
-                value={formData.mobilePhoneNumber || ''}
-                onChange={(e) => setFormData({ ...formData, mobilePhoneNumber: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm focus:border-blue-900 focus:outline-none"
-              />
-              {errors.mobilePhoneNumber && <p className="text-xs text-red-600">{errors.mobilePhoneNumber}</p>}
-            </div>
-
-            {/* Relationship */}
-            <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                {t(language, 'guarantorRelationship')}
-              </label>
-              <select
-                id="guarantor-rel-select"
-                value={formData.relationship || 'Co-worker'}
-                onChange={(e) => setFormData({ ...formData, relationship: e.target.value as any })}
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm focus:border-blue-900 focus:outline-none cursor-pointer"
-              >
-                {GUARANTOR_RELATIONSHIPS.map((r) => (
-                  <option key={r} value={r}>
-                    {r}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Footer Navigation */}

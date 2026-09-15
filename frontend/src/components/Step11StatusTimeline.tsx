@@ -93,7 +93,7 @@ export const Step11StatusTimeline: React.FC<Step11StatusTimelineProps> = ({
       {/* Header & Request Number */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+          <span className="text-[11px] font-bold text-slate-400">
             {t(language, 'statusTimelineTitle')}
           </span>
           <h1 className="text-xl font-bold font-mono text-slate-900">
@@ -127,11 +127,11 @@ export const Step11StatusTimeline: React.FC<Step11StatusTimelineProps> = ({
             <p className="text-xs text-slate-600 mt-1 leading-relaxed">
               {application.missingDocumentNotes || (
                 application.status === 'Received' ? t(language, 'statusReceivedDesc') :
-                application.status === 'Under Review' ? t(language, 'statusUnderReviewDesc') :
-                application.status === 'Additional Document Required' ? t(language, 'statusAdditionalDocDesc') :
-                application.status === 'Approved' ? t(language, 'statusApprovedDesc') :
-                application.status === 'Rejected' ? t(language, 'statusRejectedDesc') :
-                t(language, 'statusForwardedDesc')
+                  application.status === 'Under Review' ? t(language, 'statusUnderReviewDesc') :
+                    application.status === 'Additional Document Required' ? t(language, 'statusAdditionalDocDesc') :
+                      application.status === 'Approved' ? t(language, 'statusApprovedDesc') :
+                        application.status === 'Rejected' ? t(language, 'statusRejectedDesc') :
+                          t(language, 'statusForwardedDesc')
               )}
             </p>
           </div>
@@ -162,7 +162,7 @@ export const Step11StatusTimeline: React.FC<Step11StatusTimelineProps> = ({
       {/* Upload Missing Document Panel */}
       {isUploadingMissing && (
         <div className="p-4 mb-4 rounded-2xl bg-amber-50 border border-amber-200 space-y-3 animate-in fade-in">
-          <div className="text-xs font-bold text-amber-950 uppercase tracking-wider">
+          <div className="text-xs font-bold text-amber-950 ">
             Select Document to Upload:
           </div>
           <select
@@ -200,25 +200,23 @@ export const Step11StatusTimeline: React.FC<Step11StatusTimelineProps> = ({
         <button
           type="button"
           onClick={() => setActiveTab('timeline')}
-          className={`flex-1 py-2.5 text-xs font-bold border-b-2 text-center transition-colors ${
-            activeTab === 'timeline'
-              ? 'border-blue-900 text-blue-900'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
+          className={`flex-1 py-2.5 text-xs font-bold border-b-2 text-center transition-colors ${activeTab === 'timeline'
+            ? 'border-blue-900 text-blue-900'
+            : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
         >
-          {t(language, 'timelineTab')}
+          {t(language, 'Timeline')}
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('notifications')}
-          className={`flex-1 py-2.5 text-xs font-bold border-b-2 text-center transition-colors flex items-center justify-center gap-1.5 ${
-            activeTab === 'notifications'
-              ? 'border-blue-900 text-blue-900'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
+          className={`flex-1 py-2.5 text-xs font-bold border-b-2 text-center transition-colors flex items-center justify-center gap-1.5 ${activeTab === 'notifications'
+            ? 'border-blue-900 text-blue-900'
+            : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
         >
-          <span>{t(language, 'notificationsTab')}</span>
+          <span>{t(language, 'Notifications')}</span>
           {notifications.length > 0 && (
             <span className="w-4 h-4 rounded-full bg-blue-100 text-blue-900 text-[10px] flex items-center justify-center font-bold">
               {notifications.length}
@@ -229,11 +227,10 @@ export const Step11StatusTimeline: React.FC<Step11StatusTimelineProps> = ({
         <button
           type="button"
           onClick={() => setActiveTab('details')}
-          className={`flex-1 py-2.5 text-xs font-bold border-b-2 text-center transition-colors ${
-            activeTab === 'details'
-              ? 'border-blue-900 text-blue-900'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
+          className={`flex-1 py-2.5 text-xs font-bold border-b-2 text-center transition-colors ${activeTab === 'details'
+            ? 'border-blue-900 text-blue-900'
+            : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
         >
           Loan Package
         </button>
@@ -249,9 +246,8 @@ export const Step11StatusTimeline: React.FC<Step11StatusTimelineProps> = ({
                 <div key={item.id || idx} className="relative group">
                   {/* Dot */}
                   <div
-                    className={`absolute -left-6 top-1 w-4 h-4 rounded-full border-2 border-white shadow-2xs ${
-                      idx === 0 ? 'bg-blue-900 ring-2 ring-blue-100' : 'bg-slate-300'
-                    }`}
+                    className={`absolute -left-6 top-1 w-4 h-4 rounded-full border-2 border-white shadow-2xs ${idx === 0 ? 'bg-blue-900 ring-2 ring-blue-100' : 'bg-slate-300'
+                      }`}
                   />
                   <div className="p-3 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-1">
                     <div className="flex items-center justify-between text-xs">
@@ -343,7 +339,7 @@ export const Step11StatusTimeline: React.FC<Step11StatusTimelineProps> = ({
           onClick={onStartNewApplication}
           className="text-xs text-slate-500 hover:text-blue-900 font-semibold underline"
         >
-          {t(language, 'startNewApplication')}
+          {t(language, 'Start New Application')}
         </button>
       </div>
     </div>

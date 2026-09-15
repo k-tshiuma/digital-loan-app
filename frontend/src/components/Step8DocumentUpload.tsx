@@ -21,7 +21,8 @@ interface Step8DocumentUploadProps {
   language: Language;
   applicationId: string;
   initialDocuments?: UploadedFile[];
-  onSaveAndNext: (docs: UploadedFile[]) => void;
+  initialBankAccountConfirmed?: boolean;
+  onSaveAndNext: (docs: UploadedFile[], bankAccountConfirmed: boolean) => void;
   onBack: () => void;
 }
 
@@ -29,10 +30,12 @@ export const Step8DocumentUpload: React.FC<Step8DocumentUploadProps> = ({
   language,
   applicationId,
   initialDocuments = [],
+  initialBankAccountConfirmed = false,
   onSaveAndNext,
   onBack,
 }) => {
   const [documents, setDocuments] = useState<UploadedFile[]>(initialDocuments);
+  const [bankAccountConfirmed, setBankAccountConfirmed] = useState<boolean>(initialBankAccountConfirmed);
   const [activeDocType, setActiveDocType] = useState<DocumentTypeCode>('PASSPORT');
   const [isProcessing, setIsProcessing] = useState(false);
   const [ocrPromptDoc, setOcrPromptDoc] = useState<UploadedFile | null>(null);
@@ -43,15 +46,11 @@ export const Step8DocumentUpload: React.FC<Step8DocumentUploadProps> = ({
 
   const mandatoryTypes: DocumentTypeCode[] = [
     'PASSPORT',
-    'WORK_VISA',
     'PAY_SLIP',
-    'EMPLOYMENT_CONFIRMATION',
-    'BANK_STATEMENT',
   ];
 
   const optionalTypes: DocumentTypeCode[] = [
-    'EMPLOYER_GUARANTEE',
-    'CREDIT_CARD',
+    'WORKERS_CARD',
   ];
 
   const getDocsByType = (type: DocumentTypeCode) =>
@@ -148,7 +147,8 @@ export const Step8DocumentUpload: React.FC<Step8DocumentUploadProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSaveAndNext(documents);
+    if (!bankAccountConfirmed) return;
+    onSaveAndNext(documents, bankAccountConfirmed);
   };
 
   return (
@@ -260,7 +260,7 @@ export const Step8DocumentUpload: React.FC<Step8DocumentUploadProps> = ({
 
       {/* Document Category Tabs / Checklist */}
       <div className="space-y-3 mb-6">
-        <div className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+        <div className="text-xs font-bold text-slate-700 ">
           Required Documents (5 items)
         </div>
 
@@ -376,7 +376,7 @@ export const Step8DocumentUpload: React.FC<Step8DocumentUploadProps> = ({
         })}
 
         {/* Optional Documents Section */}
-        <div className="pt-2 text-xs font-bold text-slate-700 uppercase tracking-wider">
+        <div className="pt-2 text-xs font-bold text-slate-700 ">
           Optional Supporting Documents
         </div>
 
@@ -477,6 +477,28 @@ export const Step8DocumentUpload: React.FC<Step8DocumentUploadProps> = ({
         })}
       </div>
 
+      {/* Bank Account Management Confirmation */}
+      <div className="mb-6 p-4 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-3">
+        <label className="flex items-start gap-3 cursor-pointer group">
+          <div className="relative flex items-center justify-center mt-0.5">
+            <input
+              type="checkbox"
+              required
+              checked={bankAccountConfirmed}
+              onChange={(e) => setBankAccountConfirmed(e.target.checked)}
+              className="w-5 h-5 appearance-none border-2 border-slate-300 rounded-md checked:bg-blue-600 checked:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20 transition-all peer"
+            />
+            <CheckCircle2 className="w-3.5 h-3.5 text-white absolute opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity" strokeWidth={3} />
+          </div>
+          <span className="text-sm font-medium text-slate-700 group-hover:text-slate-900 transition-colors">
+            Bank Account Management Confirmation <span className="text-red-500">*</span>
+          </span>
+        </label>
+        <p className="text-[11px] text-slate-500 ml-8">
+          I confirm that the bank account details provided for loan repayment are managed by me and the information is accurate.
+        </p>
+      </div>
+
       {/* Footer Navigation */}
       <div className="mt-auto pt-4 flex items-center gap-3">
         <button
@@ -491,7 +513,7 @@ export const Step8DocumentUpload: React.FC<Step8DocumentUploadProps> = ({
         <button
           type="submit"
           id="step8-continue-btn"
-          disabled={hasMandatoryMissing}
+          disabled={hasMandatoryMissing || !bankAccountConfirmed}
           className="w-2/3 py-3.5 px-6 rounded-xl bg-blue-900 hover:bg-blue-800 text-white font-semibold text-base shadow-sm hover:shadow transition-all flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <span>{t(language, 'continue')}</span>

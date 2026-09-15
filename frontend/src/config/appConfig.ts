@@ -37,25 +37,25 @@ export const ORIGIN_COUNTRIES = [
 
 export const MARITAL_STATUSES = ['Single', 'Married', 'Divorced', 'Other'];
 
-export const SALARY_PAYMENT_METHODS = ['Bank transfer', 'Cash', 'Check', 'Other'];
+export const SALARY_PAYMENT_METHODS = ['Bank Transfer', 'Cash', 'Check', 'Other'];
 
-export const LOAN_PURPOSE_OPTIONS = ['Cash flow', 'Equipment', 'Investment', 'Other'];
+export const LOAN_PURPOSE_OPTIONS = ['Cash Flow', 'Equipment', 'Investment', 'Other'];
 
 export const REPAYMENT_SOURCE_OPTIONS = [
-  'Bank transfer',
-  'Salary deduction',
+  'Bank Transfer',
+  'Salary Deduction',
   'Cash',
-  'Digital wallet',
-  'Credit card',
+  'Digital Wallet',
+  'Credit Card',
 ];
 
 export const GUARANTOR_RELATIONSHIPS = [
   'Co-worker',
   'Friend',
   'Relative',
-  'Family member',
+  'Family Member',
   'Employer',
-  'Community member',
+  'Community Member',
   'Other',
 ];
 
@@ -65,6 +65,8 @@ export const LOAN_PERIOD_OPTIONS = [
   { months: 9, label: '9 Mos' },
   { months: 12, label: '12 Mos' },
 ];
+
+export const GRACE_PERIOD_OPTIONS = [0, 1, 2, 3];
 
 export const VISA_TYPES = [
   { code: 'b1_agri', id: 'b1_agri', label: 'B-1 Work Visa (Agriculture / חקלאות)' },
@@ -101,15 +103,6 @@ export const DOCUMENT_TYPE_CONFIG: DocumentTypeInfo[] = [
     descKey: 'docPassportDesc',
   },
   {
-    code: 'WORK_VISA',
-    id: 'doc_work_visa',
-    name: 'Work Visa Sticker',
-    isRequired: true,
-    allowsMultiple: false,
-    titleKey: 'docVisaTitle',
-    descKey: 'docVisaDesc',
-  },
-  {
     code: 'PAY_SLIP',
     id: 'doc_pay_slip',
     name: 'Salary Pay Slips',
@@ -119,40 +112,13 @@ export const DOCUMENT_TYPE_CONFIG: DocumentTypeInfo[] = [
     descKey: 'docPaySlipDesc',
   },
   {
-    code: 'EMPLOYMENT_CONFIRMATION',
-    id: 'doc_employment_confirmation',
-    name: 'Employment Confirmation Letter',
-    isRequired: true,
-    allowsMultiple: false,
-    titleKey: 'docEmploymentLetterTitle',
-    descKey: 'docEmploymentLetterDesc',
-  },
-  {
-    code: 'BANK_STATEMENT',
-    id: 'doc_bank_statement',
-    name: 'Bank Statement (3 Months)',
-    isRequired: true,
-    allowsMultiple: true,
-    titleKey: 'docBankStatementTitle',
-    descKey: 'docBankStatementDesc',
-  },
-  {
-    code: 'EMPLOYER_GUARANTEE',
-    id: 'doc_employer_guarantee',
-    name: 'Employer Guarantee / Letter',
+    code: 'WORKERS_CARD',
+    id: 'doc_workers_card',
+    name: "Worker's Card",
     isRequired: false,
     allowsMultiple: false,
-    titleKey: 'docEmployerGuaranteeTitle',
-    descKey: 'docEmployerGuaranteeDesc',
-  },
-  {
-    code: 'CREDIT_CARD',
-    id: 'doc_credit_card',
-    name: 'Israeli Credit Card (Front Only)',
-    isRequired: false,
-    allowsMultiple: false,
-    titleKey: 'docCreditCardTitle',
-    descKey: 'docCreditCardDesc',
+    titleKey: 'docWorkersCardTitle',
+    descKey: 'docWorkersCardDesc',
   },
 ];
 

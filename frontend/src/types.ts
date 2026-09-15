@@ -39,12 +39,8 @@ export type GuarantorRelationship =
 
 export type DocumentTypeCode =
   | 'PASSPORT'
-  | 'WORK_VISA'
   | 'PAY_SLIP'
-  | 'EMPLOYMENT_CONFIRMATION'
-  | 'BANK_STATEMENT'
-  | 'EMPLOYER_GUARANTEE'
-  | 'CREDIT_CARD';
+  | 'WORKERS_CARD';
 
 export interface DocumentTypeInfo {
   code: DocumentTypeCode;
@@ -88,12 +84,14 @@ export interface BorrowerDetails {
   fullName: string;
   passportNumber: string;
   countryOfOrigin: string;
+  otherCountryOfOriginDetails?: string;
   dateOfBirth: string; // YYYY-MM-DD
   mobilePhoneNumber: string;
   addressCity: string;
   addressStreet: string;
   addressFull: string;
   maritalStatus: MaritalStatus;
+  otherMaritalStatusDetails?: string;
 }
 
 export interface ResidencyDetails {
@@ -109,6 +107,7 @@ export interface EmploymentDetails {
   jobTenureMonths: number;
   monthlySalaryNis: number;
   salaryPaymentMethod: SalaryPaymentMethod;
+  otherSalaryPaymentMethodDetails?: string;
 }
 
 export interface LoanRequest {
@@ -116,6 +115,7 @@ export interface LoanRequest {
   loanPurpose: LoanPurpose;
   otherPurposeDetails?: string;
   repaymentPeriodMonths: number;
+  gracePeriodMonths?: number;
   repaymentSource: RepaymentSource;
   estimatedMonthlyPaymentNis: number;
   totalRepaymentNis: number;
@@ -129,6 +129,7 @@ export interface GuarantorDetails {
   passportOrIdNumber?: string;
   mobilePhoneNumber?: string;
   relationship?: GuarantorRelationship | string;
+  otherRelationshipDetails?: string;
   passportPhoto?: UploadedFile;
 }
 
@@ -239,6 +240,7 @@ export interface LoanApplication {
   loanRequest?: LoanRequest;
   guarantor?: GuarantorDetails;
   documents: UploadedFile[];
+  bankAccountConfirmed?: boolean;
   consents: ConsentRecord[];
   digitalSignature?: DigitalSignature;
   statusHistory: StatusHistoryItem[];

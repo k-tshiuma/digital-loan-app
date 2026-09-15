@@ -94,7 +94,7 @@ export const Step4ResidencyDetails: React.FC<Step4ResidencyDetailsProps> = ({
       <div className="space-y-4 mb-8">
         {/* Visa Type Selector */}
         <div className="space-y-1.5">
-          <label htmlFor="visa-type-select" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+          <label htmlFor="visa-type-select" className="block text-xs font-bold text-slate-700 ">
             {t(language, 'visaTypeLabel')} <span className="text-red-500">*</span>
           </label>
           <select
@@ -117,7 +117,7 @@ export const Step4ResidencyDetails: React.FC<Step4ResidencyDetailsProps> = ({
         {/* Visa Expiry Date */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <label htmlFor="visa-expiry-input" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+            <label htmlFor="visa-expiry-input" className="block text-xs font-bold text-slate-700 ">
               {t(language, 'visaExpiryDateLabel')} <span className="text-red-500">*</span>
             </label>
             {visaValidation.valid ? (
@@ -153,7 +153,7 @@ export const Step4ResidencyDetails: React.FC<Step4ResidencyDetailsProps> = ({
 
         {/* Date of Entry to Israel */}
         <div className="space-y-1.5">
-          <label htmlFor="entry-date-input" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+          <label htmlFor="entry-date-input" className="block text-xs font-bold text-slate-700 ">
             {t(language, 'dateOfEntryLabel')} <span className="text-red-500">*</span>
           </label>
           <input
@@ -174,7 +174,7 @@ export const Step4ResidencyDetails: React.FC<Step4ResidencyDetailsProps> = ({
               <Calendar className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-xs font-bold uppercase tracking-wider text-blue-900">
+              <div className="text-xs font-bold text-blue-900">
                 {t(language, 'yearsOfResidencyLabel')}
               </div>
               <div className="text-xs text-slate-500">

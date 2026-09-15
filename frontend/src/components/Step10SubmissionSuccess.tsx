@@ -54,7 +54,7 @@ export const Step10SubmissionSuccess: React.FC<Step10SubmissionSuccessProps> = (
 
       {/* Prominent Request Number Badge */}
       <div className="my-6 p-4 rounded-2xl bg-blue-50/90 border border-blue-200/80 shadow-xs">
-        <span className="text-xs font-bold uppercase tracking-wider text-blue-900 block mb-1">
+        <span className="text-xs font-bold text-blue-900 block mb-1">
           {t(language, 'yourRequestNumber')}
         </span>
         <div className="flex items-center justify-center gap-2">
@@ -77,7 +77,7 @@ export const Step10SubmissionSuccess: React.FC<Step10SubmissionSuccessProps> = (
 
       {/* Next Steps List */}
       <div className="text-left space-y-3 mb-8">
-        <div className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+        <div className="text-xs font-bold text-slate-700 ">
           {t(language, 'nextStepsTitle')}
         </div>
 
@@ -115,7 +115,6 @@ export const Step10SubmissionSuccess: React.FC<Step10SubmissionSuccessProps> = (
           className="w-full py-3.5 px-6 rounded-xl bg-blue-900 hover:bg-blue-800 text-white font-semibold text-base shadow-sm hover:shadow transition-all flex items-center justify-center gap-2 group"
         >
           <span>{t(language, 'trackApplicationStatus')}</span>
-          <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1 rtl:rotate-180" />
         </button>
       </div>
     </div>

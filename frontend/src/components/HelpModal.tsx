@@ -93,7 +93,7 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose, language 
           </div>
 
           <div className="pt-2">
-            <h4 className="font-bold text-xs uppercase tracking-wider text-slate-400 mb-3">
+            <h4 className="font-bold text-xs text-slate-400 mb-3">
               Frequently Asked Questions
             </h4>
             <div className="space-y-3">

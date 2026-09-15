@@ -32,6 +32,7 @@ export const Step3BorrowerDetails: React.FC<Step3BorrowerDetailsProps> = ({
     addressStreet: initialData?.addressStreet || '',
     addressFull: initialData?.addressFull || '',
     maritalStatus: initialData?.maritalStatus || 'Single',
+    otherMaritalStatusDetails: initialData?.otherMaritalStatusDetails || '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -83,6 +84,14 @@ export const Step3BorrowerDetails: React.FC<Step3BorrowerDetailsProps> = ({
       errs.addressCity = t(language, 'requiredField');
     }
 
+    if (formData.maritalStatus === 'Other' && (!formData.otherMaritalStatusDetails || !formData.otherMaritalStatusDetails.trim())) {
+      errs.otherMaritalStatusDetails = 'Please provide details for marital status';
+    }
+
+    if (formData.countryOfOrigin === 'Other' && (!(formData as any).otherCountryOfOriginDetails || !(formData as any).otherCountryOfOriginDetails.trim())) {
+      errs.otherCountryOfOriginDetails = 'Please specify your country of origin';
+    }
+
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -116,7 +125,7 @@ export const Step3BorrowerDetails: React.FC<Step3BorrowerDetailsProps> = ({
       <div className="space-y-4 mb-8">
         {/* Full Name */}
         <div className="space-y-1.5">
-          <label htmlFor="full-name-input" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+          <label htmlFor="full-name-input" className="block text-xs font-bold text-slate-700 ">
             {t(language, 'fullNamePassportLabel')} <span className="text-red-500">*</span>
           </label>
           <div className="relative">
@@ -139,7 +148,7 @@ export const Step3BorrowerDetails: React.FC<Step3BorrowerDetailsProps> = ({
 
         {/* Passport Number */}
         <div className="space-y-1.5">
-          <label htmlFor="passport-number-input" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+          <label htmlFor="passport-number-input" className="block text-xs font-bold text-slate-700 ">
             {t(language, 'passportNumberLabel')} <span className="text-red-500">*</span>
           </label>
           <input
@@ -160,7 +169,7 @@ export const Step3BorrowerDetails: React.FC<Step3BorrowerDetailsProps> = ({
 
         {/* Country of Origin */}
         <div className="space-y-1.5">
-          <label htmlFor="country-origin-select" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+          <label htmlFor="country-origin-select" className="block text-xs font-bold text-slate-700 ">
             {t(language, 'countryOfOriginLabel')} <span className="text-red-500">*</span>
           </label>
           <select
@@ -177,10 +186,33 @@ export const Step3BorrowerDetails: React.FC<Step3BorrowerDetailsProps> = ({
           </select>
         </div>
 
+        {/* Other Country of Origin Details */}
+        {formData.countryOfOrigin === 'Other' && (
+          <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-300">
+            <label htmlFor="other-country-input" className="block text-xs font-bold text-slate-700 ">
+              {t(language, 'pleaseSpecify')} <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="other-country-input"
+              type="text"
+              required
+              placeholder={t(language, 'provideDetails')}
+              value={(formData as any).otherCountryOfOriginDetails || ''}
+              onChange={(e) => setFormData({ ...formData, otherCountryOfOriginDetails: e.target.value } as any)}
+              className={`w-full px-4 py-3 rounded-xl border bg-white text-slate-900 text-sm font-medium focus:outline-none focus:ring-2 transition-all ${
+                errors.otherCountryOfOriginDetails
+                  ? 'border-red-400 focus:ring-red-200'
+                  : 'border-slate-300 focus:border-blue-900 focus:ring-blue-900/20'
+              }`}
+            />
+            {errors.otherCountryOfOriginDetails && <p className="text-xs text-red-600">{errors.otherCountryOfOriginDetails}</p>}
+          </div>
+        )}
+
         {/* Date of Birth & Live Age */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <label htmlFor="dob-input" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+            <label htmlFor="dob-input" className="block text-xs font-bold text-slate-700 ">
               {t(language, 'dateOfBirthLabel')} <span className="text-red-500">*</span>
             </label>
             {calculatedAge !== null && (
@@ -213,7 +245,7 @@ export const Step3BorrowerDetails: React.FC<Step3BorrowerDetailsProps> = ({
 
         {/* Marital Status */}
         <div className="space-y-1.5">
-          <label htmlFor="marital-status-select" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+          <label htmlFor="marital-status-select" className="block text-xs font-bold text-slate-700 ">
             {t(language, 'maritalStatusLabel')}
           </label>
           <select
@@ -230,9 +262,32 @@ export const Step3BorrowerDetails: React.FC<Step3BorrowerDetailsProps> = ({
           </select>
         </div>
 
+        {/* Other Marital Status Details */}
+        {formData.maritalStatus === 'Other' && (
+          <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-300">
+            <label htmlFor="other-marital-status-input" className="block text-xs font-bold text-slate-700 ">
+              {t(language, 'pleaseSpecify')} <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="other-marital-status-input"
+              type="text"
+              required
+              placeholder={t(language, 'provideDetails')}
+              value={formData.otherMaritalStatusDetails || ''}
+              onChange={(e) => setFormData({ ...formData, otherMaritalStatusDetails: e.target.value })}
+              className={`w-full px-4 py-3 rounded-xl border bg-white text-slate-900 text-sm font-medium focus:outline-none focus:ring-2 transition-all ${
+                errors.otherMaritalStatusDetails
+                  ? 'border-red-400 focus:ring-red-200'
+                  : 'border-slate-300 focus:border-blue-900 focus:ring-blue-900/20'
+              }`}
+            />
+            {errors.otherMaritalStatusDetails && <p className="text-xs text-red-600">{errors.otherMaritalStatusDetails}</p>}
+          </div>
+        )}
+
         {/* Residential Address in Israel */}
         <div className="space-y-2 pt-1">
-          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+          <label className="block text-xs font-bold text-slate-700 ">
             {t(language, 'addressInIsraelLabel')} <span className="text-red-500">*</span>
           </label>
           <div className="grid grid-cols-2 gap-2">

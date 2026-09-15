@@ -181,11 +181,12 @@ export default function App() {
   };
 
   // Step 8: Document uploads
-  const handleSaveDocuments = (documentsList: UploadedFile[]) => {
+  const handleSaveDocuments = (documentsList: UploadedFile[], bankAccountConfirmed: boolean) => {
     if (!application) return;
     const updated = {
       ...application,
       documents: documentsList,
+      bankAccountConfirmed: bankAccountConfirmed,
     };
     autoSaveDraft(updated, 9);
     setCurrentStep(9);
@@ -345,6 +346,7 @@ export default function App() {
                 language={currentLanguage}
                 applicationId={application?.id || 'temp'}
                 initialDocuments={application?.documents}
+                initialBankAccountConfirmed={application?.bankAccountConfirmed}
                 onSaveAndNext={handleSaveDocuments}
                 onBack={() => setCurrentStep(7)}
               />
