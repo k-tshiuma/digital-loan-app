@@ -22,7 +22,7 @@ export const Step5EmploymentDetails: React.FC<Step5EmploymentDetailsProps> = ({
     staffingAgencyName: initialData?.staffingAgencyName || '',
     jobTenureMonths: initialData?.jobTenureMonths || 18,
     monthlySalaryNis: initialData?.monthlySalaryNis || 7500,
-    salaryPaymentMethod: initialData?.salaryPaymentMethod || 'Bank transfer',
+    salaryPaymentMethod: initialData?.salaryPaymentMethod || 'Bank Transfer',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -40,6 +40,10 @@ export const Step5EmploymentDetails: React.FC<Step5EmploymentDetailsProps> = ({
 
     if (!formData.monthlySalaryNis || formData.monthlySalaryNis < 1000) {
       errs.monthlySalaryNis = 'Please enter a valid monthly salary in NIS (minimum ₪1,000)';
+    }
+
+    if (formData.salaryPaymentMethod === 'Other' && (!formData.otherSalaryPaymentMethodDetails || !formData.otherSalaryPaymentMethodDetails.trim())) {
+      errs.otherSalaryPaymentMethodDetails = 'Please provide details for the other payment method';
     }
 
     setErrors(errs);
@@ -68,7 +72,7 @@ export const Step5EmploymentDetails: React.FC<Step5EmploymentDetailsProps> = ({
       <div className="space-y-4 mb-8">
         {/* Employer Name */}
         <div className="space-y-1.5">
-          <label htmlFor="employer-name-input" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+          <label htmlFor="employer-name-input" className="block text-xs font-bold text-slate-700 ">
             {t(language, 'employerNameLabel')} <span className="text-red-500">*</span>
           </label>
           <input
@@ -89,7 +93,7 @@ export const Step5EmploymentDetails: React.FC<Step5EmploymentDetailsProps> = ({
 
         {/* Staffing Agency */}
         <div className="space-y-1.5">
-          <label htmlFor="agency-name-input" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+          <label htmlFor="agency-name-input" className="block text-xs font-bold text-slate-700 ">
             {t(language, 'staffingAgencyLabel')}
           </label>
           <input
@@ -104,7 +108,7 @@ export const Step5EmploymentDetails: React.FC<Step5EmploymentDetailsProps> = ({
 
         {/* Job Tenure */}
         <div className="space-y-1.5">
-          <label htmlFor="tenure-input" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+          <label htmlFor="tenure-input" className="block text-xs font-bold text-slate-700 ">
             {t(language, 'jobTenureMonthsLabel')} <span className="text-red-500">*</span>
           </label>
           <div className="relative">
@@ -127,7 +131,7 @@ export const Step5EmploymentDetails: React.FC<Step5EmploymentDetailsProps> = ({
 
         {/* Monthly Salary in NIS ₪ */}
         <div className="space-y-1.5">
-          <label htmlFor="salary-input" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+          <label htmlFor="salary-input" className="block text-xs font-bold text-slate-700 ">
             {t(language, 'monthlySalaryLabel')} <span className="text-red-500">*</span>
           </label>
           <div className="relative">
@@ -158,7 +162,7 @@ export const Step5EmploymentDetails: React.FC<Step5EmploymentDetailsProps> = ({
 
         {/* Salary Payment Method */}
         <div className="space-y-1.5">
-          <label htmlFor="payment-method-select" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+          <label htmlFor="payment-method-select" className="block text-xs font-bold text-slate-700 ">
             {t(language, 'salaryPaymentMethodLabel')}
           </label>
           <select
@@ -174,6 +178,29 @@ export const Step5EmploymentDetails: React.FC<Step5EmploymentDetailsProps> = ({
             ))}
           </select>
         </div>
+
+        {/* Other Salary Payment Method Details */}
+        {formData.salaryPaymentMethod === 'Other' && (
+          <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-300">
+            <label htmlFor="other-payment-method-input" className="block text-xs font-bold text-slate-700 ">
+              {t(language, 'pleaseSpecify')} <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="other-payment-method-input"
+              type="text"
+              required
+              placeholder={t(language, 'provideDetails')}
+              value={formData.otherSalaryPaymentMethodDetails || ''}
+              onChange={(e) => setFormData({ ...formData, otherSalaryPaymentMethodDetails: e.target.value })}
+              className={`w-full px-4 py-3 rounded-xl border bg-white text-slate-900 text-sm font-medium focus:outline-none focus:ring-2 transition-all ${
+                errors.otherSalaryPaymentMethodDetails
+                  ? 'border-red-400 focus:ring-red-200'
+                  : 'border-slate-300 focus:border-blue-900 focus:ring-blue-900/20'
+              }`}
+            />
+            {errors.otherSalaryPaymentMethodDetails && <p className="text-xs text-red-600">{errors.otherSalaryPaymentMethodDetails}</p>}
+          </div>
+        )}
       </div>
 
       {/* Footer Navigation */}

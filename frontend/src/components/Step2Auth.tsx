@@ -31,10 +31,15 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
   onAuthenticated,
   onBack,
 }) => {
-  // Main view state: 'signin' | 'reg_step1' | 'reg_step2_otp' | 'reg_step3_pwd' | 'signin_otp' | 'signin_pwd'
+  // Main view state: 'signin' | 'reg_location' | 'reg_disclaimer' | 'reg_step1' | 'reg_step2_otp' | 'reg_step3_pwd' | 'signin_otp' | 'signin_pwd'
   const [authMode, setAuthMode] = useState<
-    'signin' | 'reg_step1' | 'reg_step2_otp' | 'reg_step3_pwd' | 'signin_otp' | 'signin_pwd'
+    'signin' | 'reg_location' | 'reg_disclaimer' | 'reg_step1' | 'reg_step2_otp' | 'reg_step3_pwd' | 'signin_otp' | 'signin_pwd'
   >('signin');
+
+  // Pre-registration states
+  const [hasLocationPermission, setHasLocationPermission] = useState(false);
+  const [hasAgreedToDisclaimer, setHasAgreedToDisclaimer] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   // Sign In inputs
   const [signInCountryCode, setSignInCountryCode] = useState('+972');
@@ -156,6 +161,40 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
       setIsSubmitting(false);
       onAuthenticated(res.user);
     }, 500);
+  };
+
+  // ----------------------------------------------------
+  // Pre-Registration Handlers
+  // ----------------------------------------------------
+  const handleRequestLocation = () => {
+    setLocationError(null);
+    if (!navigator.geolocation) {
+      setLocationError("Geolocation is not supported by your browser.");
+      return;
+    }
+    
+    setIsSubmitting(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setIsSubmitting(false);
+        setHasLocationPermission(true);
+        setAuthMode('reg_disclaimer');
+      },
+      (error) => {
+        setIsSubmitting(false);
+        setLocationError("Location permission is required to proceed. Please enable it in your browser settings.");
+      }
+    );
+  };
+
+  const handleDisclaimerSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!hasAgreedToDisclaimer) {
+      setErrorMessage('You must agree to the monthly service charge to proceed.');
+      return;
+    }
+    setErrorMessage(null);
+    setAuthMode('reg_step1');
   };
 
   // ----------------------------------------------------
@@ -371,7 +410,7 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
             {/* OR Divider */}
             <div className="relative flex items-center justify-center">
               <div className="border-t border-slate-200 w-full" />
-              <span className="bg-white px-3 text-xs font-semibold text-slate-400 uppercase tracking-widest absolute">
+              <span className="bg-white px-3 text-xs font-semibold text-slate-400  absolute">
                 OR
               </span>
             </div>
@@ -379,7 +418,7 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
             {/* Mobile Phone Number Form */}
             <form onSubmit={handleSignInSubmit} className="space-y-4">
               <div className="space-y-2">
-                <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider">
+                <label className="block text-xs font-bold text-slate-800 ">
                   Mobile Phone Number
                 </label>
                 <div className="flex rounded-xl border border-slate-300 bg-white overflow-hidden focus-within:ring-2 focus-within:ring-blue-600/20 focus-within:border-blue-600 transition-all shadow-2xs">
@@ -443,7 +482,7 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
                 id="go-to-register-btn"
                 onClick={() => {
                   setErrorMessage(null);
-                  setAuthMode('reg_step1');
+                  setAuthMode('reg_location');
                 }}
                 className="font-bold text-blue-600 hover:text-blue-800 hover:underline"
               >
@@ -498,7 +537,7 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
               >
                 <ArrowLeft className="w-5 h-5 rtl:rotate-180" />
               </button>
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              <span className="text-xs font-semibold text-slate-400 ">
                 Sign In
               </span>
             </div>
@@ -514,7 +553,7 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
 
             <form onSubmit={handlePasswordSignIn} className="space-y-5">
               <div className="space-y-2">
-                <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider">
+                <label className="block text-xs font-bold text-slate-800 ">
                   Password
                 </label>
                 <div className="relative">
@@ -585,7 +624,7 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
               >
                 <ArrowLeft className="w-5 h-5 rtl:rotate-180" />
               </button>
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              <span className="text-xs font-semibold text-slate-400 ">
                 SMS Verification
               </span>
             </div>
@@ -658,6 +697,125 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
       )}
 
       {/* ========================================================================= */}
+      {/* PRE-REGISTRATION: LOCATION PERMISSION */}
+      {/* ========================================================================= */}
+      {authMode === 'reg_location' && (
+        <div className="space-y-6">
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 sm:p-7 space-y-6">
+            <div className="flex items-center justify-between pb-1 border-b border-slate-100">
+              <button
+                type="button"
+                onClick={() => setAuthMode('signin')}
+                className="p-1.5 -ml-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors flex items-center gap-1 text-sm font-medium"
+              >
+                <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
+                <span>Back</span>
+              </button>
+            </div>
+            
+            <div className="space-y-3">
+              <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                <Globe className="w-6 h-6" />
+              </div>
+              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+                Location Required
+              </h1>
+              <p className="text-sm text-slate-500">
+                To continue with your registration and comply with local regulations, we need permission to access your device's location.
+              </p>
+            </div>
+
+            {locationError && (
+              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{locationError}</span>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={handleRequestLocation}
+              disabled={isSubmitting}
+              className="w-full py-3.5 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-base shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {isSubmitting ? (
+                <RotateCw className="w-5 h-5 animate-spin" />
+              ) : (
+                <span>Grant Location Access</span>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* PRE-REGISTRATION: MONTHLY SERVICE CHARGE DISCLAIMER */}
+      {/* ========================================================================= */}
+      {authMode === 'reg_disclaimer' && (
+        <div className="space-y-6">
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 sm:p-7 space-y-6">
+            <div className="flex items-center justify-between pb-1 border-b border-slate-100">
+              <button
+                type="button"
+                onClick={() => setAuthMode('reg_location')}
+                className="p-1.5 -ml-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors flex items-center gap-1 text-sm font-medium"
+              >
+                <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
+                <span>Back</span>
+              </button>
+            </div>
+            
+            <div className="space-y-3">
+              <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                <ShieldCheck className="w-6 h-6" />
+              </div>
+              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+                Important Notice
+              </h1>
+              <p className="text-sm text-slate-500">
+                Please review and accept the monthly service charge disclaimer before proceeding.
+              </p>
+            </div>
+
+            <form onSubmit={handleDisclaimerSubmit} className="space-y-6">
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-700">
+                I acknowledge and agree that by proceeding with this loan application, I am subject to the applicable monthly service charge as determined by the loan service provider. This charge is in addition to the principal and interest amounts, and it covers the ongoing management of the account.
+              </div>
+
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <div className="relative flex items-center justify-center mt-0.5">
+                  <input
+                    type="checkbox"
+                    checked={hasAgreedToDisclaimer}
+                    onChange={(e) => setHasAgreedToDisclaimer(e.target.checked)}
+                    className="w-5 h-5 appearance-none border-2 border-slate-300 rounded-md checked:bg-blue-600 checked:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20 transition-all peer"
+                  />
+                  <Check className="w-3.5 h-3.5 text-white absolute opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity" strokeWidth={3} />
+                </div>
+                <span className="text-sm font-medium text-slate-700 group-hover:text-slate-900 transition-colors">
+                  I agree to the Monthly Service Charge Disclaimer
+                </span>
+              </label>
+
+              {errorMessage && (
+                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{errorMessage}</span>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                className="w-full py-3.5 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-base shadow-sm transition-all flex items-center justify-center gap-2"
+              >
+                Continue to Registration
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
       {/* 4. REGISTRATION STEP 1 OF 3: USER DETAILS (reg 1.png) */}
       {/* ========================================================================= */}
       {authMode === 'reg_step1' && (
@@ -668,7 +826,7 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
               <button
                 type="button"
                 id="reg-step1-back-btn"
-                onClick={() => setAuthMode('signin')}
+                onClick={() => setAuthMode('reg_disclaimer')}
                 className="p-1.5 -ml-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors flex items-center gap-1 text-sm font-medium"
               >
                 <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
@@ -835,7 +993,7 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
                 <div className="h-1.5 bg-blue-600 rounded-full" />
                 <div className="h-1.5 bg-slate-200 rounded-full" />
               </div>
-              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+              <div className="text-[11px] font-bold text-slate-400 ">
                 STEP 2 OF 3
               </div>
             </div>
@@ -975,7 +1133,7 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
                 <div className="h-1.5 bg-blue-600 rounded-full" />
                 <div className="h-1.5 bg-blue-600 rounded-full" />
               </div>
-              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+              <div className="text-[11px] font-bold text-slate-400 ">
                 STEP 3 OF 3
               </div>
             </div>

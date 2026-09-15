@@ -557,7 +557,7 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
               {/* Borrower & Residency Grid */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                  <div className="font-bold text-slate-900 uppercase tracking-wider text-[11px] border-b pb-1">
+                  <div className="font-bold text-slate-900  text-[11px] border-b pb-1">
                     Borrower Profile
                   </div>
                   <div><span className="text-slate-400">Full Name:</span> <span className="font-bold text-slate-900">{selectedApp.borrowerDetails?.fullName}</span></div>
@@ -568,7 +568,7 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
                 </div>
 
                 <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                  <div className="font-bold text-slate-900 uppercase tracking-wider text-[11px] border-b pb-1">
+                  <div className="font-bold text-slate-900  text-[11px] border-b pb-1">
                     Residency & Employment
                   </div>
                   <div><span className="text-slate-400">Visa Type:</span> <span className="font-bold">{selectedApp.residencyDetails?.visaType}</span></div>
@@ -582,22 +582,22 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
               {/* Loan Details */}
               <div className="p-4 rounded-2xl bg-blue-950 text-white flex items-center justify-between">
                 <div>
-                  <div className="text-[11px] text-blue-300 uppercase tracking-wider font-bold">Requested Loan Amount</div>
+                  <div className="text-[11px] text-blue-300  font-bold">Requested Loan Amount</div>
                   <div className="text-2xl font-extrabold font-mono text-white">₪{selectedApp.loanRequest?.requestedAmountNis?.toLocaleString()}</div>
                 </div>
                 <div>
-                  <div className="text-[11px] text-blue-300 uppercase tracking-wider font-bold">Term & Plan</div>
+                  <div className="text-[11px] text-blue-300  font-bold">Term & Plan</div>
                   <div className="text-sm font-bold">{selectedApp.loanRequest?.repaymentPeriodMonths} Months @ ₪{selectedApp.loanRequest?.estimatedMonthlyPaymentNis}/mo</div>
                 </div>
                 <div>
-                  <div className="text-[11px] text-blue-300 uppercase tracking-wider font-bold">Total Repayment</div>
+                  <div className="text-[11px] text-blue-300  font-bold">Total Repayment</div>
                   <div className="text-lg font-bold font-mono text-blue-100">₪{selectedApp.loanRequest?.totalRepaymentNis?.toLocaleString()}</div>
                 </div>
               </div>
 
               {/* Uploaded Documents Gallery & OCR verification */}
               <div className="space-y-2">
-                <div className="font-bold text-slate-900 uppercase tracking-wider text-[11px]">
+                <div className="font-bold text-slate-900  text-[11px]">
                   Uploaded Documents ({selectedApp.documents?.length || 0})
                 </div>
                 <div className="grid grid-cols-3 gap-3">
@@ -622,7 +622,7 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
 
               {/* Status History & Audit Notes */}
               <div className="space-y-2 border-t pt-3">
-                <div className="font-bold text-slate-900 uppercase tracking-wider text-[11px]">
+                <div className="font-bold text-slate-900  text-[11px]">
                   Underwriting & Lifecycle History
                 </div>
                 <div className="space-y-1.5">
@@ -640,7 +640,7 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
 
               {/* Operational Action Controls (Role-Based) */}
               <div className="p-4 rounded-2xl bg-purple-50 border border-purple-200 space-y-3">
-                <div className="font-bold text-purple-950 text-xs uppercase tracking-wider flex items-center justify-between">
+                <div className="font-bold text-purple-950 text-xs flex items-center justify-between">
                   <span>Underwriting Actions ({currentRole.toUpperCase()})</span>
                 </div>
 

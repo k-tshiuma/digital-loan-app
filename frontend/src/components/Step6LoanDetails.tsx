@@ -5,6 +5,7 @@ import {
   LOAN_PERIOD_OPTIONS,
   LOAN_PURPOSE_OPTIONS,
   REPAYMENT_SOURCE_OPTIONS,
+  GRACE_PERIOD_OPTIONS,
   calculateLoanRepayment,
 } from '../config/appConfig';
 import { t } from '../i18n/translations';
@@ -29,10 +30,13 @@ export const Step6LoanDetails: React.FC<Step6LoanDetailsProps> = ({
     initialData?.repaymentPeriodMonths || 6
   );
   const [loanPurpose, setLoanPurpose] = useState<string>(
-    initialData?.loanPurpose || 'Cash flow'
+    initialData?.loanPurpose || 'Cash Flow'
   );
   const [otherPurposeDetails, setOtherPurposeDetails] = useState<string>(
     initialData?.otherPurposeDetails || ''
+  );
+  const [gracePeriodMonths, setGracePeriodMonths] = useState<number>(
+    initialData?.gracePeriodMonths || 0
   );
   const [repaymentSource, setRepaymentSource] = useState<string>(
     initialData?.repaymentSource || 'Bank transfer'
@@ -66,6 +70,7 @@ export const Step6LoanDetails: React.FC<Step6LoanDetailsProps> = ({
       loanPurpose: loanPurpose as any,
       otherPurposeDetails: loanPurpose === 'Other' ? otherPurposeDetails : undefined,
       repaymentPeriodMonths: repaymentMonths as any,
+      gracePeriodMonths: gracePeriodMonths,
       repaymentSource: repaymentSource as any,
       estimatedMonthlyPaymentNis: calculation.monthlyPaymentNis,
       totalRepaymentNis: calculation.totalRepaymentNis,
@@ -88,7 +93,7 @@ export const Step6LoanDetails: React.FC<Step6LoanDetailsProps> = ({
         {/* Loan Amount Slider & Input */}
         <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-3">
           <div className="flex items-center justify-between">
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+            <label className="block text-xs font-bold text-slate-700 ">
               {t(language, 'loanAmountLabel')}
             </label>
             <span className="text-[11px] text-slate-400 font-semibold">
@@ -123,7 +128,7 @@ export const Step6LoanDetails: React.FC<Step6LoanDetailsProps> = ({
 
         {/* Repayment Period in Months */}
         <div className="space-y-1.5">
-          <label htmlFor="period-select" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+          <label htmlFor="period-select" className="block text-xs font-bold text-slate-700 ">
             {t(language, 'repaymentPeriodLabel')} <span className="text-red-500">*</span>
           </label>
           <div className="grid grid-cols-4 gap-2">
@@ -147,9 +152,38 @@ export const Step6LoanDetails: React.FC<Step6LoanDetailsProps> = ({
           </div>
         </div>
 
+        {/* Grace Period */}
+        <div className="space-y-1.5">
+          <label htmlFor="grace-period-select" className="block text-xs font-bold text-slate-700 ">
+            {t(language, 'gracePeriodLabel')} <span className="text-red-500">*</span>
+          </label>
+          <p className="text-[11px] text-slate-500 mb-2">
+            {t(language, 'gracePeriodHint')}
+          </p>
+          <div className="grid grid-cols-4 gap-2">
+            {GRACE_PERIOD_OPTIONS.map((months) => {
+              const isSelected = gracePeriodMonths === months;
+              return (
+                <button
+                  key={months}
+                  type="button"
+                  onClick={() => setGracePeriodMonths(months)}
+                  className={`py-3 px-2 rounded-xl text-center border font-bold text-xs transition-all ${
+                    isSelected
+                      ? 'bg-blue-900 text-white border-blue-900 shadow-xs'
+                      : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  {months === 0 ? 'None' : `${months} Mos`}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Loan Purpose */}
         <div className="space-y-1.5">
-          <label htmlFor="purpose-select" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+          <label htmlFor="purpose-select" className="block text-xs font-bold text-slate-700 ">
             {t(language, 'loanPurposeLabel')} <span className="text-red-500">*</span>
           </label>
           <select
@@ -179,7 +213,7 @@ export const Step6LoanDetails: React.FC<Step6LoanDetailsProps> = ({
 
         {/* Repayment Source */}
         <div className="space-y-1.5">
-          <label htmlFor="repayment-source-select" className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+          <label htmlFor="repayment-source-select" className="block text-xs font-bold text-slate-700 ">
             {t(language, 'repaymentSourceLabel')} <span className="text-red-500">*</span>
           </label>
           <select
@@ -201,7 +235,7 @@ export const Step6LoanDetails: React.FC<Step6LoanDetailsProps> = ({
           <div className="flex items-center justify-between border-b border-blue-800/80 pb-2.5">
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-blue-300" />
-              <span className="text-xs font-bold uppercase tracking-wider text-blue-200">
+              <span className="text-xs font-bold text-blue-200">
                 {t(language, 'estimatedRepaymentTitle')}
               </span>
             </div>
