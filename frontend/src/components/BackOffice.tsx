@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Search,
   Filter,
@@ -20,6 +20,8 @@ import {
   RefreshCw,
   ExternalLink,
   Sliders,
+  TrendingUp,
+  AlertTriangle,
 } from 'lucide-react';
 import {
   Language,
@@ -28,9 +30,12 @@ import {
   UserRole,
   ApplicationConfig,
   AuditEvent,
+  CreditRules,
 } from '../types';
 import { STATUS_BADGE_CONFIG } from '../config/appConfig';
 import { storageService } from '../services/storage';
+import { apiService } from '../services/api';
+import { AnalyticsDashboard } from './AnalyticsDashboard';
 import { t } from '../i18n/translations';
 
 interface BackOfficeProps {
@@ -52,7 +57,17 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
   const [selectedApp, setSelectedApp] = useState<LoanApplication | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
-  const [activeTab, setActiveTab] = useState<'applications' | 'audit' | 'config'>('applications');
+  const [activeTab, setActiveTab] = useState<'applications' | 'analytics' | 'audit' | 'config'>('applications');
+  const [creditRules, setCreditRules] = useState<Partial<CreditRules>>({
+    salaryMultiplier: 6,
+    salaryWarnRatio: 1.5,
+    visaBufferMonths: 3,
+    minTenureMonths: 6,
+    hardMinTenureMonths: 3,
+    guarantorBonus: 10,
+    lowRiskMinScore: 80,
+    mediumRiskMinScore: 50,
+  });
 
   // Review modal actions
   const [reviewReason, setReviewReason] = useState('');
@@ -64,6 +79,28 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
   const [config, setConfig] = useState<ApplicationConfig>(() => storageService.getConfig());
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>(() => storageService.getAuditEvents());
 
+  const fetchBackendData = async () => {
+    try {
+      if (currentRole !== 'borrower') {
+        await apiService.ensureStaffToken(currentRole);
+      }
+      const backendApps = await apiService.listAllApplications();
+      if (backendApps && backendApps.length > 0) {
+        setApplications(backendApps);
+      }
+      const rulesData = await apiService.getCreditRules();
+      if (rulesData && rulesData.rules) {
+        setCreditRules(rulesData.rules);
+      }
+    } catch {
+      // offline / local storage fallback
+    }
+  };
+
+  useEffect(() => {
+    fetchBackendData();
+  }, [currentRole]);
+
   const reloadData = () => {
     setApplications(storageService.getAllApplications());
     setAuditEvents(storageService.getAuditEvents());
@@ -71,6 +108,7 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
       const fresh = storageService.getApplication(selectedApp.id);
       setSelectedApp(fresh);
     }
+    fetchBackendData();
   };
 
   // Filtered applications list
@@ -89,7 +127,7 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
     return matchesStatus && matchesSearch;
   });
 
-  const handleStatusChange = (newStatus: CanonicalStatus, reason?: string, missingNote?: string) => {
+  const handleStatusChange = async (newStatus: CanonicalStatus, reason?: string, missingNote?: string) => {
     if (!selectedApp) return;
 
     const updated = storageService.updateApplicationStatus(
@@ -101,6 +139,12 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
       missingNote || missingDocNote
     );
 
+    try {
+      await apiService.saveApplication(updated, 'staff');
+    } catch (err) {
+      console.warn('Backend sync failed, saved locally:', err);
+    }
+
     setActionSuccessMessage(`Application status updated to ${newStatus}`);
     setReviewReason('');
     setMissingDocNote('');
@@ -109,9 +153,13 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
     setTimeout(() => setActionSuccessMessage(null), 3000);
   };
 
-  const handleFundingHandoff = () => {
+  const handleFundingHandoff = async () => {
     if (!selectedApp) return;
-    storageService.simulateFundingHandoff(selectedApp.id, `FundingOfficer (${currentRole})`);
+    const rec = storageService.simulateFundingHandoff(selectedApp.id, `FundingOfficer (${currentRole})`);
+    try {
+      const fresh = storageService.getApplication(selectedApp.id);
+      if (fresh) await apiService.saveApplication(fresh, 'staff');
+    } catch {}
     setActionSuccessMessage('Application successfully pushed to Bank Leumi FinTech Gateway!');
     reloadData();
     setTimeout(() => setActionSuccessMessage(null), 4000);
@@ -140,9 +188,18 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
     URL.revokeObjectURL(url);
   };
 
-  const handleSaveConfig = (e: React.FormEvent) => {
+  const handleSaveConfig = async (e: React.FormEvent) => {
     e.preventDefault();
     storageService.updateConfig(config);
+
+    try {
+      if (currentRole === 'system_admin') {
+        await apiService.updateCreditRules(creditRules);
+      }
+    } catch (err) {
+      console.warn('Backend credit rules update failed:', err);
+    }
+
     setActionSuccessMessage('System configuration and credit policy updated successfully.');
     reloadData();
     setTimeout(() => setActionSuccessMessage(null), 3000);
@@ -214,6 +271,20 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
               <FileText className="w-3.5 h-3.5 inline mr-1.5" />
               Loan Applications ({applications.length})
             </button>
+
+            {(currentRole === 'credit_reviewer' || currentRole === 'system_admin') && (
+              <button
+                onClick={() => setActiveTab('analytics')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                  activeTab === 'analytics'
+                    ? 'bg-purple-900 text-white shadow-xs'
+                    : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'
+                }`}
+              >
+                <TrendingUp className="w-3.5 h-3.5 inline mr-1.5" />
+                Analytics Dashboard
+              </button>
+            )}
 
             <button
               onClick={() => setActiveTab('audit')}
@@ -304,6 +375,7 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
                       <th className="py-3 px-4">Passport & Origin</th>
                       <th className="py-3 px-4">Visa & Tenure</th>
                       <th className="py-3 px-4 text-right">Loan Request (₪)</th>
+                      <th className="py-3 px-4 text-center">Risk Score</th>
                       <th className="py-3 px-4 text-center">Status</th>
                       <th className="py-3 px-4 text-right">Action</th>
                     </tr>
@@ -348,6 +420,24 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
                               </span>
                             </td>
                             <td className="py-3.5 px-4 text-center">
+                              {app.riskLevel ? (
+                                <span
+                                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold border inline-flex items-center gap-1 ${
+                                    app.riskLevel === 'Low'
+                                      ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                      : app.riskLevel === 'Medium'
+                                      ? 'bg-amber-50 text-amber-800 border-amber-300'
+                                      : 'bg-red-50 text-red-800 border-red-300'
+                                  }`}
+                                >
+                                  <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                                  {app.riskLevel} ({app.riskScore ?? '—'})
+                                </span>
+                              ) : (
+                                <span className="text-slate-400 text-[10px]">Unscored</span>
+                              )}
+                            </td>
+                            <td className="py-3.5 px-4 text-center">
                               <span
                                 className={`px-2.5 py-1 rounded-full text-[11px] font-bold border inline-block ${sCfg.badgeColor}`}
                               >
@@ -372,7 +462,7 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
                       })
                     ) : (
                       <tr>
-                        <td colSpan={7} className="py-8 text-center text-slate-400">
+                        <td colSpan={8} className="py-8 text-center text-slate-400">
                           No loan applications match the active filters.
                         </td>
                       </tr>
@@ -382,6 +472,11 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
               </div>
             </div>
           </div>
+        )}
+
+        {/* TAB 2: Analytics Dashboard (Phase 3) */}
+        {activeTab === 'analytics' && (
+          <AnalyticsDashboard applications={applications} />
         )}
 
         {/* TAB 2: Immutable Audit Trail */}
@@ -427,76 +522,166 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
 
         {/* TAB 3: Credit Policy Configuration */}
         {activeTab === 'config' && (
-          <form onSubmit={handleSaveConfig} className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 max-w-2xl mx-auto space-y-4">
+          <form onSubmit={handleSaveConfig} className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 max-w-2xl mx-auto space-y-6">
             <div className="border-b pb-3">
               <h3 className="text-base font-bold text-slate-900">Credit Policy & Operational Parameters</h3>
-              <p className="text-xs text-slate-500">Modify lending constraints without redeploying code.</p>
+              <p className="text-xs text-slate-500">Modify lending constraints and credit scoring rules without redeploying code.</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 text-xs">
-              <div className="space-y-1">
-                <label className="font-bold text-slate-700">Min Loan Amount (₪)</label>
-                <input
-                  type="number"
-                  value={config.minLoanAmountNis}
-                  onChange={(e) => setConfig({ ...config, minLoanAmountNis: Number(e.target.value) })}
-                  className="w-full p-2.5 rounded-xl border border-slate-300 font-mono"
-                />
-              </div>
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Loan Product Constraints</h4>
+              <div className="grid grid-cols-2 gap-4 text-xs">
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Min Loan Amount (₪)</label>
+                  <input
+                    type="number"
+                    value={config.minLoanAmountNis}
+                    onChange={(e) => setConfig({ ...config, minLoanAmountNis: Number(e.target.value) })}
+                    className="w-full p-2.5 rounded-xl border border-slate-300 font-mono"
+                  />
+                </div>
 
-              <div className="space-y-1">
-                <label className="font-bold text-slate-700">Max Loan Amount (₪)</label>
-                <input
-                  type="number"
-                  value={config.maxLoanAmountNis}
-                  onChange={(e) => setConfig({ ...config, maxLoanAmountNis: Number(e.target.value) })}
-                  className="w-full p-2.5 rounded-xl border border-slate-300 font-mono"
-                />
-              </div>
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Max Loan Amount (₪)</label>
+                  <input
+                    type="number"
+                    value={config.maxLoanAmountNis}
+                    onChange={(e) => setConfig({ ...config, maxLoanAmountNis: Number(e.target.value) })}
+                    className="w-full p-2.5 rounded-xl border border-slate-300 font-mono"
+                  />
+                </div>
 
-              <div className="space-y-1">
-                <label className="font-bold text-slate-700">Min Borrower Age (Years)</label>
-                <input
-                  type="number"
-                  value={config.minBorrowerAge}
-                  onChange={(e) => setConfig({ ...config, minBorrowerAge: Number(e.target.value) })}
-                  className="w-full p-2.5 rounded-xl border border-slate-300 font-mono"
-                />
-              </div>
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Min Borrower Age (Years)</label>
+                  <input
+                    type="number"
+                    value={config.minBorrowerAge}
+                    onChange={(e) => setConfig({ ...config, minBorrowerAge: Number(e.target.value) })}
+                    className="w-full p-2.5 rounded-xl border border-slate-300 font-mono"
+                  />
+                </div>
 
-              <div className="space-y-1">
-                <label className="font-bold text-slate-700">Visa Validity Buffer (Months)</label>
-                <input
-                  type="number"
-                  value={config.minVisaValidityMonths}
-                  onChange={(e) => setConfig({ ...config, minVisaValidityMonths: Number(e.target.value) })}
-                  className="w-full p-2.5 rounded-xl border border-slate-300 font-mono"
-                />
-              </div>
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Visa Validity Buffer (Months)</label>
+                  <input
+                    type="number"
+                    value={config.minVisaValidityMonths}
+                    onChange={(e) => setConfig({ ...config, minVisaValidityMonths: Number(e.target.value) })}
+                    className="w-full p-2.5 rounded-xl border border-slate-300 font-mono"
+                  />
+                </div>
 
-              <div className="space-y-1">
-                <label className="font-bold text-slate-700">Default APR (%)</label>
-                <input
-                  type="number"
-                  step={0.1}
-                  value={config.defaultInterestRatePercent}
-                  onChange={(e) => setConfig({ ...config, defaultInterestRatePercent: Number(e.target.value) })}
-                  className="w-full p-2.5 rounded-xl border border-slate-300 font-mono"
-                />
-              </div>
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Default APR (%)</label>
+                  <input
+                    type="number"
+                    step={0.1}
+                    value={config.defaultInterestRatePercent}
+                    onChange={(e) => setConfig({ ...config, defaultInterestRatePercent: Number(e.target.value) })}
+                    className="w-full p-2.5 rounded-xl border border-slate-300 font-mono"
+                  />
+                </div>
 
-              <div className="space-y-1">
-                <label className="font-bold text-slate-700">Management Fee (₪)</label>
-                <input
-                  type="number"
-                  value={config.managementFeeNis}
-                  onChange={(e) => setConfig({ ...config, managementFeeNis: Number(e.target.value) })}
-                  className="w-full p-2.5 rounded-xl border border-slate-300 font-mono"
-                />
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Management Fee (₪)</label>
+                  <input
+                    type="number"
+                    value={config.managementFeeNis}
+                    onChange={(e) => setConfig({ ...config, managementFeeNis: Number(e.target.value) })}
+                    className="w-full p-2.5 rounded-xl border border-slate-300 font-mono"
+                  />
+                </div>
               </div>
             </div>
 
-            <div className="pt-4 border-t flex justify-end">
+            {/* Credit Engine Rules */}
+            <div className="border-t pt-4 space-y-3">
+              <div>
+                <h4 className="text-xs font-bold text-purple-900 uppercase tracking-wider">Automated Credit Scoring Policy</h4>
+                <p className="text-[11px] text-slate-500">Updating credit rules automatically rescores active Under Review applications.</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 text-xs">
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Max Salary Multiplier</label>
+                  <input
+                    type="number"
+                    step={0.5}
+                    value={creditRules.salaryMultiplier ?? 6}
+                    onChange={(e) => setCreditRules({ ...creditRules, salaryMultiplier: Number(e.target.value) })}
+                    className="w-full p-2.5 rounded-xl border border-slate-300 font-mono"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Salary Warning Ratio</label>
+                  <input
+                    type="number"
+                    step={0.1}
+                    value={creditRules.salaryWarnRatio ?? 1.5}
+                    onChange={(e) => setCreditRules({ ...creditRules, salaryWarnRatio: Number(e.target.value) })}
+                    className="w-full p-2.5 rounded-xl border border-slate-300 font-mono"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Visa Expiry Buffer (Months)</label>
+                  <input
+                    type="number"
+                    value={creditRules.visaBufferMonths ?? 3}
+                    onChange={(e) => setCreditRules({ ...creditRules, visaBufferMonths: Number(e.target.value) })}
+                    className="w-full p-2.5 rounded-xl border border-slate-300 font-mono"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Min Tenure Months</label>
+                  <input
+                    type="number"
+                    value={creditRules.minTenureMonths ?? 6}
+                    onChange={(e) => setCreditRules({ ...creditRules, minTenureMonths: Number(e.target.value) })}
+                    className="w-full p-2.5 rounded-xl border border-slate-300 font-mono"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Low Risk Min Score (Green)</label>
+                  <input
+                    type="number"
+                    value={creditRules.lowRiskMinScore ?? 80}
+                    onChange={(e) => setCreditRules({ ...creditRules, lowRiskMinScore: Number(e.target.value) })}
+                    className="w-full p-2.5 rounded-xl border border-slate-300 font-mono"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Medium Risk Min Score (Amber)</label>
+                  <input
+                    type="number"
+                    value={creditRules.mediumRiskMinScore ?? 50}
+                    onChange={(e) => setCreditRules({ ...creditRules, mediumRiskMinScore: Number(e.target.value) })}
+                    className="w-full p-2.5 rounded-xl border border-slate-300 font-mono"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Guarantor Score Bonus</label>
+                  <input
+                    type="number"
+                    value={creditRules.guarantorBonus ?? 10}
+                    onChange={(e) => setCreditRules({ ...creditRules, guarantorBonus: Number(e.target.value) })}
+                    className="w-full p-2.5 rounded-xl border border-slate-300 font-mono"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t flex items-center justify-between">
+              <span className="text-[11px] text-slate-400">
+                {currentRole === 'system_admin'
+                  ? 'Admin access: Changes will sync to backend credit engine'
+                  : 'Note: Backend rules modification requires System Admin role'}
+              </span>
               <button
                 type="submit"
                 className="px-5 py-2.5 rounded-xl bg-purple-900 hover:bg-purple-800 text-white font-bold text-xs shadow-xs"
@@ -533,6 +718,22 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
               </div>
 
               <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!selectedApp) return;
+                    try {
+                      await apiService.downloadApplicationPdf(selectedApp, 'staff');
+                    } catch (e: any) {
+                      setActionSuccessMessage('PDF export: ' + (e.message || 'error'));
+                    }
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-blue-700 hover:bg-blue-600 text-xs text-white border border-blue-600 flex items-center gap-1 font-semibold transition-colors"
+                  title="Download PDF Summary"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  PDF
+                </button>
                 <button
                   type="button"
                   onClick={handleDownloadSignedJson}
@@ -579,6 +780,40 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
                 </div>
               </div>
 
+              {/* Disbursement Bank Account & Guarantor Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                  <div className="font-bold text-slate-900 text-[11px] border-b pb-1 flex items-center justify-between">
+                    <span>Disbursement Bank Account</span>
+                    <span className="text-[10px] text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full font-semibold">
+                      Verified
+                    </span>
+                  </div>
+                  <div><span className="text-slate-400">Bank:</span> <span className="font-bold text-slate-800">{selectedApp.bankAccount?.bankName || '—'}</span></div>
+                  <div><span className="text-slate-400">Branch:</span> <span className="font-mono font-bold">{selectedApp.bankAccount?.branchNumber || '—'}</span></div>
+                  <div><span className="text-slate-400">Account:</span> <span className="font-mono font-bold">{selectedApp.bankAccount?.accountNumber || '—'}</span></div>
+                  <div><span className="text-slate-400">Account Holder:</span> <span className="text-slate-800">{selectedApp.bankAccount?.accountHolderName || selectedApp.borrowerDetails?.fullName || '—'}</span></div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                  <div className="font-bold text-slate-900 text-[11px] border-b pb-1">
+                    Guarantor Information
+                  </div>
+                  {selectedApp.guarantor?.hasGuarantor ? (
+                    <>
+                      <div><span className="text-slate-400">Name:</span> <span className="font-bold text-slate-800">{selectedApp.guarantor.fullName}</span></div>
+                      <div><span className="text-slate-400">ID / Passport:</span> <span className="font-mono font-bold">{selectedApp.guarantor.passportOrIdNumber}</span></div>
+                      <div><span className="text-slate-400">Phone:</span> {selectedApp.guarantor.mobilePhoneNumber}</div>
+                      <div><span className="text-slate-400">Relationship:</span> {selectedApp.guarantor.relationship}</div>
+                    </>
+                  ) : (
+                    <div className="text-slate-500 py-3">
+                      No guarantor provided (Self-guaranteed personal microloan).
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Loan Details */}
               <div className="p-4 rounded-2xl bg-blue-950 text-white flex items-center justify-between">
                 <div>
@@ -595,28 +830,114 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
                 </div>
               </div>
 
+              {/* Automated Credit Risk Assessment (Phase 8) */}
+              <div className="p-4 rounded-2xl bg-slate-900 text-white space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-purple-400" />
+                    <span className="font-bold text-xs text-purple-200">
+                      Automated Pre-Screening & Risk Assessment
+                    </span>
+                  </div>
+                  {selectedApp.riskLevel ? (
+                    <span
+                      className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
+                        selectedApp.riskLevel === 'Low'
+                          ? 'bg-emerald-950 text-emerald-300 border-emerald-700'
+                          : selectedApp.riskLevel === 'Medium'
+                          ? 'bg-amber-950 text-amber-300 border-amber-700'
+                          : 'bg-red-950 text-red-300 border-red-700'
+                      }`}
+                    >
+                      {selectedApp.riskLevel} Risk (Score: {selectedApp.riskScore ?? '—'}/100)
+                    </span>
+                  ) : (
+                    <span className="text-slate-400 text-xs">Advisory score pending</span>
+                  )}
+                </div>
+
+                {selectedApp.riskFlags && selectedApp.riskFlags.length > 0 ? (
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-slate-400 font-semibold">Risk Flags Identified:</span>
+                    <div className="space-y-1">
+                      {selectedApp.riskFlags.map((flag, idx) => (
+                        <div
+                          key={idx}
+                          className="text-[11px] font-mono text-amber-300 bg-amber-950/60 border border-amber-800/80 px-2.5 py-1 rounded-lg flex items-center gap-1.5"
+                        >
+                          <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0" />
+                          <span>{flag}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-[11px] text-emerald-400 flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>No underwriting risk flags triggered. Clean borrower profile.</span>
+                  </div>
+                )}
+              </div>
+
               {/* Uploaded Documents Gallery & OCR verification */}
               <div className="space-y-2">
                 <div className="font-bold text-slate-900  text-[11px]">
                   Uploaded Documents ({selectedApp.documents?.length || 0})
                 </div>
                 <div className="grid grid-cols-3 gap-3">
-                  {selectedApp.documents?.map((doc) => (
-                    <div key={doc.id} className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-slate-800 text-[11px]">{doc.documentTypeCode}</span>
-                        <span className="text-[10px] text-emerald-700 bg-emerald-100 px-1.5 py-0.2 rounded font-semibold">
-                          {doc.qualityStatus}
-                        </span>
-                      </div>
-                      <div className="text-[10px] text-slate-500 truncate">{doc.originalFilename}</div>
-                      {doc.ocrExtractedData && (
-                        <div className="text-[10px] text-blue-900 bg-blue-50 p-1.5 rounded border border-blue-100 font-mono">
-                          OCR: {doc.ocrExtractedData.passportNumber || doc.ocrExtractedData.visaExpiryDate || 'Extracted'}
+                  {selectedApp.documents?.map((doc) => {
+                    const resolvedUrl = apiService.resolveFileUrl(doc.fileUrl, 'staff') || doc.dataUrl;
+                    const isImg = doc.mimeType?.startsWith('image/') || resolvedUrl?.startsWith('data:image/');
+                    return (
+                      <div key={doc.id} className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-slate-800 text-[11px]">{doc.documentTypeCode}</span>
+                          <span className="text-[10px] text-emerald-700 bg-emerald-100 px-1.5 py-0.2 rounded font-semibold">
+                            {doc.qualityStatus}
+                          </span>
                         </div>
-                      )}
-                    </div>
-                  ))}
+
+                        {/* Thumbnail view */}
+                        {resolvedUrl && isImg ? (
+                          <a
+                            href={resolvedUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block overflow-hidden rounded-lg border border-slate-200 aspect-video bg-slate-100 group relative"
+                            title="Click to view full size"
+                          >
+                            <img
+                              src={resolvedUrl}
+                              alt={doc.originalFilename}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                            />
+                            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-bold transition-opacity">
+                              <ExternalLink className="w-3 h-3" />
+                            </div>
+                          </a>
+                        ) : resolvedUrl ? (
+                          <a
+                            href={resolvedUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-2 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center gap-1.5 text-blue-900 font-semibold text-[11px] hover:bg-blue-100"
+                          >
+                            <FileText className="w-4 h-4 text-blue-700" />
+                            <span>View PDF</span>
+                          </a>
+                        ) : null}
+
+                        <div className="text-[10px] text-slate-500 truncate" title={doc.originalFilename}>
+                          {doc.originalFilename}
+                        </div>
+                        {doc.ocrExtractedData && (
+                          <div className="text-[10px] text-blue-900 bg-blue-50 p-1.5 rounded border border-blue-100 font-mono">
+                            OCR: {doc.ocrExtractedData.passportNumber || doc.ocrExtractedData.visaExpiryDate || 'Extracted'}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 

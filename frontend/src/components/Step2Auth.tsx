@@ -19,6 +19,7 @@ import { Language, User } from '../types';
 import { COUNTRY_PHONE_CODES } from '../config/appConfig';
 import { t } from '../i18n/translations';
 import { storageService } from '../services/storage';
+import { apiService, isNetworkError } from '../services/api';
 
 interface Step2AuthProps {
   language: Language;
@@ -31,9 +32,9 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
   onAuthenticated,
   onBack,
 }) => {
-  // Main view state: 'signin' | 'reg_location' | 'reg_disclaimer' | 'reg_step1' | 'reg_step2_otp' | 'reg_step3_pwd' | 'signin_otp' | 'signin_pwd'
+  // Main view state: 'signin' | 'reg_location' | 'reg_disclaimer' | 'reg_step1' | 'reg_step2_otp' | 'reg_step3_pwd' | 'signin_otp' | 'signin_pwd' | 'forgot_password' | 'reset_password'
   const [authMode, setAuthMode] = useState<
-    'signin' | 'reg_location' | 'reg_disclaimer' | 'reg_step1' | 'reg_step2_otp' | 'reg_step3_pwd' | 'signin_otp' | 'signin_pwd'
+    'signin' | 'reg_location' | 'reg_disclaimer' | 'reg_step1' | 'reg_step2_otp' | 'reg_step3_pwd' | 'signin_otp' | 'signin_pwd' | 'forgot_password' | 'reset_password'
   >('signin');
 
   // Pre-registration states
@@ -46,6 +47,15 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
   const [signInPhone, setSignInPhone] = useState('50 123 4567');
   const [signInPassword, setSignInPassword] = useState('');
   const [showSignInPassword, setShowSignInPassword] = useState(false);
+
+  // Forgot / Reset Password inputs
+  const [forgotIdentifier, setForgotIdentifier] = useState('');
+  const [resetCode, setResetCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
+  const [forgotSuccessMessage, setForgotSuccessMessage] = useState<string | null>(null);
 
   // Registration inputs
   const [regFullName, setRegFullName] = useState('');
@@ -96,7 +106,7 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
   // ----------------------------------------------------
   // Sign In Handlers
   // ----------------------------------------------------
-  const handleSignInSubmit = (e: React.FormEvent) => {
+  const handleSignInSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
 
@@ -107,17 +117,26 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
 
     setIsSubmitting(true);
 
-    // Check if user already exists
-    const existingUser = storageService.findUserByPhone(fullSignInPhone);
-
-    setTimeout(() => {
+    try {
+      const lookup = await apiService.lookupPhone(fullSignInPhone);
       setIsSubmitting(false);
-
-      if (existingUser && existingUser.password) {
-        // User has a password setup -> ask for password or OTP
+      if (lookup.exists && lookup.hasPassword) {
         setAuthMode('signin_pwd');
       } else {
-        // Send OTP
+        const otpRes = await apiService.requestOtp(fullSignInPhone);
+        if (otpRes.demoCode) setGeneratedDemoCode(otpRes.demoCode);
+        setOtpDigits(['', '', '', '', '', '']);
+        setResendTimer(otpRes.expiresInSeconds || 45);
+        setAuthMode('signin_otp');
+        setTimeout(() => otpInputRefs.current[0]?.focus(), 150);
+      }
+    } catch (apiErr: any) {
+      // Fallback to storageService if backend is offline or unreachable
+      const existingUser = storageService.findUserByPhone(fullSignInPhone);
+      setIsSubmitting(false);
+      if (existingUser && existingUser.password) {
+        setAuthMode('signin_pwd');
+      } else {
         const { code } = storageService.generateOTP(fullSignInPhone, language);
         setGeneratedDemoCode(code);
         setOtpDigits(['', '', '', '', '', '']);
@@ -125,10 +144,10 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
         setAuthMode('signin_otp');
         setTimeout(() => otpInputRefs.current[0]?.focus(), 150);
       }
-    }, 300);
+    }
   };
 
-  const handlePasswordSignIn = (e: React.FormEvent) => {
+  const handlePasswordSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
 
@@ -138,29 +157,102 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
     }
 
     setIsSubmitting(true);
-    setTimeout(() => {
-      const res = storageService.loginWithPassword(fullSignInPhone, signInPassword);
+    try {
+      const user = await apiService.loginWithPassword(fullSignInPhone, signInPassword);
       setIsSubmitting(false);
-      if (res.success && res.user) {
-        onAuthenticated(res.user);
+      // Sync local storage session
+      storageService.loginWithPassword(fullSignInPhone, signInPassword);
+      onAuthenticated(user);
+    } catch (apiErr: any) {
+      if (isNetworkError(apiErr)) {
+        const res = storageService.loginWithPassword(fullSignInPhone, signInPassword);
+        setIsSubmitting(false);
+        if (res.success && res.user) {
+          onAuthenticated(res.user);
+        } else {
+          setErrorMessage(res.error || 'Invalid credentials');
+        }
       } else {
-        setErrorMessage(res.error || 'Invalid credentials');
+        setIsSubmitting(false);
+        setErrorMessage(apiErr.message || 'Incorrect password. Please try again.');
       }
-    }, 400);
+    }
   };
 
-  const handleGoogleSignIn = () => {
+  const handleGoogleSignIn = async () => {
     setIsSubmitting(true);
     setErrorMessage(null);
-    setTimeout(() => {
-      const demoProfile = {
-        name: 'Demo Borrower',
-        email: 'borrower@lendglobal.io',
-      };
+    const demoProfile = {
+      name: 'Demo Borrower',
+      email: 'borrower@lendglobal.io',
+    };
+    try {
+      const user = await apiService.loginWithGoogleDemo(demoProfile, language);
+      setIsSubmitting(false);
+      storageService.loginWithGoogle(demoProfile, language);
+      onAuthenticated(user);
+    } catch (apiErr: any) {
+      // Fallback
       const res = storageService.loginWithGoogle(demoProfile, language);
       setIsSubmitting(false);
       onAuthenticated(res.user);
-    }, 500);
+    }
+  };
+
+  const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage(null);
+    setForgotSuccessMessage(null);
+
+    if (!forgotIdentifier.trim()) {
+      setErrorMessage('Please enter your registered mobile phone number or email.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await apiService.forgotPassword(forgotIdentifier.trim());
+      setIsSubmitting(false);
+      if (res.demoCode) {
+        setResetCode(res.demoCode);
+      }
+      setForgotSuccessMessage(res.message || 'Password reset code sent!');
+      setAuthMode('reset_password');
+    } catch (err: any) {
+      setIsSubmitting(false);
+      setForgotSuccessMessage('If an account exists, a reset code has been sent.');
+      setAuthMode('reset_password');
+    }
+  };
+
+  const handleResetPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage(null);
+
+    if (!resetCode.trim() || resetCode.trim().length < 6) {
+      setErrorMessage('Please enter the 6-digit reset code.');
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setErrorMessage('Password must be at least 8 characters long.');
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      setErrorMessage('Passwords do not match. Please re-enter.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const user = await apiService.resetPassword(forgotIdentifier.trim(), resetCode.trim(), newPassword);
+      setIsSubmitting(false);
+      onAuthenticated(user);
+    } catch (err: any) {
+      setIsSubmitting(false);
+      setErrorMessage(err.message || 'Failed to reset password. Please check the code.');
+    }
   };
 
   // ----------------------------------------------------
@@ -200,7 +292,7 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
   // ----------------------------------------------------
   // Registration Handlers
   // ----------------------------------------------------
-  const handleRegStep1Submit = (e: React.FormEvent) => {
+  const handleRegStep1Submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
 
@@ -229,15 +321,21 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
     }
 
     setIsSubmitting(true);
-    setTimeout(() => {
+    try {
+      const otpRes = await apiService.requestOtp(fullRegPhone);
+      const code = otpRes?.demoCode || storageService.generateOTP(fullRegPhone, language).code;
+      setGeneratedDemoCode(code);
+      storageService.generateOTP(fullRegPhone, language);
+    } catch {
       const { code } = storageService.generateOTP(fullRegPhone, language);
       setGeneratedDemoCode(code);
+    } finally {
       setIsSubmitting(false);
       setOtpDigits(['', '', '', '', '', '']);
       setResendTimer(45);
       setAuthMode('reg_step2_otp');
       setTimeout(() => otpInputRefs.current[0]?.focus(), 150);
-    }, 400);
+    }
   };
 
   const handleOtpDigitChange = (index: number, val: string) => {
@@ -277,7 +375,7 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
     }
   };
 
-  const verifyOtpCode = (codeToVerify?: string) => {
+  const verifyOtpCode = async (codeToVerify?: string) => {
     const code = codeToVerify || otpDigits.join('');
     if (code.length < 6) {
       setErrorMessage('Please enter all 6 digits of the verification code.');
@@ -289,25 +387,36 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
 
     const targetPhone = authMode === 'reg_step2_otp' ? fullRegPhone : fullSignInPhone;
 
-    setTimeout(() => {
-      const res = storageService.verifyOTP(targetPhone, code);
+    try {
+      const user = await apiService.verifyOTP(targetPhone, code, language);
       setIsSubmitting(false);
+      // Keep local storage synced
+      storageService.verifyOTP(targetPhone, code);
 
+      if (authMode === 'reg_step2_otp') {
+        setAuthMode('reg_step3_pwd');
+      } else {
+        onAuthenticated(user);
+      }
+    } catch (apiErr: any) {
+      // Demo / testing fallback: check if local storage or generated demo code accepts it
+      const res = storageService.verifyOTP(targetPhone, code);
       if (res.success && res.user) {
+        setIsSubmitting(false);
         if (authMode === 'reg_step2_otp') {
-          // Advance to Registration Step 3 (Set Password)
           setAuthMode('reg_step3_pwd');
         } else {
-          // Sign in directly
           onAuthenticated(res.user);
         }
-      } else {
-        setErrorMessage(res.error || 'Invalid verification code');
+        return;
       }
-    }, 400);
+
+      setIsSubmitting(false);
+      setErrorMessage(apiErr.message || 'Incorrect verification code. Please try again.');
+    }
   };
 
-  const handleRegStep3Submit = (e: React.FormEvent) => {
+  const handleRegStep3Submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
 
@@ -322,8 +431,16 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
     }
 
     setIsSubmitting(true);
-    setTimeout(() => {
-      const res = storageService.registerUser({
+    try {
+      const user = await apiService.register({
+        fullName: regFullName,
+        email: regEmail,
+        phoneNumber: fullRegPhone,
+        password: regPassword,
+        preferredLanguage: language,
+      });
+
+      storageService.registerUser({
         fullName: regFullName,
         email: regEmail,
         phoneNumber: fullRegPhone,
@@ -332,12 +449,28 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
       });
 
       setIsSubmitting(false);
-      if (res.success && res.user) {
-        onAuthenticated(res.user);
+      onAuthenticated(user);
+    } catch (apiErr: any) {
+      if (isNetworkError(apiErr)) {
+        const res = storageService.registerUser({
+          fullName: regFullName,
+          email: regEmail,
+          phoneNumber: fullRegPhone,
+          password: regPassword,
+          preferredLanguage: language,
+        });
+
+        setIsSubmitting(false);
+        if (res.success && res.user) {
+          onAuthenticated(res.user);
+        } else {
+          setErrorMessage(res.error || 'Failed to complete registration');
+        }
       } else {
-        setErrorMessage(res.error || 'Failed to complete registration');
+        setIsSubmitting(false);
+        setErrorMessage(apiErr.message || 'Failed to complete registration');
       }
-    }, 500);
+    }
   };
 
   const autoFillOtp = () => {
@@ -573,6 +706,20 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
                     {showSignInPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
+                <div className="flex justify-end pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForgotIdentifier(fullSignInPhone);
+                      setErrorMessage(null);
+                      setForgotSuccessMessage(null);
+                      setAuthMode('forgot_password');
+                    }}
+                    className="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
               </div>
 
               {errorMessage && (
@@ -605,6 +752,192 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
                   Sign in with SMS verification code instead
                 </button>
               </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* FORGOT PASSWORD VIEW */}
+      {/* ========================================================================= */}
+      {authMode === 'forgot_password' && (
+        <div className="space-y-6">
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 sm:p-7 space-y-6">
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setAuthMode('signin_pwd')}
+                className="p-1.5 -ml-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5 rtl:rotate-180" />
+              </button>
+              <span className="text-xs font-semibold text-slate-400">
+                Password Recovery
+              </span>
+            </div>
+
+            <div className="space-y-1">
+              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+                Reset your password
+              </h1>
+              <p className="text-sm text-slate-500">
+                Enter your registered mobile phone or email to receive a 6-digit reset code.
+              </p>
+            </div>
+
+            <form onSubmit={handleForgotPasswordSubmit} className="space-y-5">
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-slate-800">
+                  Phone Number or Email
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. +972501234567 or email@domain.com"
+                  value={forgotIdentifier}
+                  onChange={(e) => setForgotIdentifier(e.target.value)}
+                  autoFocus
+                  className="w-full px-3.5 py-3 text-sm font-semibold rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 focus:outline-none font-mono"
+                />
+              </div>
+
+              {errorMessage && (
+                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{errorMessage}</span>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full py-3.5 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-base shadow-sm transition-all flex items-center justify-center gap-2"
+              >
+                {isSubmitting ? <RotateCw className="w-5 h-5 animate-spin" /> : <span>Send Reset Code</span>}
+              </button>
+
+              <div className="text-center pt-2">
+                <button
+                  type="button"
+                  onClick={() => setAuthMode('signin')}
+                  className="text-xs font-semibold text-slate-500 hover:text-slate-800"
+                >
+                  Return to Sign In
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* RESET PASSWORD VIEW */}
+      {/* ========================================================================= */}
+      {authMode === 'reset_password' && (
+        <div className="space-y-6">
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 sm:p-7 space-y-6">
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setAuthMode('forgot_password')}
+                className="p-1.5 -ml-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5 rtl:rotate-180" />
+              </button>
+              <span className="text-xs font-semibold text-slate-400">
+                New Password
+              </span>
+            </div>
+
+            <div className="space-y-1">
+              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+                Enter reset code
+              </h1>
+              <p className="text-sm text-slate-500">
+                A verification code was sent to <span className="font-semibold text-slate-800">{forgotIdentifier}</span>
+              </p>
+            </div>
+
+            {forgotSuccessMessage && (
+              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2 font-medium">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{forgotSuccessMessage}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleResetPasswordSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-slate-800">
+                  6-Digit Verification Code
+                </label>
+                <input
+                  type="text"
+                  maxLength={6}
+                  placeholder="123456"
+                  value={resetCode}
+                  onChange={(e) => setResetCode(e.target.value.replace(/\D/g, ''))}
+                  autoFocus
+                  className="w-full px-3.5 py-3 text-center text-lg font-mono font-bold tracking-widest rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-slate-800">
+                  New Password (min. 8 characters)
+                </label>
+                <div className="relative">
+                  <input
+                    type={showNewPassword ? 'text' : 'password'}
+                    placeholder="Enter new password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full px-3.5 py-3 pr-10 text-sm font-semibold rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-slate-800">
+                  Confirm New Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showConfirmNewPassword ? 'text' : 'password'}
+                    placeholder="Re-enter new password"
+                    value={confirmNewPassword}
+                    onChange={(e) => setConfirmNewPassword(e.target.value)}
+                    className="w-full px-3.5 py-3 pr-10 text-sm font-semibold rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    {showConfirmNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {errorMessage && (
+                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{errorMessage}</span>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full py-3.5 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-base shadow-sm transition-all flex items-center justify-center gap-2"
+              >
+                {isSubmitting ? <RotateCw className="w-5 h-5 animate-spin" /> : <span>Reset Password & Sign In</span>}
+              </button>
             </form>
           </div>
         </div>
@@ -1076,9 +1409,16 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
               ) : (
                 <button
                   type="button"
-                  onClick={() => {
-                    const { code } = storageService.generateOTP(fullRegPhone, language);
-                    setGeneratedDemoCode(code);
+                  onClick={async () => {
+                    try {
+                      const res = await apiService.requestOtp(fullRegPhone);
+                      const code = res?.demoCode || storageService.generateOTP(fullRegPhone, language).code;
+                      setGeneratedDemoCode(code);
+                      storageService.generateOTP(fullRegPhone, language);
+                    } catch {
+                      const { code } = storageService.generateOTP(fullRegPhone, language);
+                      setGeneratedDemoCode(code);
+                    }
                     setResendTimer(45);
                   }}
                   className="text-blue-600 font-bold hover:underline flex items-center gap-1"
