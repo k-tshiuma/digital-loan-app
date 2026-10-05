@@ -1,8 +1,9 @@
-import React, { useEffect } from 'react';
-import { CheckCircle2, Copy, ArrowRight, ShieldCheck, Clock, MessageSquare, Check } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { CheckCircle2, Copy, ArrowRight, ShieldCheck, Clock, MessageSquare, Check, Download, Loader2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Language, LoanApplication } from '../types';
 import { t } from '../i18n/translations';
+import { apiService } from '../services/api';
 
 interface Step10SubmissionSuccessProps {
   language: Language;
@@ -15,7 +16,8 @@ export const Step10SubmissionSuccess: React.FC<Step10SubmissionSuccessProps> = (
   application,
   onTrackStatus,
 }) => {
-  const [copied, setCopied] = React.useState(false);
+  const [copied, setCopied] = useState(false);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
 
   useEffect(() => {
     // Fire confetti cannon
@@ -33,6 +35,18 @@ export const Step10SubmissionSuccess: React.FC<Step10SubmissionSuccessProps> = (
       navigator.clipboard.writeText(application.requestNumber);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    setIsDownloadingPdf(true);
+    try {
+      await apiService.downloadApplicationPdf(application);
+    } catch (err: any) {
+      console.error('Failed to download PDF:', err);
+      alert(err?.message || 'Could not download PDF summary. Please verify the server is running.');
+    } finally {
+      setIsDownloadingPdf(false);
     }
   };
 
@@ -106,8 +120,8 @@ export const Step10SubmissionSuccess: React.FC<Step10SubmissionSuccessProps> = (
         </div>
       </div>
 
-      {/* Primary Track Action */}
-      <div className="mt-auto pt-2">
+      {/* Primary & Secondary Actions */}
+      <div className="mt-auto pt-2 space-y-2">
         <button
           type="button"
           id="track-status-primary-btn"
@@ -115,6 +129,25 @@ export const Step10SubmissionSuccess: React.FC<Step10SubmissionSuccessProps> = (
           className="w-full py-3.5 px-6 rounded-xl bg-blue-900 hover:bg-blue-800 text-white font-semibold text-base shadow-sm hover:shadow transition-all flex items-center justify-center gap-2 group"
         >
           <span>{t(language, 'trackApplicationStatus')}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={handleDownloadPdf}
+          disabled={isDownloadingPdf}
+          className="w-full py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-colors flex items-center justify-center gap-2 border border-slate-200"
+        >
+          {isDownloadingPdf ? (
+            <>
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
+              <span>Generating PDF Summary...</span>
+            </>
+          ) : (
+            <>
+              <Download className="w-3.5 h-3.5 text-blue-600" />
+              <span>Download Application Summary (PDF)</span>
+            </>
+          )}
         </button>
       </div>
     </div>

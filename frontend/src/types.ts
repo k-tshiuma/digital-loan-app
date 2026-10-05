@@ -40,7 +40,13 @@ export type GuarantorRelationship =
 export type DocumentTypeCode =
   | 'PASSPORT'
   | 'PAY_SLIP'
-  | 'WORKERS_CARD';
+  | 'WORKERS_CARD'
+  | 'WORK_VISA'
+  | 'EMPLOYMENT_CONFIRMATION'
+  | 'BANK_STATEMENT'
+  | 'BANK_ACCOUNT_DOCUMENT'
+  | 'GUARANTOR_ID'
+  | 'CREDIT_CARD';
 
 export interface DocumentTypeInfo {
   code: DocumentTypeCode;
@@ -60,6 +66,9 @@ export interface UploadedFile {
   mimeType: string;
   fileSizeBytes: number;
   storageKey: string;
+  /** Server path returned by POST /api/upload (e.g. /api/uploads/123_abc.jpg). Preferred over dataUrl. */
+  fileUrl?: string;
+  /** Legacy/offline fallback: inline base64 copy, only used when the upload server is unreachable. */
   dataUrl?: string;
   uploadSource: 'camera' | 'gallery' | 'file';
   qualityStatus: 'pending' | 'passed' | 'failed' | 'warning' | 'not_checked';
@@ -78,6 +87,12 @@ export interface UploadedFile {
   userConfirmed: boolean;
   maskedCardNumber?: string;
   uploadedAt: string;
+  /** Returning-user document reuse and validity status */
+  isReused?: boolean;
+  reusedFromAppId?: string;
+  validityStatus?: 'valid' | 'expired' | 'missing' | 'rejected' | 'needs_update';
+  validityReason?: string;
+  expiryDate?: string;
 }
 
 export interface BorrowerDetails {
@@ -173,17 +188,18 @@ export interface NotificationItem {
   id: string;
   userId: string;
   applicationId?: string;
-  channel: 'sms' | 'push';
-  notificationType: string;
-  language: Language;
+  channel: 'sms' | 'push' | 'in_app';
+  notificationType?: string;
+  language?: Language;
   title: string;
   message: string;
-  deliveryStatus: 'pending' | 'sent' | 'delivered' | 'failed';
+  deliveryStatus?: 'pending' | 'sent' | 'delivered' | 'failed';
   providerMessageId?: string;
   attemptedAt?: string;
   deliveredAt?: string;
   createdAt: string;
   read?: boolean;
+  isRead?: boolean;
 }
 
 export interface AuditEvent {
@@ -225,6 +241,14 @@ export interface ApplicationConfig {
   minVisaValidityMonths: number;
 }
 
+export interface BankAccountDetails {
+  bankName: string;
+  bankCode?: string;
+  branchNumber: string;
+  accountNumber: string;
+  accountHolderName: string;
+}
+
 export interface LoanApplication {
   id: string;
   userId: string;
@@ -240,13 +264,52 @@ export interface LoanApplication {
   loanRequest?: LoanRequest;
   guarantor?: GuarantorDetails;
   documents: UploadedFile[];
+  bankAccount?: BankAccountDetails;
   bankAccountConfirmed?: boolean;
+  isReturningUser?: boolean;
+  detailsConfirmedAt?: string;
   consents: ConsentRecord[];
   digitalSignature?: DigitalSignature;
   statusHistory: StatusHistoryItem[];
   missingDocumentNotes?: string;
+  /** Advisory pre-screening result computed by the backend (staff only). */
+  riskScore?: number;
+  riskLevel?: RiskLevel;
+  riskFlags?: string[];
   createdAt: string;
   updatedAt: string;
+}
+
+export type RiskLevel = 'Low' | 'Medium' | 'High';
+
+export interface CreditRules {
+  salaryMultiplier: number;
+  salaryWarnRatio: number;
+  salaryFailPenalty: number;
+  salaryWarnPenalty: number;
+  visaBufferMonths: number;
+  visaPenalty: number;
+  minTenureMonths: number;
+  hardMinTenureMonths: number;
+  tenureFailPenalty: number;
+  tenureWarnPenalty: number;
+  guarantorBonus: number;
+  lowRiskMinScore: number;
+  mediumRiskMinScore: number;
+}
+
+export interface AnalyticsSummary {
+  totalApplications: number;
+  openApplications: number;
+  approvalRate: number | null;
+  avgLoanAmountNis: number | null;
+  totalRequestedNis: number;
+  avgProcessingDays: number | null;
+  byStatus: { status: string; count: number }[];
+  byPurpose: { purpose: string; count: number }[];
+  byRisk: { level: RiskLevel; count: number }[];
+  dailySubmissions: { date: string; count: number }[];
+  generatedAt: string;
 }
 
 export interface User {
@@ -255,6 +318,8 @@ export interface User {
   fullName?: string;
   email?: string;
   password?: string;
+  /** Returned by the API instead of the password hash. */
+  hasPassword?: boolean;
   authProvider?: 'phone' | 'google' | 'password';
   phoneVerifiedAt?: string;
   preferredLanguage: Language;

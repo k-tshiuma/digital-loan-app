@@ -168,11 +168,17 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
     }, 600);
   };
 
+  const handleFinalSubmit = (e: React.MouseEvent) => {
+    setShowTermsModal(false);
+    handleFormSubmit(e as any);
+  };
+
   const b = application.borrowerDetails;
   const r = application.residencyDetails;
   const em = application.employmentDetails;
   const l = application.loanRequest;
   const g = application.guarantor;
+  const bank = application.bankAccount;
   const docCount = application.documents?.length || 0;
 
   return (
@@ -326,6 +332,80 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
           </div>
         </div>
 
+        {/* Receiving Bank Account Card */}
+        <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-2">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+            <span className="text-xs font-bold text-slate-800">
+              {t(language, 'bankAccountTitle')}
+            </span>
+            <button
+              type="button"
+              onClick={() => onEditStep(6)}
+              className="text-xs font-bold text-blue-900 hover:underline flex items-center gap-1"
+            >
+              <Edit2 className="w-3 h-3" /> {t(language, 'edit')}
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 text-xs">
+            <div>
+              <span className="text-slate-400 block text-[11px]">Bank:</span>
+              <span className="font-semibold text-slate-800">{bank?.bankName || '—'}</span>
+            </div>
+            <div>
+              <span className="text-slate-400 block text-[11px]">Branch:</span>
+              <span className="font-mono font-bold text-slate-800">{bank?.branchNumber || '—'}</span>
+            </div>
+            <div>
+              <span className="text-slate-400 block text-[11px]">Account #:</span>
+              <span className="font-mono font-bold text-slate-800">{bank?.accountNumber || '—'}</span>
+            </div>
+            <div>
+              <span className="text-slate-400 block text-[11px]">Account Holder:</span>
+              <span className="text-slate-800 truncate block">{bank?.accountHolderName || b?.fullName || '—'}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Guarantor Summary Card */}
+        <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-2">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+            <span className="text-xs font-bold text-slate-800">
+              {t(language, 'guarantorTitle')}
+            </span>
+            <button
+              type="button"
+              onClick={() => onEditStep(7)}
+              className="text-xs font-bold text-blue-900 hover:underline flex items-center gap-1"
+            >
+              <Edit2 className="w-3 h-3" /> {t(language, 'edit')}
+            </button>
+          </div>
+          {g?.hasGuarantor ? (
+            <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 text-xs">
+              <div>
+                <span className="text-slate-400 block text-[11px]">Guarantor Name:</span>
+                <span className="font-semibold text-slate-800">{g.fullName}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block text-[11px]">ID / Passport:</span>
+                <span className="font-mono font-bold text-slate-800">{g.passportOrIdNumber}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block text-[11px]">Phone:</span>
+                <span className="text-slate-700">{g.mobilePhoneNumber}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block text-[11px]">Relationship:</span>
+                <span className="text-slate-700">{g.relationship}</span>
+              </div>
+            </div>
+          ) : (
+            <div className="text-xs text-slate-500 py-1">
+              {t(language, 'selfGuaranteedLabel')}
+            </div>
+          )}
+        </div>
+
         {/* Uploaded Documents count */}
         <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
           <div className="flex items-center gap-2">
@@ -360,7 +440,7 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
             className="mt-1 w-4 h-4 rounded text-blue-900 border-slate-300 focus:ring-blue-900 accent-blue-900"
           />
           <span className="text-xs text-slate-600 group-hover:text-slate-900 leading-relaxed">
-            {t(language, 'consentTermsText')}
+            {t(language, 'consentTermsText') || 'Consent Terms'}
           </span>
         </label>
 
@@ -374,7 +454,7 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
             className="mt-1 w-4 h-4 rounded text-blue-900 border-slate-300 focus:ring-blue-900 accent-blue-900"
           />
           <span className="text-xs text-slate-600 group-hover:text-slate-900 leading-relaxed">
-            {t(language, 'consentCreditCheckText')}
+            {t(language, 'consentCreditCheckText') || 'Consent Credit Check'}
           </span>
         </label>
       </div>
@@ -383,7 +463,7 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
       <div className="space-y-3 mb-6 p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
         <div className="flex items-center justify-between">
           <label className="block text-xs font-bold text-slate-800 ">
-            {t(language, 'digitalSignatureLabel')} <span className="text-red-500">*</span>
+            {t(language, 'digitalSignatureLabel') || 'Signature'} <span className="text-red-500">*</span>
           </label>
           {/* Tabs */}
           <div className="flex bg-slate-100 p-0.5 rounded-lg text-xs font-medium">
@@ -397,7 +477,7 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
               }`}
             >
               <PenTool className="w-3 h-3 inline mr-1" />
-              {t(language, 'drawSignature')}
+              {t(language, 'drawSignature') || 'Draw Signature'}
             </button>
             <button
               type="button"
@@ -409,7 +489,7 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
               }`}
             >
               <Type className="w-3 h-3 inline mr-1" />
-              {t(language, 'typeSignature')}
+              {t(language, 'typeSignature') || 'Type Signature'}
             </button>
           </div>
         </div>
@@ -494,7 +574,7 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
             <RotateCw className="w-5 h-5 animate-spin" />
           ) : (
             <>
-              <span>{t(language, 'submitApplication')}</span>
+              <span>{t(language, 'submitApplication') || 'Submit Application'}</span>
               <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1 rtl:rotate-180" />
             </>
           )}
