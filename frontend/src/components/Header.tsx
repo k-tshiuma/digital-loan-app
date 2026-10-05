@@ -12,9 +12,12 @@ import {
   User as UserIcon,
   LogOut,
   Sparkles,
+  FileText,
+  Bell,
 } from 'lucide-react';
 import { Language, User, UserRole } from '../types';
 import { SUPPORTED_LANGUAGES, t } from '../i18n/translations';
+import { NotificationBell } from './NotificationBell';
 
 interface HeaderProps {
   currentLanguage: Language;
@@ -28,6 +31,9 @@ interface HeaderProps {
   onOpenHelp: () => void;
   isOnline: boolean;
   draftSaved: boolean;
+  onOpenNotifications?: () => void;
+  onOpenMyApplications?: () => void;
+  unreadNotificationsCount?: number;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -42,6 +48,9 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenHelp,
   isOnline,
   draftSaved,
+  onOpenNotifications,
+  onOpenMyApplications,
+  unreadNotificationsCount,
 }) => {
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
   const [isRoleMenuOpen, setIsRoleMenuOpen] = useState(false);
@@ -170,6 +179,15 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
           </button>
 
+          {/* Notification Bell (if user is authenticated) */}
+          {currentUser && onOpenNotifications && (
+            <NotificationBell
+              userId={currentUser.id}
+              onClick={onOpenNotifications}
+              externalUnreadCount={unreadNotificationsCount}
+            />
+          )}
+
           {/* User Profile / Account Menu */}
           <div className="relative">
             <button
@@ -211,6 +229,31 @@ export const Header: React.FC<HeaderProps> = ({
                     </div>
 
                     <div className="py-1">
+                      <button
+                        type="button"
+                        id="header-my-apps-btn"
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          onOpenMyApplications?.();
+                        }}
+                        className="w-full px-4 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                      >
+                        <FileText className="w-4 h-4 text-blue-600" />
+                        <span>My Loan Applications</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          onOpenNotifications?.();
+                        }}
+                        className="w-full px-4 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                      >
+                        <Bell className="w-4 h-4 text-blue-600" />
+                        <span>Notifications</span>
+                      </button>
+
                       <button
                         type="button"
                         onClick={() => {

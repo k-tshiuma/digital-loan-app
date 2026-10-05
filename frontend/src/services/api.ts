@@ -1,72 +1,280 @@
-import { User, LoanApplication, Language } from '../types';
+import {
+  User,
+  LoanApplication,
+  Language,
+  NotificationItem,
+  AnalyticsSummary,
+  CreditRules,
+  UserRole,
+} from '../types';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+export const API_BASE_URL: string =
+  ((import.meta as unknown as { env?: Record<string, string> }).env?.VITE_API_URL) || 'http://localhost:5000/api';
+const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
+
+const TOKEN_KEY = 'quickloan_auth_token';
+const STAFF_TOKEN_KEY = 'quickloan_staff_token_v1';
+
+export type ApiScope = 'borrower' | 'staff';
+export type StaffRole = Exclude<UserRole, 'borrower'>;
+
+export class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
+
+/** True when the request failed because the backend could not be reached (vs. an API error). */
+export const isNetworkError = (err: unknown) => !(err instanceof ApiError);
+
+// ---------------------------------------------------------------------------
+// Token storage (JWT in localStorage, per plan step 1.6)
+// ---------------------------------------------------------------------------
+function tokenExpiry(token: string): number | null {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return typeof payload.exp === 'number' ? payload.exp * 1000 : null;
+  } catch {
+    return null;
+  }
+}
+
+const isTokenValid = (token: string | null): token is string => {
+  if (!token) return false;
+  const exp = tokenExpiry(token);
+  return exp === null || exp > Date.now() + 5000;
+};
+
+export const authTokens = {
+  get(): string | null {
+    const t = localStorage.getItem(TOKEN_KEY);
+    return isTokenValid(t) ? t : null;
+  },
+  set(token: string) {
+    localStorage.setItem(TOKEN_KEY, token);
+  },
+  clear() {
+    localStorage.removeItem(TOKEN_KEY);
+  },
+  getStaff(role?: StaffRole): string | null {
+    try {
+      const cached = JSON.parse(localStorage.getItem(STAFF_TOKEN_KEY) || 'null') as { role: StaffRole; token: string } | null;
+      if (cached && isTokenValid(cached.token) && (!role || cached.role === role)) return cached.token;
+    } catch {
+      /* ignore */
+    }
+    return null;
+  },
+  setStaff(role: StaffRole, token: string) {
+    localStorage.setItem(STAFF_TOKEN_KEY, JSON.stringify({ role, token }));
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Core request helper — attaches Authorization: Bearer <token>
+// ---------------------------------------------------------------------------
+async function request<T = any>(
+  path: string,
+  opts: { method?: string; body?: unknown; formData?: FormData; scope?: ApiScope; auth?: boolean } = {}
+): Promise<T> {
+  const { method = 'GET', body, formData, scope = 'borrower', auth = true } = opts;
+  const headers: Record<string, string> = {};
+  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  if (auth) {
+    const token = scope === 'staff' ? authTokens.getStaff() : authTokens.get();
+    if (token) headers.Authorization = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    method,
+    headers,
+    body: formData ?? (body !== undefined ? JSON.stringify(body) : undefined),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.success === false) {
+    throw new ApiError(data.error || `Request failed (${res.status})`, res.status);
+  }
+  return data as T;
+}
+
+type AuthResponse = { success: true; user: User; token: string };
+
+function storeAuth(res: AuthResponse): User {
+  authTokens.set(res.token);
+  return res.user;
+}
+
+function triggerDownload(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 
 export const apiService = {
-  async loginWithPassword(identifier: string, password: string): Promise<{ success: boolean; user?: User; error?: string }> {
-    const res = await fetch(`${API_BASE_URL}/users/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identifier, password }),
-    });
-    return res.json();
+  // --- Auth (Phase 1) ------------------------------------------------------
+  isAuthenticated(): boolean {
+    return !!authTokens.get();
   },
 
-  async verifyOTP(phoneNumber: string, code: string): Promise<{ success: boolean; user?: User; error?: string }> {
-    const res = await fetch(`${API_BASE_URL}/users/verify-otp`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phoneNumber, code }),
-    });
-    const data = await res.json();
-    if (data.success && data.user) {
-      localStorage.setItem('quickloan_current_user_id', data.user.id);
-    }
-    return data;
+  async lookupPhone(phoneNumber: string): Promise<{ exists: boolean; hasPassword: boolean }> {
+    return request('/users/lookup', { method: 'POST', body: { phoneNumber }, auth: false });
   },
 
-  getCurrentUser(): User | null {
-    const uid = localStorage.getItem('quickloan_current_user_id');
-    if (!uid) return null;
-    // In a real app we'd fetch the user from the backend, 
-    // but to avoid massive refactoring of sync calls right now, 
-    // we'll rely on it being fetched or stored locally for auth state.
-    // However, since we return a promise, we need to adapt.
-    return { id: uid } as User; // Mock user to get past sync checks
+  async requestOtp(phoneNumber: string): Promise<{ demoCode?: string; expiresInSeconds: number }> {
+    return request('/users/request-otp', { method: 'POST', body: { phoneNumber }, auth: false });
+  },
+
+  async verifyOTP(phoneNumber: string, code: string, preferredLanguage?: Language): Promise<User> {
+    return storeAuth(await request('/users/verify-otp', { method: 'POST', body: { phoneNumber, code, preferredLanguage }, auth: false }));
+  },
+
+  async loginWithPassword(identifier: string, password: string): Promise<User> {
+    return storeAuth(await request('/users/login', { method: 'POST', body: { identifier, password }, auth: false }));
+  },
+
+  /** Completes registration for a phone number that was just verified via OTP. */
+  async register(details: { fullName: string; email: string; phoneNumber: string; password: string; preferredLanguage?: Language }): Promise<User> {
+    return storeAuth(await request('/users/register', { method: 'POST', body: details }));
+  },
+
+  async loginWithGoogleDemo(profile: { email: string; name: string }, preferredLanguage: Language): Promise<User> {
+    return storeAuth(await request('/users/google-demo', { method: 'POST', body: { ...profile, preferredLanguage }, auth: false }));
+  },
+
+  async forgotPassword(identifier: string): Promise<{ message: string; demoCode?: string }> {
+    return request('/users/forgot-password', { method: 'POST', body: { identifier }, auth: false });
+  },
+
+  async resetPassword(identifier: string, code: string, newPassword: string): Promise<User> {
+    return storeAuth(await request('/users/reset-password', { method: 'POST', body: { identifier, code, newPassword }, auth: false }));
   },
 
   logout() {
-    localStorage.removeItem('quickloan_current_user_id');
-    localStorage.removeItem('quickloan_active_app_id');
+    authTokens.clear();
   },
 
-  async getOrCreateActiveApplication(userId: string, preferredLanguage: Language): Promise<LoanApplication> {
-    const res = await fetch(`${API_BASE_URL}/applications/active/${userId}`);
-    const data = await res.json();
-    if (data.success) {
-      localStorage.setItem('quickloan_active_app_id', data.application.id);
-      return data.application;
-    }
-    throw new Error('Failed to get or create active application');
+  /** Back-office demo auth: obtains (and caches) a staff JWT for the selected role. */
+  async ensureStaffToken(role: StaffRole): Promise<string> {
+    const cached = authTokens.getStaff(role);
+    if (cached) return cached;
+    const res = await request<{ token: string }>('/auth/staff-token', { method: 'POST', body: { role }, auth: false });
+    authTokens.setStaff(role, res.token);
+    return res.token;
   },
 
-  async saveApplication(app: LoanApplication): Promise<LoanApplication> {
-    const res = await fetch(`${API_BASE_URL}/applications/${app.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(app),
-    });
-    const data = await res.json();
-    if (data.success) {
-      return data.application;
-    }
-    throw new Error('Failed to save application');
+  // --- Applications --------------------------------------------------------
+  async saveApplication(app: LoanApplication, scope: ApiScope = 'borrower'): Promise<LoanApplication> {
+    const res = await request<{ application: LoanApplication }>(`/applications/${app.id}`, { method: 'PUT', body: app, scope });
+    return res.application;
   },
-  
-  async submitApplication(appId: string, appData: LoanApplication): Promise<LoanApplication> {
-    appData.isSubmitted = true;
-    appData.status = 'Received';
-    appData.submittedAt = new Date().toISOString();
-    return this.saveApplication(appData);
-  }
+
+  async getApplication(id: string, scope: ApiScope = 'borrower'): Promise<LoanApplication> {
+    const res = await request<{ application: LoanApplication }>(`/applications/${id}`, { scope });
+    return res.application;
+  },
+
+  async getApplicationHistory(userId: string): Promise<LoanApplication[]> {
+    const res = await request<{ applications: LoanApplication[] }>(`/applications/history/${userId}`);
+    return res.applications;
+  },
+
+  async listAllApplications(): Promise<LoanApplication[]> {
+    const res = await request<{ applications: LoanApplication[] }>('/applications', { scope: 'staff' });
+    return res.applications;
+  },
+
+  // --- Files (Phase 2) -----------------------------------------------------
+  async uploadFile(file: File, scope: ApiScope = 'borrower'): Promise<{ filename: string; url: string; mimeType: string; size: number; originalName: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await request<{ file: any }>('/upload', { method: 'POST', formData, scope });
+    return res.file;
+  },
+
+  /** Absolute, token-bearing URL for <img src> / <a href> to a server-stored file. */
+  resolveFileUrl(url: string | undefined, scope: ApiScope = 'borrower'): string | undefined {
+    if (!url) return undefined;
+    if (!url.startsWith('/api/')) return url;
+    const token = scope === 'staff' ? authTokens.getStaff() : authTokens.get();
+    return `${API_ORIGIN}${url}${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+  },
+
+  // --- Real-time (Phase 4) -------------------------------------------------
+  /** Opens an SSE stream for an application. Returns null when not authenticated. */
+  openApplicationEvents(applicationId: string): EventSource | null {
+    const token = authTokens.get();
+    if (!token) return null;
+    return new EventSource(`${API_BASE_URL}/applications/${applicationId}/events?token=${encodeURIComponent(token)}`);
+  },
+
+  // --- Notifications (Phase 5) ---------------------------------------------
+  async getNotifications(userId: string): Promise<{ notifications: NotificationItem[]; unreadCount: number }> {
+    return request(`/notifications/${userId}`);
+  },
+
+  async markNotificationRead(id: string): Promise<void> {
+    await request(`/notifications/${id}/read`, { method: 'PATCH' });
+  },
+
+  async markAllNotificationsRead(userId: string): Promise<void> {
+    await request(`/notifications/${userId}/read-all`, { method: 'POST' });
+  },
+
+  // --- PDF (Phase 7) -------------------------------------------------------
+  async downloadApplicationPdf(app: LoanApplication | Pick<LoanApplication, 'id' | 'requestNumber'>, scope: ApiScope = 'borrower'): Promise<void> {
+    const token = scope === 'staff' ? authTokens.getStaff() : authTokens.get();
+    let res: Response | null = null;
+
+    try {
+      res = await fetch(`${API_BASE_URL}/applications/${app.id}/pdf`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(app),
+      });
+    } catch {
+      // POST attempt failed; fallback to GET
+    }
+
+    if (!res || !res.ok) {
+      try {
+        res = await fetch(`${API_BASE_URL}/applications/${app.id}/pdf`, {
+          method: 'GET',
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+      } catch (err) {
+        throw new ApiError('Could not connect to server. Please verify the backend is running.', 0);
+      }
+    }
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new ApiError(data.error || `PDF export failed (${res.status})`, res.status);
+    }
+    triggerDownload(await res.blob(), `${app.requestNumber || app.id}.pdf`);
+  },
+
+  // --- Analytics (Phase 3) -------------------------------------------------
+  async getAnalyticsSummary(): Promise<AnalyticsSummary> {
+    const res = await request<{ summary: AnalyticsSummary }>('/analytics/summary', { scope: 'staff' });
+    return res.summary;
+  },
+
+  // --- Credit rules (Phase 8) ----------------------------------------------
+  async getCreditRules(): Promise<{ rules: CreditRules; defaults: CreditRules }> {
+    return request('/config/credit-rules', { scope: 'staff' });
+  },
+
+  async updateCreditRules(rules: Partial<CreditRules>): Promise<{ rules: CreditRules; rescored: number }> {
+    return request('/config/credit-rules', { method: 'PUT', body: { rules }, scope: 'staff' });
+  },
 };

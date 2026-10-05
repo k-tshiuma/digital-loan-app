@@ -92,6 +92,24 @@ export const COUNTRY_PHONE_CODES = [
   { code: '+1', country: 'USA/Canada', flag: '🇺🇸' },
 ];
 
+export interface IsraeliBank {
+  code: string;
+  name: string;
+  hebrewName: string;
+}
+
+export const ISRAELI_BANKS: IsraeliBank[] = [
+  { code: '12', name: 'Bank Hapoalim', hebrewName: 'בנק הפועלים' },
+  { code: '10', name: 'Bank Leumi', hebrewName: 'בנק לאומי' },
+  { code: '11', name: 'Israel Discount Bank', hebrewName: 'בנק דיסקונט' },
+  { code: '20', name: 'Mizrahi Tefahot Bank', hebrewName: 'בנק מזרחי טפחות' },
+  { code: '31', name: 'First International Bank of Israel (FIBI)', hebrewName: 'הבנק הבינלאומי' },
+  { code: '54', name: 'Bank of Jerusalem', hebrewName: 'בנק ירושלים' },
+  { code: '09', name: 'Postal Bank (Doar Israel)', hebrewName: 'בנק הדואר' },
+  { code: '28', name: 'One Zero Digital Bank', hebrewName: 'וואן זירו' },
+  { code: 'other', name: 'Other Bank in Israel', hebrewName: 'בנק אחר בישראל' },
+];
+
 export const DOCUMENT_TYPE_CONFIG: DocumentTypeInfo[] = [
   {
     code: 'PASSPORT',
@@ -110,6 +128,24 @@ export const DOCUMENT_TYPE_CONFIG: DocumentTypeInfo[] = [
     allowsMultiple: true,
     titleKey: 'docPaySlipTitle',
     descKey: 'docPaySlipDesc',
+  },
+  {
+    code: 'BANK_ACCOUNT_DOCUMENT',
+    id: 'doc_bank_account',
+    name: 'Bank Account Ownership Document',
+    isRequired: true,
+    allowsMultiple: false,
+    titleKey: 'docBankAccountTitle',
+    descKey: 'docBankAccountDesc',
+  },
+  {
+    code: 'GUARANTOR_ID',
+    id: 'doc_guarantor_id',
+    name: 'Guarantor Passport or ID',
+    isRequired: false, // Required only when applicant provides a guarantor
+    allowsMultiple: false,
+    titleKey: 'docGuarantorIdTitle',
+    descKey: 'docGuarantorIdDesc',
   },
   {
     code: 'WORKERS_CARD',

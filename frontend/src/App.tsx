@@ -12,10 +12,12 @@ import {
   UploadedFile,
   ConsentRecord,
   DigitalSignature,
+  BankAccountDetails,
 } from './types';
 import { Header } from './components/Header';
 import { WizardProgress } from './components/WizardProgress';
 import { HelpModal } from './components/HelpModal';
+import { ReturningUserConfirmModal } from './components/ReturningUserConfirmModal';
 import { Step1Language } from './components/Step1Language';
 import { Step2Auth } from './components/Step2Auth';
 import { Step3BorrowerDetails } from './components/Step3BorrowerDetails';
@@ -28,7 +30,10 @@ import { Step9ReviewConfirm } from './components/Step9ReviewConfirm';
 import { Step10SubmissionSuccess } from './components/Step10SubmissionSuccess';
 import { Step11StatusTimeline } from './components/Step11StatusTimeline';
 import { BackOffice } from './components/BackOffice';
+import { NotificationDrawer } from './components/NotificationDrawer';
+import { MyApplications } from './components/MyApplications';
 import { storageService } from './services/storage';
+import { apiService } from './services/api';
 
 export default function App() {
   const [currentLanguage, setCurrentLanguage] = useState<Language>('en');
@@ -38,6 +43,9 @@ export default function App() {
   const [isBackOfficeOpen, setIsBackOfficeOpen] = useState<boolean>(false);
   const [currentRole, setCurrentRole] = useState<UserRole>('borrower');
   const [isHelpOpen, setIsHelpOpen] = useState<boolean>(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState<boolean>(false);
+  const [isMyAppsOpen, setIsMyAppsOpen] = useState<boolean>(false);
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState<number>(0);
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
   const [draftSaved, setDraftSaved] = useState<boolean>(false);
 
@@ -85,6 +93,7 @@ export default function App() {
     setApplication({ ...saved });
     setDraftSaved(true);
     setTimeout(() => setDraftSaved(false), 2000);
+    apiService.saveApplication(saved).catch(() => {});
   };
 
   // --- Step Navigation Handlers ---
@@ -157,11 +166,12 @@ export default function App() {
   };
 
   // Step 6: Loan details
-  const handleSaveLoanDetails = (loanData: LoanRequest) => {
+  const handleSaveLoanDetails = (loanData: LoanRequest, bankAccount?: BankAccountDetails) => {
     if (!application) return;
     const updated = {
       ...application,
       loanRequest: loanData,
+      bankAccount: bankAccount || application.bankAccount,
     };
     autoSaveDraft(updated, 7);
     setCurrentStep(7);
@@ -205,6 +215,11 @@ export default function App() {
     setApplication({ ...submitted });
     setCurrentStep(10);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // Sync submitted application to backend API
+    apiService.saveApplication(submitted).catch((err) => {
+      console.warn('Background sync of submitted application to API failed:', err);
+    });
   };
 
   // Step 10 -> Step 11: Advance to status dashboard
@@ -246,6 +261,9 @@ export default function App() {
         onOpenHelp={() => setIsHelpOpen(true)}
         isOnline={isOnline}
         draftSaved={draftSaved}
+        onOpenNotifications={() => setIsNotificationsOpen(true)}
+        onOpenMyApplications={() => setIsMyAppsOpen(true)}
+        unreadNotificationsCount={unreadNotificationsCount}
       />
 
       {/* Main View Area */}
@@ -325,8 +343,10 @@ export default function App() {
               <Step6LoanDetails
                 language={currentLanguage}
                 initialData={application?.loanRequest}
+                initialBankAccount={application?.bankAccount}
+                borrowerName={application?.borrowerDetails?.fullName}
                 onSaveAndNext={handleSaveLoanDetails}
-                onBack={() => setCurrentStep(5)}
+                onBack={() => setCurrentStep(application?.isReturningUser ? 3 : 5)}
               />
             )}
 
@@ -347,6 +367,7 @@ export default function App() {
                 applicationId={application?.id || 'temp'}
                 initialDocuments={application?.documents}
                 initialBankAccountConfirmed={application?.bankAccountConfirmed}
+                hasGuarantor={application?.guarantor?.hasGuarantor}
                 onSaveAndNext={handleSaveDocuments}
                 onBack={() => setCurrentStep(7)}
               />
@@ -400,6 +421,79 @@ export default function App() {
         onClose={() => setIsHelpOpen(false)}
         language={currentLanguage}
       />
+
+      {/* Real-time Notification Drawer */}
+      <NotificationDrawer
+        isOpen={isNotificationsOpen}
+        onClose={() => setIsNotificationsOpen(false)}
+        userId={currentUser?.id}
+        language={currentLanguage}
+        onUnreadCountChange={setUnreadNotificationsCount}
+      />
+
+      {/* Borrower Application History Modal */}
+      {currentUser && (
+        <MyApplications
+          isOpen={isMyAppsOpen}
+          onClose={() => setIsMyAppsOpen(false)}
+          currentUser={currentUser}
+          language={currentLanguage}
+          onSelectApplication={(selected) => {
+            storageService.saveApplication(selected);
+            localStorage.setItem('quickloan_active_app_id', selected.id);
+            setApplication(selected);
+            if (selected.isSubmitted) {
+              setCurrentStep(11);
+            } else if (selected.currentStep) {
+              setCurrentStep(selected.currentStep);
+            } else {
+              setCurrentStep(3);
+            }
+            setIsBackOfficeOpen(false);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          onStartNewApplication={handleStartNewApplication}
+        />
+      )}
+
+      {/* Returning User Confirmation Modal (Step 4 of Prompt) */}
+      {application?.isReturningUser && !application?.detailsConfirmedAt && !application?.isSubmitted && (
+        <ReturningUserConfirmModal
+          language={currentLanguage}
+          application={application}
+          onConfirmEverything={() => {
+            const updated = {
+              ...application,
+              detailsConfirmedAt: new Date().toISOString(),
+              currentStep: 6,
+            };
+            autoSaveDraft(updated, 6);
+            setCurrentStep(6);
+          }}
+          onUpdateDetails={(updatedDetails) => {
+            const updated: LoanApplication = {
+              ...application,
+              borrowerDetails: {
+                ...application.borrowerDetails!,
+                passportNumber: updatedDetails.passportNumber || application.borrowerDetails?.passportNumber || '',
+              },
+              employmentDetails: {
+                ...application.employmentDetails!,
+                employerName: updatedDetails.employerName || application.employmentDetails?.employerName || '',
+                monthlySalaryNis: updatedDetails.monthlySalaryNis ?? application.employmentDetails?.monthlySalaryNis ?? 0,
+              },
+              bankAccount: updatedDetails.bankAccount || application.bankAccount,
+              detailsConfirmedAt: new Date().toISOString(),
+              currentStep: 6,
+            };
+            autoSaveDraft(updated, 6);
+            setCurrentStep(6);
+          }}
+          onClose={() => {
+            setCurrentStep(3);
+          }}
+        />
+      )}
     </div>
   );
 }

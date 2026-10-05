@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Clock,
   CheckCircle2,
@@ -12,11 +12,15 @@ import {
   Sparkles,
   ExternalLink,
   ChevronRight,
+  Download,
+  Loader2,
+  Radio,
 } from 'lucide-react';
 import { Language, LoanApplication, CanonicalStatus, UploadedFile, NotificationItem } from '../types';
 import { STATUS_BADGE_CONFIG } from '../config/appConfig';
 import { t } from '../i18n/translations';
 import { storageService } from '../services/storage';
+import { apiService } from '../services/api';
 
 interface Step11StatusTimelineProps {
   language: Language;
@@ -35,17 +39,85 @@ export const Step11StatusTimeline: React.FC<Step11StatusTimelineProps> = ({
   const [isUploadingMissing, setIsUploadingMissing] = useState(false);
   const [missingDocType, setMissingDocType] = useState('BANK_STATEMENT');
   const [uploadSuccessMessage, setUploadSuccessMessage] = useState<string | null>(null);
+  const [sseConnected, setSseConnected] = useState(false);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const statusConfig = STATUS_BADGE_CONFIG[application.status] || STATUS_BADGE_CONFIG['Received'];
   const notifications = storageService.getNotifications(application.userId);
 
-  const handleUploadMissingDoc = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Subscribe to real-time status updates via SSE
+  useEffect(() => {
+    if (!application?.id) return;
+
+    let eventSource: EventSource | null = null;
+    try {
+      eventSource = apiService.openApplicationEvents(application.id);
+
+      eventSource.onopen = () => {
+        setSseConnected(true);
+      };
+
+      const handleUpdate = async () => {
+        try {
+          const fresh = await apiService.getApplication(application.id);
+          if (fresh) {
+            storageService.saveApplication(fresh);
+            onApplicationUpdated(fresh);
+          }
+        } catch {
+          // Fallback to local storage if offline
+          const local = storageService.getApplication(application.id);
+          if (local) onApplicationUpdated(local);
+        }
+      };
+
+      eventSource.addEventListener('status', (e: any) => {
+        try {
+          const payload = JSON.parse(e.data);
+          if (payload.status) {
+            handleUpdate();
+          }
+        } catch {
+          handleUpdate();
+        }
+      });
+
+      eventSource.addEventListener('updated', () => {
+        handleUpdate();
+      });
+
+      eventSource.onerror = () => {
+        setSseConnected(false);
+      };
+    } catch {
+      setSseConnected(false);
+    }
+
+    return () => {
+      if (eventSource) {
+        eventSource.close();
+      }
+    };
+  }, [application.id]);
+
+  const handleUploadMissingDoc = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
     const file = files[0];
+    let fileUrl: string | undefined;
+
+    try {
+      const uploadRes = await apiService.uploadFile(file, missingDocType);
+      if (uploadRes?.url) {
+        fileUrl = uploadRes.url;
+      }
+    } catch (err) {
+      console.warn('Real file upload failed, using local storage:', err);
+    }
+
     const newDoc: UploadedFile = {
       id: `doc_addl_${Date.now()}`,
       applicationId: application.id,
@@ -54,6 +126,7 @@ export const Step11StatusTimeline: React.FC<Step11StatusTimelineProps> = ({
       mimeType: file.type || 'application/pdf',
       fileSizeBytes: file.size || 250000,
       storageKey: `s3://quickloan-docs/${application.id}/${file.name}`,
+      fileUrl: fileUrl,
       uploadSource: 'file',
       qualityStatus: 'passed',
       ocrStatus: 'not_requested',
@@ -73,10 +146,28 @@ export const Step11StatusTimeline: React.FC<Step11StatusTimelineProps> = ({
       `Borrower uploaded additional document: ${file.name}`
     );
 
+    try {
+      await apiService.saveApplication(updatedApp);
+    } catch {
+      // offline fallback
+    }
+
     onApplicationUpdated(updatedApp);
     setUploadSuccessMessage('Document uploaded successfully! Application is now Under Review.');
     setIsUploadingMissing(false);
     setTimeout(() => setUploadSuccessMessage(null), 4000);
+  };
+
+  const handleDownloadPdf = async () => {
+    setIsDownloadingPdf(true);
+    try {
+      await apiService.downloadApplicationPdf(application);
+    } catch (err: any) {
+      console.error('Failed to download PDF:', err);
+      alert(err?.message || 'Could not download PDF summary. Please verify the server is running.');
+    } finally {
+      setIsDownloadingPdf(false);
+    }
   };
 
   return (
@@ -93,9 +184,20 @@ export const Step11StatusTimeline: React.FC<Step11StatusTimelineProps> = ({
       {/* Header & Request Number */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <span className="text-[11px] font-bold text-slate-400">
-            {t(language, 'statusTimelineTitle')}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-bold text-slate-400">
+              {t(language, 'statusTimelineTitle')}
+            </span>
+            {sseConnected && (
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-[10px] font-semibold text-emerald-700">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                </span>
+                <span>Live</span>
+              </span>
+            )}
+          </div>
           <h1 className="text-xl font-bold font-mono text-slate-900">
             {application.requestNumber}
           </h1>
@@ -151,6 +253,28 @@ export const Step11StatusTimeline: React.FC<Step11StatusTimelineProps> = ({
             </button>
           </div>
         )}
+
+        {/* PDF Download Button */}
+        <div className="pt-2 border-t border-slate-100">
+          <button
+            type="button"
+            onClick={handleDownloadPdf}
+            disabled={isDownloadingPdf}
+            className="w-full py-2 px-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-xs flex items-center justify-center gap-2 border border-slate-200 transition-colors"
+          >
+            {isDownloadingPdf ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
+                <span>Generating PDF Summary...</span>
+              </>
+            ) : (
+              <>
+                <Download className="w-3.5 h-3.5 text-blue-600" />
+                <span>Download Application Summary (PDF)</span>
+              </>
+            )}
+          </button>
+        </div>
 
         {uploadSuccessMessage && (
           <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 font-medium">

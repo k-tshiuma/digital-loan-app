@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Calculator, AlertCircle, ArrowRight, ArrowLeft, Coins, Calendar, Sparkles } from 'lucide-react';
-import { Language, LoanRequest } from '../types';
+import { Calculator, AlertCircle, ArrowRight, ArrowLeft, Coins, Calendar, Sparkles, Building2, ShieldCheck } from 'lucide-react';
+import { Language, LoanRequest, BankAccountDetails } from '../types';
 import {
   LOAN_PERIOD_OPTIONS,
   LOAN_PURPOSE_OPTIONS,
   REPAYMENT_SOURCE_OPTIONS,
   GRACE_PERIOD_OPTIONS,
+  ISRAELI_BANKS,
   calculateLoanRepayment,
 } from '../config/appConfig';
 import { t } from '../i18n/translations';
@@ -13,13 +14,17 @@ import { t } from '../i18n/translations';
 interface Step6LoanDetailsProps {
   language: Language;
   initialData?: Partial<LoanRequest>;
-  onSaveAndNext: (data: LoanRequest) => void;
+  initialBankAccount?: Partial<BankAccountDetails>;
+  borrowerName?: string;
+  onSaveAndNext: (data: LoanRequest, bankAccount: BankAccountDetails) => void;
   onBack: () => void;
 }
 
 export const Step6LoanDetails: React.FC<Step6LoanDetailsProps> = ({
   language,
   initialData,
+  initialBankAccount,
+  borrowerName,
   onSaveAndNext,
   onBack,
 }) => {
@@ -41,6 +46,21 @@ export const Step6LoanDetails: React.FC<Step6LoanDetailsProps> = ({
   const [repaymentSource, setRepaymentSource] = useState<string>(
     initialData?.repaymentSource || 'Bank transfer'
   );
+
+  // Bank account details for loan disbursement
+  const [bankName, setBankName] = useState<string>(
+    initialBankAccount?.bankName || 'Bank Hapoalim'
+  );
+  const [branchNumber, setBranchNumber] = useState<string>(
+    initialBankAccount?.branchNumber || ''
+  );
+  const [accountNumber, setAccountNumber] = useState<string>(
+    initialBankAccount?.accountNumber || ''
+  );
+  const [accountHolderName, setAccountHolderName] = useState<string>(
+    initialBankAccount?.accountHolderName || borrowerName || ''
+  );
+  const [bankErrors, setBankErrors] = useState<Record<string, string>>({});
 
   const [calculation, setCalculation] = useState(() =>
     calculateLoanRepayment(requestedAmount, repaymentMonths)
@@ -65,16 +85,37 @@ export const Step6LoanDetails: React.FC<Step6LoanDetailsProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSaveAndNext({
-      requestedAmountNis: requestedAmount,
-      loanPurpose: loanPurpose as any,
-      otherPurposeDetails: loanPurpose === 'Other' ? otherPurposeDetails : undefined,
-      repaymentPeriodMonths: repaymentMonths as any,
-      gracePeriodMonths: gracePeriodMonths,
-      repaymentSource: repaymentSource as any,
-      estimatedMonthlyPaymentNis: calculation.monthlyPaymentNis,
-      totalRepaymentNis: calculation.totalRepaymentNis,
-    });
+    const errs: Record<string, string> = {};
+    if (!branchNumber.trim()) errs.branchNumber = t(language, 'requiredField');
+    if (!accountNumber.trim()) errs.accountNumber = t(language, 'requiredField');
+    if (!accountHolderName.trim()) errs.accountHolderName = t(language, 'requiredField');
+
+    if (Object.keys(errs).length > 0) {
+      setBankErrors(errs);
+      return;
+    }
+
+    const selectedBank = ISRAELI_BANKS.find((b) => b.name === bankName);
+
+    onSaveAndNext(
+      {
+        requestedAmountNis: requestedAmount,
+        loanPurpose: loanPurpose as any,
+        otherPurposeDetails: loanPurpose === 'Other' ? otherPurposeDetails : undefined,
+        repaymentPeriodMonths: repaymentMonths as any,
+        gracePeriodMonths: gracePeriodMonths,
+        repaymentSource: repaymentSource as any,
+        estimatedMonthlyPaymentNis: calculation.monthlyPaymentNis,
+        totalRepaymentNis: calculation.totalRepaymentNis,
+      },
+      {
+        bankName,
+        bankCode: selectedBank?.code,
+        branchNumber: branchNumber.trim(),
+        accountNumber: accountNumber.trim(),
+        accountHolderName: accountHolderName.trim(),
+      }
+    );
   };
 
   return (
@@ -267,6 +308,130 @@ export const Step6LoanDetails: React.FC<Step6LoanDetailsProps> = ({
           <div className="text-[10px] text-blue-300/80 border-t border-blue-800/60 pt-2 flex items-center justify-between">
             <span>Interest & Processing Fee ({calculation.interestRatePercent}% APR + ₪{calculation.managementFeeNis})</span>
             <span className="font-mono text-white font-semibold">₪{calculation.totalInterestNis + calculation.managementFeeNis}</span>
+          </div>
+        </div>
+
+        {/* Receiving Bank Account Section */}
+        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-4">
+          <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-900 flex items-center justify-center font-bold">
+              <Building2 className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-slate-800">
+                {t(language, 'bankAccountTitle')}
+              </h2>
+              <p className="text-[11px] text-slate-500">
+                {t(language, 'bankAccountSubtitle')}
+              </p>
+            </div>
+          </div>
+
+          {/* Bank Name Select */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold text-slate-700">
+              {t(language, 'bankNameLabel')} <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={bankName}
+              onChange={(e) => setBankName(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm font-medium focus:border-blue-900 focus:ring-2 focus:ring-blue-900/20 focus:outline-none cursor-pointer"
+            >
+              {ISRAELI_BANKS.map((b) => (
+                <option key={b.code} value={b.name}>
+                  {b.name} ({b.hebrewName})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Branch Number & Account Number */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-slate-700">
+                {t(language, 'bankBranchLabel')} <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="bank-branch-input"
+                type="text"
+                maxLength={4}
+                value={branchNumber}
+                onChange={(e) => {
+                  setBranchNumber(e.target.value.replace(/\D/g, ''));
+                  if (bankErrors.branchNumber) {
+                    setBankErrors((prev) => ({ ...prev, branchNumber: '' }));
+                  }
+                }}
+                placeholder={t(language, 'bankBranchPlaceholder')}
+                className={`w-full px-3.5 py-2.5 rounded-xl border ${
+                  bankErrors.branchNumber ? 'border-red-500 bg-red-50/30' : 'border-slate-300 bg-white'
+                } text-slate-900 text-sm font-mono focus:border-blue-900 focus:outline-none`}
+              />
+              {bankErrors.branchNumber && (
+                <p className="text-[11px] text-red-500">{bankErrors.branchNumber}</p>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-slate-700">
+                {t(language, 'bankAccountNumberLabel')} <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="bank-account-input"
+                type="text"
+                maxLength={12}
+                value={accountNumber}
+                onChange={(e) => {
+                  setAccountNumber(e.target.value.replace(/\D/g, ''));
+                  if (bankErrors.accountNumber) {
+                    setBankErrors((prev) => ({ ...prev, accountNumber: '' }));
+                  }
+                }}
+                placeholder={t(language, 'bankAccountNumberPlaceholder')}
+                className={`w-full px-3.5 py-2.5 rounded-xl border ${
+                  bankErrors.accountNumber ? 'border-red-500 bg-red-50/30' : 'border-slate-300 bg-white'
+                } text-slate-900 text-sm font-mono focus:border-blue-900 focus:outline-none`}
+              />
+              {bankErrors.accountNumber && (
+                <p className="text-[11px] text-red-500">{bankErrors.accountNumber}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Account Holder Name */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold text-slate-700">
+              {t(language, 'accountHolderNameLabel')} <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="bank-holder-input"
+              type="text"
+              value={accountHolderName}
+              onChange={(e) => {
+                setAccountHolderName(e.target.value);
+                if (bankErrors.accountHolderName) {
+                  setBankErrors((prev) => ({ ...prev, accountHolderName: '' }));
+                }
+              }}
+              placeholder="e.g. John Doe"
+              className={`w-full px-3.5 py-2.5 rounded-xl border ${
+                bankErrors.accountHolderName ? 'border-red-500 bg-red-50/30' : 'border-slate-300 bg-white'
+              } text-slate-900 text-sm focus:border-blue-900 focus:outline-none`}
+            />
+            <p className="text-[10px] text-slate-500">
+              {t(language, 'accountHolderNameHint')}
+            </p>
+            {bankErrors.accountHolderName && (
+              <p className="text-[11px] text-red-500">{bankErrors.accountHolderName}</p>
+            )}
+          </div>
+
+          {/* Compliance & Security Callout */}
+          <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-100 flex items-start gap-2.5">
+            <ShieldCheck className="w-4 h-4 text-blue-800 shrink-0 mt-0.5" />
+            <p className="text-[11px] text-blue-900 leading-snug">
+              {t(language, 'bankAccountOwnershipNotice')}
+            </p>
           </div>
         </div>
       </div>

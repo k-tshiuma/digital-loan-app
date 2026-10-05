@@ -16,12 +16,14 @@ import {
 import { Language, UploadedFile, DocumentTypeCode } from '../types';
 import { DOCUMENT_TYPE_CONFIG } from '../config/appConfig';
 import { t } from '../i18n/translations';
+import { apiService } from '../services/api';
 
 interface Step8DocumentUploadProps {
   language: Language;
   applicationId: string;
   initialDocuments?: UploadedFile[];
   initialBankAccountConfirmed?: boolean;
+  hasGuarantor?: boolean;
   onSaveAndNext: (docs: UploadedFile[], bankAccountConfirmed: boolean) => void;
   onBack: () => void;
 }
@@ -31,6 +33,7 @@ export const Step8DocumentUpload: React.FC<Step8DocumentUploadProps> = ({
   applicationId,
   initialDocuments = [],
   initialBankAccountConfirmed = false,
+  hasGuarantor = false,
   onSaveAndNext,
   onBack,
 }) => {
@@ -38,6 +41,7 @@ export const Step8DocumentUpload: React.FC<Step8DocumentUploadProps> = ({
   const [bankAccountConfirmed, setBankAccountConfirmed] = useState<boolean>(initialBankAccountConfirmed);
   const [activeDocType, setActiveDocType] = useState<DocumentTypeCode>('PASSPORT');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [ocrPromptDoc, setOcrPromptDoc] = useState<UploadedFile | null>(null);
   const [qualityWarningDoc, setQualityWarningDoc] = useState<UploadedFile | null>(null);
 
@@ -47,6 +51,8 @@ export const Step8DocumentUpload: React.FC<Step8DocumentUploadProps> = ({
   const mandatoryTypes: DocumentTypeCode[] = [
     'PASSPORT',
     'PAY_SLIP',
+    'BANK_ACCOUNT_DOCUMENT',
+    ...(hasGuarantor ? (['GUARANTOR_ID'] as DocumentTypeCode[]) : []),
   ];
 
   const optionalTypes: DocumentTypeCode[] = [
@@ -60,74 +66,130 @@ export const Step8DocumentUpload: React.FC<Step8DocumentUploadProps> = ({
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    setIsProcessing(true);
+    setUploadError(null);
     const file = files[0];
-    const docConfig = DOCUMENT_TYPE_CONFIG.find((c) => c.code === activeDocType);
 
-    // Simulate upload, compression, and quality check
-    setTimeout(() => {
-      const isCard = activeDocType === 'CREDIT_CARD';
-      const isPassport = activeDocType === 'PASSPORT';
-      const isVisa = activeDocType === 'WORK_VISA';
-
-      const simulatedQuality: 'passed' | 'warning' =
-        Math.random() < 0.1 ? 'warning' : 'passed'; // 10% chance to test blur warning
-
-      // Simulated OCR extraction
-      let ocrData: Record<string, any> | undefined = undefined;
-      if (isPassport) {
-        ocrData = {
-          passportNumber: 'P' + Math.floor(1000000 + Math.random() * 9000000),
-          fullName: 'EXTRACTED PASSPORT HOLDER',
-          nationality: 'THAILAND',
-          confidence: 0.96,
-        };
-      } else if (isVisa) {
-        ocrData = {
-          visaCategory: 'B-1 Work',
-          visaExpiryDate: '2027-08-31',
-          confidence: 0.94,
-        };
-      } else if (isCard) {
-        ocrData = {
-          maskedPan: '•••• •••• •••• 4591',
-          cardholder: 'CARD HOLDER',
-        };
-      }
-
-      const newDoc: UploadedFile = {
-        id: `doc_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
-        applicationId,
-        documentTypeCode: activeDocType,
-        originalFilename: file.name,
-        mimeType: file.type || 'image/jpeg',
-        fileSizeBytes: file.size || 340000,
-        storageKey: `s3://quickloan-docs/${applicationId}/${file.name}`,
-        uploadSource: source,
-        qualityStatus: simulatedQuality,
-        qualityIssues:
-          simulatedQuality === 'warning'
-            ? ['Slight blur detected on edges. Please ensure all 4 corners and text are sharp.']
-            : undefined,
-        ocrStatus: ocrData ? 'completed' : 'not_requested',
-        ocrExtractedData: ocrData,
-        userConfirmed: !ocrData,
-        uploadedAt: new Date().toISOString(),
-      };
-
-      setDocuments((prev) => [...prev, newDoc]);
-      setIsProcessing(false);
-
-      if (simulatedQuality === 'warning') {
-        setQualityWarningDoc(newDoc);
-      } else if (ocrData) {
-        setOcrPromptDoc(newDoc);
-      }
-
-      // Reset file input
+    // Client-side file size validation (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadError('File size exceeds the 10MB limit. Please choose a smaller file.');
       if (fileInputRef.current) fileInputRef.current.value = '';
       if (cameraInputRef.current) cameraInputRef.current.value = '';
-    }, 600);
+      return;
+    }
+
+    // Client-side file type validation (PDF, JPG, PNG, WebP)
+    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf', 'image/webp'];
+    const isAllowedExt = file.name.match(/\.(pdf|jpe?g|png|webp)$/i);
+    if (!allowedMimeTypes.includes(file.type.toLowerCase()) && !isAllowedExt) {
+      setUploadError('Invalid file type. Only PDF, JPEG, and PNG files are accepted.');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      if (cameraInputRef.current) cameraInputRef.current.value = '';
+      return;
+    }
+
+    setIsProcessing(true);
+    const docConfig = DOCUMENT_TYPE_CONFIG.find((c) => c.code === activeDocType);
+
+    // 1. Upload to backend /api/upload endpoint (with server-side magic byte inspection)
+    let fileUrl: string | undefined = undefined;
+    try {
+      const uploadRes = await apiService.uploadFile(file);
+      if (uploadRes && uploadRes.url) {
+        fileUrl = uploadRes.url;
+      }
+    } catch (uploadErr: any) {
+      console.warn('Real file upload failed, falling back to local storage:', uploadErr);
+      const errMsg = uploadErr?.response?.data?.error || uploadErr?.message || '';
+      if (errMsg.includes('disguised') || errMsg.includes('magic bytes') || errMsg.includes('Invalid file type') || errMsg.includes('size limit')) {
+        setUploadError(errMsg);
+        setIsProcessing(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        if (cameraInputRef.current) cameraInputRef.current.value = '';
+        return;
+      }
+    }
+
+    // 2. Read as data URL for instant image preview or offline fallback
+    let dataUrl: string | undefined = undefined;
+    if (file.type.startsWith('image/')) {
+      dataUrl = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve((reader.result as string) || '');
+        reader.onerror = () => resolve('');
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // Simulate OCR and quality check
+    const isCard = activeDocType === 'CREDIT_CARD';
+    const isPassport = activeDocType === 'PASSPORT';
+    const isVisa = activeDocType === 'WORK_VISA';
+
+    const simulatedQuality: 'passed' | 'warning' =
+      Math.random() < 0.1 ? 'warning' : 'passed'; // 10% chance to test blur warning
+
+    // Simulated OCR extraction
+    let ocrData: Record<string, any> | undefined = undefined;
+    if (isPassport) {
+      ocrData = {
+        passportNumber: 'P' + Math.floor(1000000 + Math.random() * 9000000),
+        fullName: 'EXTRACTED PASSPORT HOLDER',
+        nationality: 'THAILAND',
+        confidence: 0.96,
+      };
+    } else if (isVisa) {
+      ocrData = {
+        visaCategory: 'B-1 Work',
+        visaExpiryDate: '2027-08-31',
+        confidence: 0.94,
+      };
+    } else if (isCard) {
+      ocrData = {
+        maskedPan: '•••• •••• •••• 4591',
+        cardholder: 'CARD HOLDER',
+      };
+    }
+
+    const newDoc: UploadedFile = {
+      id: `doc_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      applicationId,
+      documentTypeCode: activeDocType,
+      originalFilename: file.name,
+      mimeType: file.type || 'image/jpeg',
+      fileSizeBytes: file.size || 340000,
+      storageKey: `s3://quickloan-docs/${applicationId}/${file.name}`,
+      fileUrl,
+      dataUrl,
+      uploadSource: source,
+      qualityStatus: simulatedQuality,
+      qualityIssues:
+        simulatedQuality === 'warning'
+          ? ['Slight blur detected on edges. Please ensure all 4 corners and text are sharp.']
+          : undefined,
+      ocrStatus: ocrData ? 'completed' : 'not_requested',
+      ocrExtractedData: ocrData,
+      userConfirmed: !ocrData,
+      uploadedAt: new Date().toISOString(),
+    };
+
+    // If document type only allows single file, replace previous doc of this type
+    setDocuments((prev) => {
+      if (!docConfig?.allowsMultiple) {
+        return [...prev.filter((d) => d.documentTypeCode !== activeDocType), newDoc];
+      }
+      return [...prev, newDoc];
+    });
+    setIsProcessing(false);
+
+    if (simulatedQuality === 'warning') {
+      setQualityWarningDoc(newDoc);
+    } else if (ocrData) {
+      setOcrPromptDoc(newDoc);
+    }
+
+    // Reset file input
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (cameraInputRef.current) cameraInputRef.current.value = '';
   };
 
   const handleDeleteDocument = (docId: string) => {
@@ -179,6 +241,24 @@ export const Step8DocumentUpload: React.FC<Step8DocumentUploadProps> = ({
           {t(language, 'documentUploadSubtitle')}
         </p>
       </div>
+
+      {/* Upload Error Banner */}
+      {uploadError && (
+        <div className="p-3.5 mb-4 rounded-2xl bg-red-50 border border-red-200 animate-in fade-in flex items-start gap-2.5">
+          <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <h4 className="text-xs font-bold text-red-900">Upload Issue</h4>
+            <p className="text-xs text-red-700 mt-0.5">{uploadError}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setUploadError(null)}
+            className="text-red-400 hover:text-red-700 text-xs font-bold p-0.5"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* OCR Confirmation Dialog Modal */}
       {ocrPromptDoc && ocrPromptDoc.ocrExtractedData && (
@@ -260,8 +340,9 @@ export const Step8DocumentUpload: React.FC<Step8DocumentUploadProps> = ({
 
       {/* Document Category Tabs / Checklist */}
       <div className="space-y-3 mb-6">
-        <div className="text-xs font-bold text-slate-700 ">
-          Required Documents (5 items)
+        <div className="text-xs font-bold text-slate-700 flex items-center justify-between">
+          <span>Required Documents ({mandatoryTypes.length} items)</span>
+          <span className="text-[11px] text-slate-400 font-normal">PDF, JPG, PNG (Max 10MB)</span>
         </div>
 
         {mandatoryTypes.map((typeCode) => {
@@ -317,31 +398,60 @@ export const Step8DocumentUpload: React.FC<Step8DocumentUploadProps> = ({
 
               {/* Uploaded File Previews */}
               {uploadedList.length > 0 && (
-                <div className="mt-3 space-y-1.5 border-t border-slate-100 pt-2.5">
+                <div className="mt-3 space-y-2 border-t border-slate-100 pt-2.5">
                   {uploadedList.map((doc) => (
                     <div
                       key={doc.id}
-                      className="p-2 rounded-xl bg-slate-50 flex items-center justify-between text-xs"
+                      className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 flex flex-col gap-1.5 text-xs"
                     >
-                      <div className="flex items-center gap-2 truncate max-w-[240px]">
-                        <span className="text-slate-400 font-mono text-[10px]">
-                          [{doc.uploadSource === 'camera' ? 'Camera' : 'File'}]
-                        </span>
-                        <span className="font-medium text-slate-800 truncate">
-                          {doc.originalFilename}
-                        </span>
-                        <span className="text-[10px] text-slate-400">
-                          ({Math.round(doc.fileSizeBytes / 1024)} KB)
-                        </span>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 truncate max-w-[220px]">
+                          {(doc.fileUrl || doc.dataUrl) && (
+                            <img
+                              src={apiService.resolveFileUrl(doc.fileUrl) || doc.dataUrl}
+                              alt=""
+                              className="w-7 h-7 rounded-md object-cover border border-slate-200 shrink-0"
+                            />
+                          )}
+                          <span className="text-slate-400 font-mono text-[10px]">
+                            [{doc.uploadSource === 'camera' ? 'Camera' : 'File'}]
+                          </span>
+                          <span className="font-medium text-slate-800 truncate">
+                            {doc.originalFilename}
+                          </span>
+                          <span className="text-[10px] text-slate-400">
+                            ({Math.round(doc.fileSizeBytes / 1024)} KB)
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveDocType(doc.documentTypeCode);
+                              fileInputRef.current?.click();
+                            }}
+                            className="text-[11px] font-bold text-blue-900 hover:text-blue-700 underline"
+                          >
+                            {t(language, 'replaceDocument')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteDocument(doc.id)}
+                            className="text-red-500 hover:text-red-700 p-1"
+                            title="Delete file"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteDocument(doc.id)}
-                        className="text-red-500 hover:text-red-700 p-1"
-                        title="Delete file"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+
+                      {doc.isReused && (
+                        <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-[10px] font-semibold">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          <span>{t(language, 'reusedDocumentBadge')}</span>
+                          <span className="text-emerald-600 font-normal">({t(language, 'reusedDocumentNotice')})</span>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
