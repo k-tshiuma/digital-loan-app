@@ -148,6 +148,41 @@ export interface GuarantorDetails {
   passportPhoto?: UploadedFile;
 }
 
+export interface GuarantorItem {
+  id: string; // e.g. 'g_1', 'g_2', 'g_3'
+  fullName: string;
+  passportOrIdNumber: string;
+  mobilePhoneNumber: string;
+  relationship: GuarantorRelationship | string;
+  otherRelationshipDetails?: string;
+  idDocument?: UploadedFile;
+}
+
+export interface EligibilityFactorDetail {
+  awarded: number;
+  max: number;
+  description: string;
+}
+
+export interface EligibilityScoreBreakdown {
+  rawScore: number;
+  maxRawScore: number;
+  percentageOfMax: number;
+  segmentsFilled: number;
+  identityScore: number;
+  salaryScore: number;
+  employmentDurationScore: number;
+  visaValidityScore: number;
+  guarantorsScore: number;
+  factors: {
+    identity: EligibilityFactorDetail;
+    salary: EligibilityFactorDetail;
+    employmentDuration: EligibilityFactorDetail;
+    visaValidity: EligibilityFactorDetail;
+    guarantors: EligibilityFactorDetail;
+  };
+}
+
 export interface ConsentRecord {
   id: string;
   applicationId: string;
@@ -263,6 +298,7 @@ export interface LoanApplication {
   employmentDetails?: EmploymentDetails;
   loanRequest?: LoanRequest;
   guarantor?: GuarantorDetails;
+  guarantors?: GuarantorItem[];
   documents: UploadedFile[];
   bankAccount?: BankAccountDetails;
   bankAccountConfirmed?: boolean;
@@ -272,6 +308,9 @@ export interface LoanApplication {
   digitalSignature?: DigitalSignature;
   statusHistory: StatusHistoryItem[];
   missingDocumentNotes?: string;
+  /** Indicative loan eligibility score (0-50%). */
+  eligibilityScore?: number;
+  eligibilityBreakdown?: EligibilityScoreBreakdown;
   /** Advisory pre-screening result computed by the backend (staff only). */
   riskScore?: number;
   riskLevel?: RiskLevel;

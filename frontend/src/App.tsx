@@ -70,17 +70,37 @@ export default function App() {
   // Load or initialize active application when user is logged in
   useEffect(() => {
     if (currentUser) {
-      const activeApp = storageService.getOrCreateActiveApplication(currentUser, currentLanguage);
-      setApplication(activeApp);
-      setCurrentLanguage(activeApp.language || currentUser.preferredLanguage || 'en');
+      // 1. Immediately load local draft so UI renders instantaneously
+      const localApp = storageService.getOrCreateActiveApplication(currentUser, currentLanguage);
+      setApplication(localApp);
+      setCurrentLanguage(localApp.language || currentUser.preferredLanguage || 'en');
 
-      if (activeApp.isSubmitted) {
+      if (localApp.isSubmitted) {
         setCurrentStep(11); // Show status dashboard directly if already submitted
-      } else if (activeApp.currentStep && activeApp.currentStep > 1) {
-        setCurrentStep(activeApp.currentStep);
+      } else if (localApp.currentStep && localApp.currentStep > 1) {
+        setCurrentStep(localApp.currentStep);
       } else {
         setCurrentStep(3); // Logged in -> advance to Borrower Details
       }
+
+      // 2. Fetch authoritative active application from backend API to ensure server-persisted
+      // personal details and documents are seamlessly synchronized and prefilled immediately
+      apiService
+        .getActiveApplication(currentUser.id)
+        .then((res) => {
+          if (res && res.application) {
+            const synced = storageService.saveApplication(res.application);
+            setApplication({ ...synced });
+            if (synced.isSubmitted) {
+              setCurrentStep(11);
+            } else if (synced.currentStep && synced.currentStep > 1) {
+              setCurrentStep(synced.currentStep);
+            }
+          }
+        })
+        .catch((err) => {
+          console.log('[API] Using local active application draft:', err.message);
+        });
     }
   }, [currentUser]);
 
@@ -127,6 +147,19 @@ export default function App() {
       setCurrentStep(3);
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    apiService
+      .getActiveApplication(user.id)
+      .then((res) => {
+        if (res && res.application) {
+          const synced = storageService.saveApplication(res.application);
+          setApplication({ ...synced });
+          if (synced.isSubmitted) {
+            setCurrentStep(11);
+          }
+        }
+      })
+      .catch(() => {});
   };
 
   // Step 3: Borrower details
@@ -179,11 +212,20 @@ export default function App() {
   };
 
   // Step 7: Guarantor details
-  const handleSaveGuarantorDetails = (guarantorData: GuarantorDetails) => {
+  const handleSaveGuarantorDetails = (
+    guarantorsList: GuarantorItem[],
+    legacyGuarantor: GuarantorDetails,
+    guarantorDocs: UploadedFile[]
+  ) => {
     if (!application) return;
+    const existingOtherDocs = (application.documents || []).filter(
+      (d) => d.documentTypeCode !== 'GUARANTOR_ID'
+    );
     const updated = {
       ...application,
-      guarantor: guarantorData,
+      guarantor: legacyGuarantor,
+      guarantors: guarantorsList,
+      documents: [...existingOtherDocs, ...guarantorDocs],
     };
     autoSaveDraft(updated, 8);
     setCurrentStep(8);
@@ -350,11 +392,14 @@ export default function App() {
               />
             )}
 
-            {/* STEP 7: Optional Guarantor */}
+            {/* STEP 7: Required & Optional Guarantors */}
             {currentStep === 7 && (
               <Step7Guarantor
                 language={currentLanguage}
-                initialData={application?.guarantor}
+                applicationId={application?.id || 'temp'}
+                initialGuarantors={application?.guarantors}
+                initialLegacyGuarantor={application?.guarantor}
+                fullApplication={application || undefined}
                 onSaveAndNext={handleSaveGuarantorDetails}
                 onBack={() => setCurrentStep(6)}
               />
@@ -367,7 +412,9 @@ export default function App() {
                 applicationId={application?.id || 'temp'}
                 initialDocuments={application?.documents}
                 initialBankAccountConfirmed={application?.bankAccountConfirmed}
-                hasGuarantor={application?.guarantor?.hasGuarantor}
+                hasGuarantor={(application?.guarantors?.length || 0) > 0 || !!application?.guarantor?.hasGuarantor}
+                guarantors={application?.guarantors}
+                fullApplication={application || undefined}
                 onSaveAndNext={handleSaveDocuments}
                 onBack={() => setCurrentStep(7)}
               />

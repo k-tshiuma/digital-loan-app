@@ -66,6 +66,10 @@ db.serialize(() => {
     'ALTER TABLE applications ADD COLUMN missingDocumentNotes TEXT',
     'ALTER TABLE applications ADD COLUMN bankAccountConfirmed INTEGER',
     'ALTER TABLE applications ADD COLUMN bankAccount TEXT',
+    'ALTER TABLE applications ADD COLUMN guarantors TEXT',
+    'ALTER TABLE applications ADD COLUMN eligibilityScore REAL',
+    'ALTER TABLE applications ADD COLUMN eligibilityBreakdown TEXT',
+    'ALTER TABLE users ADD COLUMN profileData TEXT',
   ];
   addedCols.forEach(sql => {
     db.run(sql, (err) => {

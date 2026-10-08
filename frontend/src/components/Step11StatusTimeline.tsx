@@ -21,6 +21,8 @@ import { STATUS_BADGE_CONFIG } from '../config/appConfig';
 import { t } from '../i18n/translations';
 import { storageService } from '../services/storage';
 import { apiService } from '../services/api';
+import { calculateIndicativeEligibility } from '../services/eligibilityScoring';
+import { EligibilityScoreBar } from './EligibilityScoreBar';
 
 interface Step11StatusTimelineProps {
   language: Language;
@@ -319,6 +321,18 @@ export const Step11StatusTimeline: React.FC<Step11StatusTimelineProps> = ({
         </div>
       )}
 
+      {/* Indicative Loan Eligibility Score Bar */}
+      <div className="mb-4">
+        <EligibilityScoreBar
+          scoreData={
+            application.eligibilityBreakdown ||
+            calculateIndicativeEligibility(application)
+          }
+          language={language}
+          showBreakdownToggle={true}
+        />
+      </div>
+
       {/* Sub-tabs: Timeline, Notifications, Summary Details */}
       <div className="flex border-b border-slate-200 mb-4">
         <button
@@ -452,6 +466,45 @@ export const Step11StatusTimeline: React.FC<Step11StatusTimelineProps> = ({
               <div><span className="text-slate-400 block">Monthly Repayment:</span> ₪{application.loanRequest?.estimatedMonthlyPaymentNis}</div>
               <div><span className="text-slate-400 block">Repayment Source:</span> {application.loanRequest?.repaymentSource}</div>
             </div>
+          </div>
+
+          {/* Guarantor Details */}
+          <div className="p-3.5 rounded-xl bg-white border border-slate-200 text-xs space-y-2">
+            <div className="font-bold text-slate-900 border-b pb-1">
+              Guarantor Information ({((Array.isArray(application.guarantors) && application.guarantors.length > 0) ? application.guarantors.length : (application.guarantor?.hasGuarantor ? 1 : 0))})
+            </div>
+            {(() => {
+              const list = (Array.isArray(application.guarantors) && application.guarantors.length > 0)
+                ? application.guarantors
+                : (application.guarantor?.hasGuarantor ? [{
+                    id: 'g_1',
+                    fullName: application.guarantor.fullName || '',
+                    passportOrIdNumber: application.guarantor.passportOrIdNumber || '',
+                    mobilePhoneNumber: application.guarantor.mobilePhoneNumber || '',
+                    relationship: application.guarantor.relationship || 'Co-worker',
+                    idDocument: application.guarantor.passportPhoto,
+                  }] : []);
+
+              if (list.length === 0) {
+                return <div className="text-slate-500 py-1">No guarantor provided</div>;
+              }
+
+              return (
+                <div className="space-y-2">
+                  {list.map((g, idx) => (
+                    <div key={g.id || idx} className="p-2 rounded-lg bg-slate-50 border border-slate-100 space-y-1">
+                      <div className="font-semibold text-slate-800">
+                        Guarantor {idx + 1}: {g.fullName} ({g.relationship})
+                      </div>
+                      <div className="text-slate-500 text-[11px] grid grid-cols-2 gap-1">
+                        <div>ID: <span className="font-mono text-slate-700">{g.passportOrIdNumber}</span></div>
+                        <div>Phone: {g.mobilePhoneNumber}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}

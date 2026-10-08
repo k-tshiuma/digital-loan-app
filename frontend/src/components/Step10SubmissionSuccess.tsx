@@ -4,6 +4,8 @@ import confetti from 'canvas-confetti';
 import { Language, LoanApplication } from '../types';
 import { t } from '../i18n/translations';
 import { apiService } from '../services/api';
+import { calculateIndicativeEligibility } from '../services/eligibilityScoring';
+import { EligibilityScoreBar } from './EligibilityScoreBar';
 
 interface Step10SubmissionSuccessProps {
   language: Language;
@@ -87,6 +89,18 @@ export const Step10SubmissionSuccess: React.FC<Step10SubmissionSuccessProps> = (
         <p className="text-[11px] text-slate-500 mt-1">
           {t(language, 'keepRequestNumberNotice')}
         </p>
+      </div>
+
+      {/* Indicative Loan Eligibility Result */}
+      <div className="mb-6 text-left">
+        <EligibilityScoreBar
+          scoreData={
+            application.eligibilityBreakdown ||
+            calculateIndicativeEligibility(application)
+          }
+          language={language}
+          showBreakdownToggle={true}
+        />
       </div>
 
       {/* Next Steps List */}

@@ -175,6 +175,10 @@ export const apiService = {
     return res.application;
   },
 
+  async getActiveApplication(userId: string, scope: ApiScope = 'borrower'): Promise<{ application: LoanApplication; isReturningUser: boolean; previousDocumentsReport?: any[] }> {
+    return request(`/applications/active/${userId}`, { scope });
+  },
+
   async getApplication(id: string, scope: ApiScope = 'borrower'): Promise<LoanApplication> {
     const res = await request<{ application: LoanApplication }>(`/applications/${id}`, { scope });
     return res.application;

@@ -62,6 +62,20 @@ export const Step6LoanDetails: React.FC<Step6LoanDetailsProps> = ({
   );
   const [bankErrors, setBankErrors] = useState<Record<string, string>>({});
 
+  // Synchronize bank account when initialBankAccount updates from profile
+  useEffect(() => {
+    if (initialBankAccount) {
+      if (initialBankAccount.bankName) setBankName(initialBankAccount.bankName);
+      if (initialBankAccount.branchNumber) setBranchNumber(initialBankAccount.branchNumber);
+      if (initialBankAccount.accountNumber) setAccountNumber(initialBankAccount.accountNumber);
+      if (initialBankAccount.accountHolderName) {
+        setAccountHolderName(initialBankAccount.accountHolderName);
+      } else if (borrowerName) {
+        setAccountHolderName(borrowerName);
+      }
+    }
+  }, [initialBankAccount, borrowerName]);
+
   const [calculation, setCalculation] = useState(() =>
     calculateLoanRepayment(requestedAmount, repaymentMonths)
   );
@@ -326,6 +340,19 @@ export const Step6LoanDetails: React.FC<Step6LoanDetailsProps> = ({
               </p>
             </div>
           </div>
+
+          {/* On-File Bank Account Banner */}
+          {initialBankAccount?.accountNumber && (
+            <div className="p-2.5 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-between text-xs animate-in fade-in">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-3.5 h-3.5 text-blue-700 shrink-0" />
+                <span className="text-[11px] text-blue-900 font-medium">Bank account on file pre-filled. You can update any detail below.</span>
+              </div>
+              <span className="text-[10px] font-bold text-blue-800 bg-blue-100 px-2 py-0.5 rounded-full shrink-0">
+                On File
+              </span>
+            </div>
+          )}
 
           {/* Bank Name Select */}
           <div className="space-y-1.5">
