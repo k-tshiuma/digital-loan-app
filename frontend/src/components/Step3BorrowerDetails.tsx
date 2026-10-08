@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Calendar, MapPin, Flag, AlertTriangle, ArrowRight, ArrowLeft } from 'lucide-react';
+import { User, Calendar, MapPin, Flag, AlertTriangle, ArrowRight, ArrowLeft, ShieldCheck } from 'lucide-react';
 import { Language, BorrowerDetails } from '../types';
 import { ORIGIN_COUNTRIES, MARITAL_STATUSES, calculateAge } from '../config/appConfig';
 import { t } from '../i18n/translations';
@@ -38,6 +38,30 @@ export const Step3BorrowerDetails: React.FC<Step3BorrowerDetailsProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [calculatedAge, setCalculatedAge] = useState<number | null>(null);
 
+  // Synchronize formData whenever initialData or authenticated phone updates
+  useEffect(() => {
+    if (initialData) {
+      setFormData((prev) => ({
+        ...prev,
+        fullName: initialData.fullName ?? prev.fullName,
+        passportNumber: initialData.passportNumber ?? prev.passportNumber,
+        countryOfOrigin: initialData.countryOfOrigin ?? prev.countryOfOrigin,
+        dateOfBirth: initialData.dateOfBirth ?? prev.dateOfBirth,
+        mobilePhoneNumber: initialData.mobilePhoneNumber ?? userPhoneNumber ?? prev.mobilePhoneNumber,
+        addressCity: initialData.addressCity ?? prev.addressCity,
+        addressStreet: initialData.addressStreet ?? prev.addressStreet,
+        addressFull: initialData.addressFull ?? prev.addressFull,
+        maritalStatus: initialData.maritalStatus ?? prev.maritalStatus,
+        otherMaritalStatusDetails: initialData.otherMaritalStatusDetails ?? prev.otherMaritalStatusDetails,
+      }));
+    } else if (userPhoneNumber) {
+      setFormData((prev) => ({
+        ...prev,
+        mobilePhoneNumber: prev.mobilePhoneNumber || userPhoneNumber,
+      }));
+    }
+  }, [initialData, userPhoneNumber]);
+
   // Compute live age
   useEffect(() => {
     if (formData.dateOfBirth) {
@@ -45,6 +69,8 @@ export const Step3BorrowerDetails: React.FC<Step3BorrowerDetailsProps> = ({
       setCalculatedAge(age);
     }
   }, [formData.dateOfBirth]);
+
+  const isPreFilled = Boolean(initialData?.passportNumber || (initialData?.fullName && initialData.fullName.trim().length > 0));
 
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
@@ -113,7 +139,7 @@ export const Step3BorrowerDetails: React.FC<Step3BorrowerDetailsProps> = ({
   return (
     <form onSubmit={handleSubmit} className="flex flex-col flex-1 max-w-md mx-auto w-full py-2 animate-in fade-in duration-300">
       {/* Header */}
-      <div className="space-y-1 mb-5">
+      <div className="space-y-1 mb-4">
         <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
           {t(language, 'borrowerDetailsTitle')}
         </h1>
@@ -121,6 +147,22 @@ export const Step3BorrowerDetails: React.FC<Step3BorrowerDetailsProps> = ({
           {t(language, 'borrowerDetailsSubtitle')}
         </p>
       </div>
+
+      {/* On-File Profile Banner */}
+      {isPreFilled && (
+        <div className="p-3 mb-4 rounded-2xl bg-blue-50 border border-blue-200/90 flex items-center justify-between text-xs animate-in fade-in">
+          <div className="flex items-center gap-2.5">
+            <ShieldCheck className="w-4 h-4 text-blue-700 shrink-0" />
+            <div>
+              <span className="font-bold text-blue-950 block">Personal details on file</span>
+              <span className="text-[11px] text-blue-800">Pre-filled from your profile. You can edit any field below if your details changed.</span>
+            </div>
+          </div>
+          <span className="text-[10px] font-bold text-blue-800 bg-blue-100 px-2 py-0.5 rounded-full shrink-0">
+            On File
+          </span>
+        </div>
+      )}
 
       <div className="space-y-4 mb-8">
         {/* Full Name */}

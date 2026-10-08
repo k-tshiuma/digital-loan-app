@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Building2, Briefcase, DollarSign, ArrowRight, ArrowLeft } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Building2, Briefcase, DollarSign, ArrowRight, ArrowLeft, ShieldCheck } from 'lucide-react';
 import { Language, EmploymentDetails } from '../types';
 import { SALARY_PAYMENT_METHODS } from '../config/appConfig';
 import { t } from '../i18n/translations';
@@ -24,6 +24,22 @@ export const Step5EmploymentDetails: React.FC<Step5EmploymentDetailsProps> = ({
     monthlySalaryNis: initialData?.monthlySalaryNis || 7500,
     salaryPaymentMethod: initialData?.salaryPaymentMethod || 'Bank Transfer',
   });
+
+  // Sync formData whenever initialData updates
+  useEffect(() => {
+    if (initialData) {
+      setFormData((prev) => ({
+        ...prev,
+        employerName: initialData.employerName ?? prev.employerName,
+        staffingAgencyName: initialData.staffingAgencyName ?? prev.staffingAgencyName,
+        jobTenureMonths: initialData.jobTenureMonths ?? prev.jobTenureMonths,
+        monthlySalaryNis: initialData.monthlySalaryNis ?? prev.monthlySalaryNis,
+        salaryPaymentMethod: initialData.salaryPaymentMethod ?? prev.salaryPaymentMethod,
+      }));
+    }
+  }, [initialData]);
+
+  const isPreFilled = Boolean(initialData && initialData.employerName);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -60,7 +76,7 @@ export const Step5EmploymentDetails: React.FC<Step5EmploymentDetailsProps> = ({
   return (
     <form onSubmit={handleSubmit} className="flex flex-col flex-1 max-w-md mx-auto w-full py-2 animate-in fade-in duration-300">
       {/* Header */}
-      <div className="space-y-1 mb-5">
+      <div className="space-y-1 mb-4">
         <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
           {t(language, 'employmentDetailsTitle')}
         </h1>
@@ -68,6 +84,22 @@ export const Step5EmploymentDetails: React.FC<Step5EmploymentDetailsProps> = ({
           {t(language, 'employmentDetailsSubtitle')}
         </p>
       </div>
+
+      {/* On-File Profile Banner */}
+      {isPreFilled && (
+        <div className="p-3 mb-4 rounded-2xl bg-blue-50 border border-blue-200/90 flex items-center justify-between text-xs animate-in fade-in">
+          <div className="flex items-center gap-2.5">
+            <ShieldCheck className="w-4 h-4 text-blue-700 shrink-0" />
+            <div>
+              <span className="font-bold text-blue-950 block">Employment details on file</span>
+              <span className="text-[11px] text-blue-800">Pre-filled from your profile. You can update employer, tenure, or monthly salary below.</span>
+            </div>
+          </div>
+          <span className="text-[10px] font-bold text-blue-800 bg-blue-100 px-2 py-0.5 rounded-full shrink-0">
+            On File
+          </span>
+        </div>
+      )}
 
       <div className="space-y-4 mb-8">
         {/* Employer Name */}

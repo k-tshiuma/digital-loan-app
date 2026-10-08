@@ -11,6 +11,7 @@ const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const db = require('./database');
 const { runCreditScreening, DEFAULT_CREDIT_RULES, normalizeRules } = require('./creditEngine');
+const { calculateEligibilityScore } = require('./services/eligibilityScoring');
 const { sendSms } = require('./services/smsService');
 const { sendEmail } = require('./services/emailService');
 const { streamApplicationPdf } = require('./services/pdfService');
@@ -163,8 +164,8 @@ const MAX_CODE_ATTEMPTS = 5;
 // ---------------------------------------------------------------------------
 // Application helpers
 // ---------------------------------------------------------------------------
-const APP_JSON_FIELDS = ['borrowerDetails', 'residencyDetails', 'employmentDetails', 'loanRequest', 'guarantor', 'digitalSignature', 'bankAccount'];
-const APP_JSON_ARRAY_FIELDS = ['documents', 'consents', 'statusHistory', 'riskFlags'];
+const APP_JSON_FIELDS = ['borrowerDetails', 'residencyDetails', 'employmentDetails', 'loanRequest', 'guarantor', 'digitalSignature', 'bankAccount', 'eligibilityBreakdown'];
+const APP_JSON_ARRAY_FIELDS = ['documents', 'consents', 'statusHistory', 'riskFlags', 'guarantors'];
 
 function parseApp(row) {
   if (!row) return null;
@@ -176,6 +177,38 @@ function parseApp(row) {
   if (out.riskScore === null) delete out.riskScore;
   if (out.riskLevel === null) delete out.riskLevel;
   if (out.missingDocumentNotes === null) delete out.missingDocumentNotes;
+  if (out.eligibilityScore === null || out.eligibilityScore === undefined) {
+    const el = calculateEligibilityScore(out);
+    out.eligibilityScore = el.rawScore;
+    out.eligibilityBreakdown = el;
+  }
+
+  // Two-way synchronization between multi-guarantors array and legacy single guarantor
+  if (Array.isArray(out.guarantors) && out.guarantors.length > 0) {
+    const g0 = out.guarantors[0];
+    if (!out.guarantor || !out.guarantor.hasGuarantor) {
+      out.guarantor = {
+        hasGuarantor: true,
+        fullName: g0.fullName,
+        passportOrIdNumber: g0.passportOrIdNumber,
+        mobilePhoneNumber: g0.mobilePhoneNumber,
+        relationship: g0.relationship,
+        otherRelationshipDetails: g0.otherRelationshipDetails,
+        passportPhoto: g0.idDocument,
+      };
+    }
+  } else if (out.guarantor && out.guarantor.hasGuarantor) {
+    out.guarantors = [{
+      id: 'g_1',
+      fullName: out.guarantor.fullName,
+      passportOrIdNumber: out.guarantor.passportOrIdNumber,
+      mobilePhoneNumber: out.guarantor.mobilePhoneNumber,
+      relationship: out.guarantor.relationship,
+      otherRelationshipDetails: out.guarantor.otherRelationshipDetails,
+      idDocument: out.guarantor.passportPhoto,
+    }];
+  }
+
   return out;
 }
 
@@ -196,11 +229,41 @@ async function getAppById(id) {
 }
 
 async function writeApp(a) {
+  // Sync guarantors <-> guarantor before saving
+  if (Array.isArray(a.guarantors) && a.guarantors.length > 0) {
+    const g0 = a.guarantors[0];
+    a.guarantor = {
+      hasGuarantor: true,
+      fullName: g0.fullName,
+      passportOrIdNumber: g0.passportOrIdNumber,
+      mobilePhoneNumber: g0.mobilePhoneNumber,
+      relationship: g0.relationship,
+      otherRelationshipDetails: g0.otherRelationshipDetails,
+      passportPhoto: g0.idDocument,
+    };
+  } else if (a.guarantor && a.guarantor.hasGuarantor && (!a.guarantors || a.guarantors.length === 0)) {
+    a.guarantors = [{
+      id: 'g_1',
+      fullName: a.guarantor.fullName,
+      passportOrIdNumber: a.guarantor.passportOrIdNumber,
+      mobilePhoneNumber: a.guarantor.mobilePhoneNumber,
+      relationship: a.guarantor.relationship,
+      otherRelationshipDetails: a.guarantor.otherRelationshipDetails,
+      idDocument: a.guarantor.passportPhoto,
+    }];
+  }
+
+  // Authoritative server-side calculation for indicative eligibility score
+  const el = calculateEligibilityScore(a);
+  a.eligibilityScore = el.rawScore;
+  a.eligibilityBreakdown = el;
+
   const cols = [
     'id', 'userId', 'requestNumber', 'isSubmitted', 'submittedAt', 'status', 'language', 'currentStep',
     'borrowerDetails', 'residencyDetails', 'employmentDetails', 'loanRequest', 'guarantor', 'documents',
     'consents', 'digitalSignature', 'statusHistory', 'riskScore', 'riskLevel', 'riskFlags',
-    'missingDocumentNotes', 'bankAccountConfirmed', 'bankAccount', 'createdAt', 'updatedAt',
+    'missingDocumentNotes', 'bankAccountConfirmed', 'bankAccount', 'guarantors', 'eligibilityScore', 'eligibilityBreakdown',
+    'createdAt', 'updatedAt',
   ];
   const values = [
     a.id, a.userId, a.requestNumber || null, a.isSubmitted ? 1 : 0, a.submittedAt || null, a.status, a.language || 'en', a.currentStep || 3,
@@ -208,7 +271,9 @@ async function writeApp(a) {
     JSON.stringify(a.loanRequest ?? null), JSON.stringify(a.guarantor ?? null), JSON.stringify(stripInlineFiles(a.documents)),
     JSON.stringify(a.consents || []), JSON.stringify(a.digitalSignature ?? null), JSON.stringify(a.statusHistory || []),
     a.riskScore ?? null, a.riskLevel ?? null, JSON.stringify(a.riskFlags || []),
-    a.missingDocumentNotes ?? null, a.bankAccountConfirmed ? 1 : 0, JSON.stringify(a.bankAccount ?? null), a.createdAt, a.updatedAt,
+    a.missingDocumentNotes ?? null, a.bankAccountConfirmed ? 1 : 0, JSON.stringify(a.bankAccount ?? null),
+    JSON.stringify(a.guarantors || []), a.eligibilityScore, JSON.stringify(a.eligibilityBreakdown ?? null),
+    a.createdAt, a.updatedAt,
   ];
   const updates = cols.filter((c) => c !== 'id' && c !== 'createdAt').map((c) => `${c} = excluded.${c}`).join(', ');
   await dbRun(
@@ -669,34 +734,20 @@ app.get('/api/applications', requireStaff(), async (_req, res) => {
   res.json({ success: true, applications: rows.map(parseApp) });
 });
 
-app.get('/api/applications/active/:userId', async (req, res) => {
-  const { userId } = req.params;
-  if (!canAccessUser(req, userId)) return res.status(403).json({ success: false, error: 'Forbidden' });
-
-  const row = await dbGet('SELECT * FROM applications WHERE userId = ? AND isSubmitted = 0 ORDER BY createdAt DESC LIMIT 1', [userId]);
-  if (row) return res.json({ success: true, application: parseApp(row) });
-
-  // Check if returning user with prior submitted application
-  const prevRow = await dbGet('SELECT * FROM applications WHERE userId = ? AND isSubmitted = 1 ORDER BY submittedAt DESC LIMIT 1', [userId]);
-  const prevApp = parseApp(prevRow);
-
-  const now = new Date().toISOString();
-  const reqNum = await nextRequestNumber();
-
-  // Evaluate previous documents for safe reuse
+function evaluateReusableDocuments(documents, residencyDetails, sourceAppId) {
   const reusableDocs = [];
   const docValidityReport = [];
 
-  if (prevApp && Array.isArray(prevApp.documents)) {
-    for (const d of prevApp.documents) {
+  if (Array.isArray(documents)) {
+    for (const d of documents) {
       if (!d || !d.documentTypeCode) continue;
-      
+
       let isValid = true;
-      let reason = 'Reused from previous verified application';
+      let reason = 'Reused from previous verified records on file';
 
       // Visa validity check: must have >= 6 months remaining
       if (d.documentTypeCode === 'WORK_VISA' || d.documentTypeCode === 'WORKERS_CARD') {
-        const expiry = prevApp.residencyDetails?.visaExpiryDate;
+        const expiry = residencyDetails?.visaExpiryDate;
         if (expiry) {
           const expDate = new Date(expiry);
           const sixMonthsFromNow = new Date();
@@ -710,7 +761,7 @@ app.get('/api/applications/active/:userId', async (req, res) => {
 
       // Pay slip check: must be recent (past 90 days)
       if (d.documentTypeCode === 'PAY_SLIP') {
-        const uploadedDate = new Date(d.uploadedAt || prevApp.submittedAt || 0);
+        const uploadedDate = new Date(d.uploadedAt || 0);
         const ninetyDaysAgo = new Date();
         ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
         if (uploadedDate < ninetyDaysAgo) {
@@ -730,7 +781,7 @@ app.get('/api/applications/active/:userId', async (req, res) => {
         reusableDocs.push({
           ...d,
           isReused: true,
-          reusedFromAppId: prevApp.id,
+          reusedFromAppId: sourceAppId || d.reusedFromAppId,
           validityStatus: 'valid',
           validityReason: reason,
         });
@@ -738,20 +789,135 @@ app.get('/api/applications/active/:userId', async (req, res) => {
     }
   }
 
+  return { reusableDocs, docValidityReport };
+}
+
+app.get('/api/applications/active/:userId', async (req, res) => {
+  const { userId } = req.params;
+  if (!canAccessUser(req, userId)) return res.status(403).json({ success: false, error: 'Forbidden' });
+
+  const userRow = await dbGet('SELECT * FROM users WHERE id = ?', [userId]);
+  const userProfile = safeJson(userRow?.profileData, null);
+
+  // Check if returning user with prior submitted application
+  const prevRow = await dbGet('SELECT * FROM applications WHERE userId = ? AND isSubmitted = 1 ORDER BY submittedAt DESC LIMIT 1', [userId]);
+  const prevApp = parseApp(prevRow);
+
+  // Fallback to most recent application with borrowerDetails if no submitted app exists
+  let fallbackApp = prevApp;
+  if (!fallbackApp) {
+    const filledRow = await dbGet(
+      'SELECT * FROM applications WHERE userId = ? AND borrowerDetails IS NOT NULL ORDER BY updatedAt DESC LIMIT 1',
+      [userId]
+    );
+    fallbackApp = parseApp(filledRow);
+  }
+
+  const sourceData = userProfile || fallbackApp || {};
+  const hasSavedInfo = !!(
+    (sourceData.borrowerDetails && sourceData.borrowerDetails.passportNumber) ||
+    prevApp ||
+    userProfile
+  );
+
+  const row = await dbGet('SELECT * FROM applications WHERE userId = ? AND isSubmitted = 0 ORDER BY createdAt DESC LIMIT 1', [userId]);
+  if (row) {
+    const activeApp = parseApp(row);
+    let draftUpdated = false;
+
+    // If active draft is missing personal details or documents, auto-fill from saved profile / previous application
+    if ((!activeApp.borrowerDetails || !activeApp.borrowerDetails.passportNumber) && (sourceData.borrowerDetails || userRow?.fullName)) {
+      activeApp.borrowerDetails = {
+        fullName: sourceData.borrowerDetails?.fullName || userRow?.fullName || '',
+        passportNumber: sourceData.borrowerDetails?.passportNumber || '',
+        countryOfOrigin: sourceData.borrowerDetails?.countryOfOrigin || 'Thailand',
+        dateOfBirth: sourceData.borrowerDetails?.dateOfBirth || '',
+        mobilePhoneNumber: sourceData.borrowerDetails?.mobilePhoneNumber || userRow?.phoneNumber || '',
+        addressCity: sourceData.borrowerDetails?.addressCity || '',
+        addressStreet: sourceData.borrowerDetails?.addressStreet || '',
+        addressFull: sourceData.borrowerDetails?.addressFull || '',
+        maritalStatus: sourceData.borrowerDetails?.maritalStatus || 'Single',
+        otherMaritalStatusDetails: sourceData.borrowerDetails?.otherMaritalStatusDetails,
+      };
+      draftUpdated = true;
+    }
+
+    if (!activeApp.residencyDetails && sourceData.residencyDetails) {
+      activeApp.residencyDetails = sourceData.residencyDetails;
+      draftUpdated = true;
+    }
+
+    if (!activeApp.employmentDetails && sourceData.employmentDetails) {
+      activeApp.employmentDetails = sourceData.employmentDetails;
+      draftUpdated = true;
+    }
+
+    if (!activeApp.bankAccount && sourceData.bankAccount) {
+      activeApp.bankAccount = sourceData.bankAccount;
+      activeApp.bankAccountConfirmed = sourceData.bankAccountConfirmed || false;
+      draftUpdated = true;
+    }
+
+    if ((!activeApp.guarantors || activeApp.guarantors.length === 0) && (sourceData.guarantors?.length || sourceData.guarantor?.hasGuarantor)) {
+      activeApp.guarantors = sourceData.guarantors || (sourceData.guarantor?.hasGuarantor ? [sourceData.guarantor] : []);
+      activeApp.guarantor = sourceData.guarantor || activeApp.guarantor;
+      draftUpdated = true;
+    }
+
+    if ((!activeApp.documents || activeApp.documents.length === 0) && Array.isArray(sourceData.documents) && sourceData.documents.length > 0) {
+      const { reusableDocs } = evaluateReusableDocuments(sourceData.documents, sourceData.residencyDetails, sourceData.id);
+      if (reusableDocs.length > 0) {
+        activeApp.documents = reusableDocs;
+        draftUpdated = true;
+      }
+    }
+
+    if (hasSavedInfo) {
+      activeApp.isReturningUser = true;
+    }
+
+    if (draftUpdated) {
+      await writeApp(activeApp);
+    }
+
+    return res.json({ success: true, application: activeApp, isReturningUser: !!activeApp.isReturningUser });
+  }
+
+  const now = new Date().toISOString();
+  const reqNum = await nextRequestNumber();
+
+  // Evaluate previous documents for safe reuse
+  const { reusableDocs, docValidityReport } = evaluateReusableDocuments(
+    sourceData.documents || [],
+    sourceData.residencyDetails,
+    sourceData.id
+  );
+
   const draft = {
     id: newId('app'),
     userId,
     requestNumber: reqNum,
     isSubmitted: false,
     status: 'Received',
-    currentStep: prevApp ? 6 : 3,
-    isReturningUser: !!prevApp,
-    borrowerDetails: prevApp ? prevApp.borrowerDetails : undefined,
-    residencyDetails: prevApp ? prevApp.residencyDetails : undefined,
-    employmentDetails: prevApp ? prevApp.employmentDetails : undefined,
-    bankAccount: prevApp ? prevApp.bankAccount : undefined,
-    bankAccountConfirmed: prevApp ? prevApp.bankAccountConfirmed : false,
-    guarantor: prevApp ? prevApp.guarantor : { hasGuarantor: false },
+    currentStep: hasSavedInfo ? 6 : 3,
+    isReturningUser: hasSavedInfo,
+    borrowerDetails: sourceData.borrowerDetails ? { ...sourceData.borrowerDetails } : {
+      fullName: userRow?.fullName || '',
+      mobilePhoneNumber: userRow?.phoneNumber || '',
+      passportNumber: '',
+      countryOfOrigin: 'Thailand',
+      dateOfBirth: '',
+      addressCity: '',
+      addressStreet: '',
+      addressFull: '',
+      maritalStatus: 'Single',
+    },
+    residencyDetails: sourceData.residencyDetails ? { ...sourceData.residencyDetails } : undefined,
+    employmentDetails: sourceData.employmentDetails ? { ...sourceData.employmentDetails } : undefined,
+    bankAccount: sourceData.bankAccount ? { ...sourceData.bankAccount } : undefined,
+    bankAccountConfirmed: sourceData ? !!sourceData.bankAccountConfirmed : false,
+    guarantor: sourceData.guarantor ? { ...sourceData.guarantor } : { hasGuarantor: false },
+    guarantors: sourceData.guarantors || (sourceData.guarantor?.hasGuarantor ? [sourceData.guarantor] : []),
     documents: reusableDocs,
     consents: [],
     statusHistory: [],
@@ -763,7 +929,7 @@ app.get('/api/applications/active/:userId', async (req, res) => {
   res.json({
     success: true,
     application: draft,
-    isReturningUser: !!prevApp,
+    isReturningUser: hasSavedInfo,
     previousDocumentsReport: docValidityReport,
   });
 });
@@ -802,8 +968,9 @@ app.put('/api/applications/:id', async (req, res) => {
   }
 
   const next = { ...incoming, id, updatedAt: now, createdAt: (prev && prev.createdAt) || incoming.createdAt || now };
-  // Risk data is computed server-side only.
+  // Risk data and eligibility scores are computed server-side only to prevent tampering.
   delete next.riskScore; delete next.riskLevel; delete next.riskFlags;
+  delete next.eligibilityScore; delete next.eligibilityBreakdown;
 
   if (isStaff(req)) {
     next.userId = (prev && prev.userId) || incoming.userId;
@@ -814,7 +981,7 @@ app.put('/api/applications/:id', async (req, res) => {
     if (prev && prev.isSubmitted) {
       // Immutable after submission (borrower side)
       ['requestNumber', 'submittedAt', 'borrowerDetails', 'residencyDetails', 'employmentDetails',
-        'loanRequest', 'guarantor', 'consents', 'digitalSignature', 'language'].forEach((f) => { next[f] = prev[f]; });
+        'loanRequest', 'guarantor', 'guarantors', 'consents', 'digitalSignature', 'language'].forEach((f) => { next[f] = prev[f]; });
       next.isSubmitted = true;
 
       // Only allowed borrower status transition: re-submitting after uploading a requested document.
@@ -868,6 +1035,34 @@ app.put('/api/applications/:id', async (req, res) => {
   if (next.isSubmitted) await applyRiskScore(next);
 
   await writeApp(next);
+
+  // Update user profile in users table so personal details and documents are permanently associated with this account
+  if (next.userId && next.userId !== 'demo_user') {
+    try {
+      const userToUpdate = await dbGet('SELECT * FROM users WHERE id = ?', [next.userId]);
+      if (userToUpdate) {
+        const existingProf = safeJson(userToUpdate.profileData, {});
+        const profilePayload = {
+          borrowerDetails: next.borrowerDetails || existingProf.borrowerDetails,
+          residencyDetails: next.residencyDetails || existingProf.residencyDetails,
+          employmentDetails: next.employmentDetails || existingProf.employmentDetails,
+          bankAccount: next.bankAccount || existingProf.bankAccount,
+          bankAccountConfirmed: next.bankAccountConfirmed ?? existingProf.bankAccountConfirmed,
+          guarantors: next.guarantors || existingProf.guarantors,
+          guarantor: next.guarantor || existingProf.guarantor,
+          documents: next.documents || existingProf.documents,
+        };
+        const updatedName = (next.borrowerDetails && next.borrowerDetails.fullName) || userToUpdate.fullName;
+        await dbRun(
+          'UPDATE users SET fullName = ?, profileData = ?, updatedAt = ? WHERE id = ?',
+          [updatedName, JSON.stringify(profilePayload), now, next.userId]
+        );
+      }
+    } catch (e) {
+      console.warn('[USER PROFILE UPDATE]', e.message);
+    }
+  }
+
   const saved = await getAppById(id);
 
   // Phase 4 + 5: status-change hook (also fires on first submission)

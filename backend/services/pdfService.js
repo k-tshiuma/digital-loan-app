@@ -104,15 +104,22 @@ function streamApplicationPdf(app, res, options = {}) {
     row('Bank account', app.bankAccountConfirmed ? 'Confirmed Israeli Bank Account' : 'Pending verification');
   }
 
-  const g = app.guarantor || {};
-  section('Guarantor');
-  if (g.hasGuarantor) {
-    row('Full name', g.fullName);
-    row('Passport / ID', g.passportOrIdNumber);
-    row('Mobile phone', g.mobilePhoneNumber);
-    row('Relationship', g.relationship);
+  const guarantors = (Array.isArray(app.guarantors) && app.guarantors.length > 0)
+    ? app.guarantors
+    : (app.guarantor && app.guarantor.hasGuarantor ? [app.guarantor] : []);
+
+  section(`Guarantor Information (${guarantors.length})`);
+  if (guarantors.length > 0) {
+    guarantors.forEach((g, idx) => {
+      row(`Guarantor ${idx + 1}`, `${g.fullName || '—'} · ID: ${g.passportOrIdNumber || '—'} · Tel: ${g.mobilePhoneNumber || '—'} · Rel: ${g.relationship || 'Co-worker'}`);
+    });
   } else {
     row('Guarantor', 'None provided');
+  }
+
+  if (typeof app.eligibilityScore === 'number') {
+    section('Estimated Loan Eligibility');
+    row('Indicative score', `${app.eligibilityScore}% (out of 100% max indicative)`);
   }
 
   section(`Documents (${(app.documents || []).length})`);

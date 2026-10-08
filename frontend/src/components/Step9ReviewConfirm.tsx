@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { Language, LoanApplication, DigitalSignature, ConsentRecord } from '../types';
 import { t } from '../i18n/translations';
+import { calculateIndicativeEligibility } from '../services/eligibilityScoring';
+import { EligibilityScoreBar } from './EligibilityScoreBar';
 
 interface Step9ReviewConfirmProps {
   language: Language;
@@ -192,6 +194,15 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
         <p className="text-sm text-slate-500 leading-relaxed">
           {t(language, 'reviewSubtitle')}
         </p>
+      </div>
+
+      {/* Estimated Loan Eligibility Score Bar */}
+      <div className="mb-4">
+        <EligibilityScoreBar
+          scoreData={calculateIndicativeEligibility(application)}
+          language={language}
+          showBreakdownToggle={true}
+        />
       </div>
 
       {/* Summary Review Sections */}
@@ -380,30 +391,62 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
               <Edit2 className="w-3 h-3" /> {t(language, 'edit')}
             </button>
           </div>
-          {g?.hasGuarantor ? (
-            <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 text-xs">
-              <div>
-                <span className="text-slate-400 block text-[11px]">Guarantor Name:</span>
-                <span className="font-semibold text-slate-800">{g.fullName}</span>
+          {(() => {
+            const list = (Array.isArray(application.guarantors) && application.guarantors.length > 0)
+              ? application.guarantors
+              : (g?.hasGuarantor ? [{
+                  id: 'g_1',
+                  fullName: g.fullName || '',
+                  passportOrIdNumber: g.passportOrIdNumber || '',
+                  mobilePhoneNumber: g.mobilePhoneNumber || '',
+                  relationship: g.relationship || 'Co-worker',
+                  otherRelationshipDetails: g.otherRelationshipDetails,
+                  idDocument: g.passportPhoto,
+                }] : []);
+
+            if (list.length === 0) {
+              return (
+                <div className="text-xs text-slate-500 py-1">
+                  {t(language, 'selfGuaranteedLabel')}
+                </div>
+              );
+            }
+
+            return (
+              <div className="space-y-3 pt-1">
+                {list.map((guar, i) => (
+                  <div key={guar.id || i} className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 space-y-2">
+                    <div className="flex items-center justify-between text-xs font-bold text-slate-800">
+                      <span>Guarantor {i + 1} {i === 0 ? '(Required)' : '(Optional)'}</span>
+                      {guar.idDocument && (
+                        <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                          ID Document Verified
+                        </span>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 text-xs">
+                      <div>
+                        <span className="text-slate-400 block text-[11px]">Name:</span>
+                        <span className="font-semibold text-slate-800">{guar.fullName}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[11px]">ID / Passport:</span>
+                        <span className="font-mono font-bold text-slate-800">{guar.passportOrIdNumber}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[11px]">Phone:</span>
+                        <span className="text-slate-700">{guar.mobilePhoneNumber}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[11px]">Relationship:</span>
+                        <span className="text-slate-700">{guar.relationship}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div>
-                <span className="text-slate-400 block text-[11px]">ID / Passport:</span>
-                <span className="font-mono font-bold text-slate-800">{g.passportOrIdNumber}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 block text-[11px]">Phone:</span>
-                <span className="text-slate-700">{g.mobilePhoneNumber}</span>
-              </div>
-              <div>
-                <span className="text-slate-400 block text-[11px]">Relationship:</span>
-                <span className="text-slate-700">{g.relationship}</span>
-              </div>
-            </div>
-          ) : (
-            <div className="text-xs text-slate-500 py-1">
-              {t(language, 'selfGuaranteedLabel')}
-            </div>
-          )}
+            );
+          })()}
         </div>
 
         {/* Uploaded Documents count */}

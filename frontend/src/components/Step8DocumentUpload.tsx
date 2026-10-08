@@ -13,10 +13,12 @@ import {
   ShieldCheck,
   RotateCcw,
 } from 'lucide-react';
-import { Language, UploadedFile, DocumentTypeCode } from '../types';
+import { Language, UploadedFile, DocumentTypeCode, GuarantorItem, LoanApplication } from '../types';
 import { DOCUMENT_TYPE_CONFIG } from '../config/appConfig';
 import { t } from '../i18n/translations';
 import { apiService } from '../services/api';
+import { calculateIndicativeEligibility } from '../services/eligibilityScoring';
+import { EligibilityScoreBar } from './EligibilityScoreBar';
 
 interface Step8DocumentUploadProps {
   language: Language;
@@ -24,6 +26,8 @@ interface Step8DocumentUploadProps {
   initialDocuments?: UploadedFile[];
   initialBankAccountConfirmed?: boolean;
   hasGuarantor?: boolean;
+  guarantors?: GuarantorItem[];
+  fullApplication?: Partial<LoanApplication>;
   onSaveAndNext: (docs: UploadedFile[], bankAccountConfirmed: boolean) => void;
   onBack: () => void;
 }
@@ -34,11 +38,27 @@ export const Step8DocumentUpload: React.FC<Step8DocumentUploadProps> = ({
   initialDocuments = [],
   initialBankAccountConfirmed = false,
   hasGuarantor = false,
+  guarantors = [],
+  fullApplication,
   onSaveAndNext,
   onBack,
 }) => {
   const [documents, setDocuments] = useState<UploadedFile[]>(initialDocuments);
   const [bankAccountConfirmed, setBankAccountConfirmed] = useState<boolean>(initialBankAccountConfirmed);
+
+  // Synchronize documents if initialDocuments updates from profile
+  useEffect(() => {
+    if (initialDocuments && initialDocuments.length > 0) {
+      setDocuments(initialDocuments);
+    }
+  }, [initialDocuments]);
+
+  useEffect(() => {
+    if (typeof initialBankAccountConfirmed === 'boolean') {
+      setBankAccountConfirmed(initialBankAccountConfirmed);
+    }
+  }, [initialBankAccountConfirmed]);
+
   const [activeDocType, setActiveDocType] = useState<DocumentTypeCode>('PASSPORT');
   const [isProcessing, setIsProcessing] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -48,11 +68,11 @@ export const Step8DocumentUpload: React.FC<Step8DocumentUploadProps> = ({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
 
+  // Mandatory documents for borrower. Guarantor IDs are uploaded directly in Step 7 to prevent duplicate requests.
   const mandatoryTypes: DocumentTypeCode[] = [
     'PASSPORT',
     'PAY_SLIP',
     'BANK_ACCOUNT_DOCUMENT',
-    ...(hasGuarantor ? (['GUARANTOR_ID'] as DocumentTypeCode[]) : []),
   ];
 
   const optionalTypes: DocumentTypeCode[] = [
@@ -242,6 +262,50 @@ export const Step8DocumentUpload: React.FC<Step8DocumentUploadProps> = ({
         </p>
       </div>
 
+      {/* Live Estimated Loan Eligibility Score Bar */}
+      <div className="mb-4">
+        <EligibilityScoreBar
+          scoreData={calculateIndicativeEligibility({
+            ...fullApplication,
+            documents,
+            guarantors,
+          })}
+          language={language}
+          showBreakdownToggle={true}
+        />
+      </div>
+
+      {/* On-File Documents Recognized Banner */}
+      {documents.some((d) => d.isReused) && (
+        <div className="mb-4 p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200/90 flex items-start gap-3 text-xs animate-in fade-in">
+          <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <h4 className="font-bold text-emerald-950">Documents on file recognized</h4>
+            <p className="text-emerald-800 mt-0.5 leading-relaxed">
+              Your previously verified documents have been retrieved and associated with your account. You do not need to upload them again unless you wish to replace or update them.
+            </p>
+          </div>
+          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full shrink-0">
+            On File
+          </span>
+        </div>
+      )}
+
+      {/* Guarantor Documents Status from Step 7 */}
+      {guarantors.length > 0 && (
+        <div className="mb-4 p-3 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span className="font-semibold text-slate-800">
+              {guarantors.length} Guarantor ID document{guarantors.length > 1 ? 's' : ''} uploaded in Step 7
+            </span>
+          </div>
+          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+            Verified
+          </span>
+        </div>
+      )}
+
       {/* Upload Error Banner */}
       {uploadError && (
         <div className="p-3.5 mb-4 rounded-2xl bg-red-50 border border-red-200 animate-in fade-in flex items-start gap-2.5">
@@ -387,8 +451,14 @@ export const Step8DocumentUpload: React.FC<Step8DocumentUploadProps> = ({
 
                 <div className="text-xs font-bold font-mono text-slate-600">
                   {uploadedList.length > 0 ? (
-                    <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md font-semibold">
-                      {uploadedList.length} file{uploadedList.length > 1 ? 's' : ''}
+                    <span className={`px-2 py-0.5 rounded-md font-semibold text-xs ${
+                      uploadedList.some((d) => d.isReused)
+                        ? 'text-emerald-800 bg-emerald-100 border border-emerald-200'
+                        : 'text-emerald-700 bg-emerald-50'
+                    }`}>
+                      {uploadedList.some((d) => d.isReused)
+                        ? '✓ On File'
+                        : `${uploadedList.length} file${uploadedList.length > 1 ? 's' : ''}`}
                     </span>
                   ) : (
                     <span className="text-slate-400 font-sans text-[11px]">Missing</span>

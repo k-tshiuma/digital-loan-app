@@ -13,6 +13,7 @@ import {
 } from '../types';
 import { DEFAULT_APP_CONFIG } from '../config/appConfig';
 import { t } from '../i18n/translations';
+import { calculateIndicativeEligibility } from './eligibilityScoring';
 
 const STORAGE_KEYS = {
   USERS: 'quickloan_users_v1',
@@ -797,75 +798,145 @@ class StorageService {
     return { isDuplicate: false };
   }
 
+  // Evaluates documents from a previous application for safe reuse
+  public evaluateReusableDocuments(prevApp: LoanApplication): UploadedFile[] {
+    const reusableDocs: UploadedFile[] = [];
+    if (!prevApp || !Array.isArray(prevApp.documents)) return reusableDocs;
+
+    for (const d of prevApp.documents) {
+      if (!d || !d.documentTypeCode) continue;
+      let isValid = true;
+      let reason = 'Reused from previous verified on-file records';
+
+      // Visa validity check: must have >= 6 months remaining
+      if (d.documentTypeCode === 'WORK_VISA' || d.documentTypeCode === 'WORKERS_CARD') {
+        const expiry = prevApp.residencyDetails?.visaExpiryDate;
+        if (expiry) {
+          const expDate = new Date(expiry);
+          const sixMonthsFromNow = new Date();
+          sixMonthsFromNow.setMonth(sixMonthsFromNow.getMonth() + 6);
+          if (expDate < sixMonthsFromNow) {
+            isValid = false;
+            reason = 'Visa expires in under 6 months or is expired. Please upload renewed visa permit.';
+          }
+        }
+      }
+
+      // Pay slip check: must be recent (past 90 days)
+      if (d.documentTypeCode === 'PAY_SLIP') {
+        const uploadedDate = new Date(d.uploadedAt || prevApp.submittedAt || 0);
+        const ninetyDaysAgo = new Date();
+        ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+        if (uploadedDate < ninetyDaysAgo) {
+          isValid = false;
+          reason = 'Pay slip is older than 3 months. Israeli lending rules require recent proof of income.';
+        }
+      }
+
+      if (isValid) {
+        reusableDocs.push({
+          ...d,
+          id: `doc_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+          isReused: true,
+          reusedFromAppId: prevApp.id,
+          validityStatus: 'valid',
+          validityReason: reason,
+        });
+      }
+    }
+    return reusableDocs;
+  }
+
   // --- Application Lifecycle & Drafts ---
   public getOrCreateActiveApplication(user: User, preferredLanguage: Language): LoanApplication {
+    const userApps = Array.from(this.memoryApps.values()).filter((a) => a.userId === user.id);
+
+    // Find previous submitted or filled application for pre-populating on-file details
+    const prevApp = userApps
+      .filter((a) => a.isSubmitted || (a.borrowerDetails && a.borrowerDetails.passportNumber))
+      .sort((a, b) => new Date(b.submittedAt || b.updatedAt || b.createdAt).getTime() - new Date(a.submittedAt || a.updatedAt || a.createdAt).getTime())[0];
+
     const activeAppId = localStorage.getItem(STORAGE_KEYS.ACTIVE_APPLICATION_ID);
+    let existingDraft: LoanApplication | undefined;
+
     if (activeAppId) {
-      const existing = this.memoryApps.get(activeAppId);
-      if (existing && existing.userId === user.id) {
-        return existing;
+      const active = this.memoryApps.get(activeAppId);
+      if (active && active.userId === user.id && !active.isSubmitted) {
+        existingDraft = active;
       }
     }
 
-    // Check if user has an existing unsubmitted draft or active application
-    const userApps = Array.from(this.memoryApps.values()).filter((a) => a.userId === user.id);
-    const existingDraft = userApps.find((a) => !a.isSubmitted);
+    if (!existingDraft) {
+      existingDraft = userApps.find((a) => !a.isSubmitted);
+    }
+
+    // If an existing unsubmitted draft exists, automatically ensure any saved profile/documents on file are prefilled
     if (existingDraft) {
+      let draftModified = false;
+
+      if (prevApp && prevApp.id !== existingDraft.id) {
+        if ((!existingDraft.borrowerDetails || !existingDraft.borrowerDetails.passportNumber) && prevApp.borrowerDetails?.passportNumber) {
+          existingDraft.borrowerDetails = { ...prevApp.borrowerDetails };
+          draftModified = true;
+        }
+        if (!existingDraft.residencyDetails && prevApp.residencyDetails) {
+          existingDraft.residencyDetails = { ...prevApp.residencyDetails };
+          draftModified = true;
+        }
+        if (!existingDraft.employmentDetails && prevApp.employmentDetails) {
+          existingDraft.employmentDetails = { ...prevApp.employmentDetails };
+          draftModified = true;
+        }
+        if (!existingDraft.bankAccount && prevApp.bankAccount) {
+          existingDraft.bankAccount = { ...prevApp.bankAccount };
+          existingDraft.bankAccountConfirmed = prevApp.bankAccountConfirmed || false;
+          draftModified = true;
+        }
+        if ((!existingDraft.guarantors || existingDraft.guarantors.length === 0) && (prevApp.guarantors?.length || prevApp.guarantor?.hasGuarantor)) {
+          existingDraft.guarantors = prevApp.guarantors ? [...prevApp.guarantors] : (prevApp.guarantor ? [{
+            id: 'g_1',
+            fullName: prevApp.guarantor.fullName || '',
+            passportOrIdNumber: prevApp.guarantor.passportOrIdNumber || '',
+            mobilePhoneNumber: prevApp.guarantor.mobilePhoneNumber || '',
+            relationship: prevApp.guarantor.relationship || 'Co-worker',
+            otherRelationshipDetails: prevApp.guarantor.otherRelationshipDetails,
+            idDocument: prevApp.guarantor.passportPhoto,
+          }] : []);
+          existingDraft.guarantor = prevApp.guarantor || existingDraft.guarantor;
+          draftModified = true;
+        }
+        if ((!existingDraft.documents || existingDraft.documents.length === 0) && prevApp.documents?.length) {
+          const reused = this.evaluateReusableDocuments(prevApp);
+          if (reused.length > 0) {
+            existingDraft.documents = reused;
+            draftModified = true;
+          }
+        }
+        existingDraft.isReturningUser = true;
+      } else if (user.fullName && (!existingDraft.borrowerDetails || !existingDraft.borrowerDetails.fullName)) {
+        existingDraft.borrowerDetails = {
+          fullName: user.fullName,
+          mobilePhoneNumber: user.phoneNumber || '',
+          passportNumber: '',
+          countryOfOrigin: 'Thailand',
+          dateOfBirth: '1995-06-15',
+          addressCity: '',
+          addressStreet: '',
+          addressFull: '',
+          maritalStatus: 'Single',
+        };
+        draftModified = true;
+      }
+
+      if (draftModified) {
+        this.saveApplication(existingDraft);
+      }
       localStorage.setItem(STORAGE_KEYS.ACTIVE_APPLICATION_ID, existingDraft.id);
       return existingDraft;
     }
 
-    // Check if user has an existing submitted application (returning user)
-    const submittedApps = userApps
-      .filter((a) => a.isSubmitted)
-      .sort((a, b) => new Date(b.submittedAt || b.createdAt).getTime() - new Date(a.submittedAt || a.createdAt).getTime());
-    const prevApp = submittedApps[0];
-
-    // Evaluate previous documents for safe reuse
-    const reusableDocs: UploadedFile[] = [];
-    if (prevApp && Array.isArray(prevApp.documents)) {
-      for (const d of prevApp.documents) {
-        if (!d || !d.documentTypeCode) continue;
-        let isValid = true;
-        let reason = 'Reused from previous verified application';
-
-        // Visa validity check: must have >= 6 months remaining
-        if (d.documentTypeCode === 'WORK_VISA' || d.documentTypeCode === 'WORKERS_CARD') {
-          const expiry = prevApp.residencyDetails?.visaExpiryDate;
-          if (expiry) {
-            const expDate = new Date(expiry);
-            const sixMonthsFromNow = new Date();
-            sixMonthsFromNow.setMonth(sixMonthsFromNow.getMonth() + 6);
-            if (expDate < sixMonthsFromNow) {
-              isValid = false;
-              reason = 'Visa expires in under 6 months or is expired. Please upload renewed visa permit.';
-            }
-          }
-        }
-
-        // Pay slip check: must be recent (past 90 days)
-        if (d.documentTypeCode === 'PAY_SLIP') {
-          const uploadedDate = new Date(d.uploadedAt || prevApp.submittedAt || 0);
-          const ninetyDaysAgo = new Date();
-          ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-          if (uploadedDate < ninetyDaysAgo) {
-            isValid = false;
-            reason = 'Pay slip is older than 3 months. Israeli lending rules require recent proof of income.';
-          }
-        }
-
-        if (isValid) {
-          reusableDocs.push({
-            ...d,
-            id: `doc_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-            isReused: true,
-            reusedFromAppId: prevApp.id,
-            validityStatus: 'valid',
-            validityReason: reason,
-          });
-        }
-      }
-    }
+    // No existing draft: generate fresh draft pre-filled with on-file records
+    const reusableDocs = prevApp ? this.evaluateReusableDocuments(prevApp) : [];
 
     // Generate unique sequential human-readable request number: REQ-2026-000XXX
     const nextSeq = 100 + this.memoryApps.size + 1;
@@ -885,7 +956,7 @@ class StorageService {
         fullName: user.fullName || '',
         mobilePhoneNumber: user.phoneNumber || '',
         passportNumber: '',
-        countryOfOrigin: 'Philippines',
+        countryOfOrigin: 'Thailand',
         dateOfBirth: '',
         addressCity: '',
         addressStreet: '',
@@ -897,12 +968,25 @@ class StorageService {
       bankAccount: prevApp?.bankAccount ? { ...prevApp.bankAccount } : undefined,
       bankAccountConfirmed: prevApp ? !!prevApp.bankAccountConfirmed : false,
       guarantor: prevApp?.guarantor ? { ...prevApp.guarantor } : { hasGuarantor: false },
+      guarantors: prevApp?.guarantors ? [...prevApp.guarantors] : (prevApp?.guarantor?.hasGuarantor ? [{
+        id: 'g_1',
+        fullName: prevApp.guarantor.fullName || '',
+        passportOrIdNumber: prevApp.guarantor.passportOrIdNumber || '',
+        mobilePhoneNumber: prevApp.guarantor.mobilePhoneNumber || '',
+        relationship: prevApp.guarantor.relationship || 'Co-worker',
+        otherRelationshipDetails: prevApp.guarantor.otherRelationshipDetails,
+        idDocument: prevApp.guarantor.passportPhoto,
+      }] : []),
       documents: reusableDocs,
       consents: [],
       statusHistory: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
+
+    const initialScore = calculateIndicativeEligibility(newApp);
+    newApp.eligibilityScore = initialScore.rawScore;
+    newApp.eligibilityBreakdown = initialScore;
 
     this.memoryApps.set(newApp.id, newApp);
     this.saveApps();
@@ -922,8 +1006,26 @@ class StorageService {
 
   public saveApplication(app: LoanApplication): LoanApplication {
     app.updatedAt = new Date().toISOString();
+    
+    // Authoritative calculation of indicative eligibility
+    const score = calculateIndicativeEligibility(app);
+    app.eligibilityScore = score.rawScore;
+    app.eligibilityBreakdown = score;
+
     this.memoryApps.set(app.id, { ...app });
     this.saveApps();
+
+    // Update user account in memoryUsers if fullName provided
+    if (app.userId) {
+      const u = this.memoryUsers.get(app.userId);
+      if (u) {
+        if (app.borrowerDetails?.fullName && app.borrowerDetails.fullName !== u.fullName) {
+          u.fullName = app.borrowerDetails.fullName;
+        }
+        u.updatedAt = new Date().toISOString();
+        this.saveUsers();
+      }
+    }
 
     // Also store local draft backup for offline resilience
     try {

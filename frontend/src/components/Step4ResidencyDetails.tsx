@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldAlert, CheckCircle2, ArrowRight, ArrowLeft, Calendar, Info } from 'lucide-react';
+import { ShieldAlert, CheckCircle2, ArrowRight, ArrowLeft, Calendar, Info, ShieldCheck } from 'lucide-react';
 import { Language, ResidencyDetails } from '../types';
 import { VISA_TYPES, calculateYearsOfResidency, isVisaValidForLoan } from '../config/appConfig';
 import { t } from '../i18n/translations';
@@ -31,6 +31,21 @@ export const Step4ResidencyDetails: React.FC<Step4ResidencyDetailsProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [calculatedYears, setCalculatedYears] = useState<number>(3.4);
   const [visaValidation, setVisaValidation] = useState<{ valid: boolean; reason?: string }>({ valid: true });
+
+  // Sync formData whenever initialData updates
+  useEffect(() => {
+    if (initialData) {
+      setFormData((prev) => ({
+        ...prev,
+        visaType: initialData.visaType ?? prev.visaType,
+        visaExpiryDate: initialData.visaExpiryDate ?? prev.visaExpiryDate,
+        dateOfEntry: initialData.dateOfEntry ?? prev.dateOfEntry,
+        yearsOfResidency: initialData.yearsOfResidency ?? prev.yearsOfResidency,
+      }));
+    }
+  }, [initialData]);
+
+  const isPreFilled = Boolean(initialData && initialData.visaExpiryDate);
 
   // Update calculated years when date of entry changes
   useEffect(() => {
@@ -82,7 +97,7 @@ export const Step4ResidencyDetails: React.FC<Step4ResidencyDetailsProps> = ({
   return (
     <form onSubmit={handleSubmit} className="flex flex-col flex-1 max-w-md mx-auto w-full py-2 animate-in fade-in duration-300">
       {/* Header */}
-      <div className="space-y-1 mb-5">
+      <div className="space-y-1 mb-4">
         <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
           {t(language, 'residencyDetailsTitle')}
         </h1>
@@ -90,6 +105,22 @@ export const Step4ResidencyDetails: React.FC<Step4ResidencyDetailsProps> = ({
           {t(language, 'residencyDetailsSubtitle')}
         </p>
       </div>
+
+      {/* On-File Profile Banner */}
+      {isPreFilled && (
+        <div className="p-3 mb-4 rounded-2xl bg-blue-50 border border-blue-200/90 flex items-center justify-between text-xs animate-in fade-in">
+          <div className="flex items-center gap-2.5">
+            <ShieldCheck className="w-4 h-4 text-blue-700 shrink-0" />
+            <div>
+              <span className="font-bold text-blue-950 block">Visa & residency details on file</span>
+              <span className="text-[11px] text-blue-800">Pre-filled from your profile. You can update your visa expiry date if renewed.</span>
+            </div>
+          </div>
+          <span className="text-[10px] font-bold text-blue-800 bg-blue-100 px-2 py-0.5 rounded-full shrink-0">
+            On File
+          </span>
+        </div>
+      )}
 
       <div className="space-y-4 mb-8">
         {/* Visa Type Selector */}

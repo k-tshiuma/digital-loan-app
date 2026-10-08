@@ -37,6 +37,8 @@ import { storageService } from '../services/storage';
 import { apiService } from '../services/api';
 import { AnalyticsDashboard } from './AnalyticsDashboard';
 import { t } from '../i18n/translations';
+import { calculateIndicativeEligibility } from '../services/eligibilityScoring';
+import { EligibilityScoreBar } from './EligibilityScoreBar';
 
 interface BackOfficeProps {
   language: Language;
@@ -797,20 +799,45 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
 
                 <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
                   <div className="font-bold text-slate-900 text-[11px] border-b pb-1">
-                    Guarantor Information
+                    Guarantor Information ({((Array.isArray(selectedApp.guarantors) && selectedApp.guarantors.length > 0) ? selectedApp.guarantors.length : (selectedApp.guarantor?.hasGuarantor ? 1 : 0))})
                   </div>
-                  {selectedApp.guarantor?.hasGuarantor ? (
-                    <>
-                      <div><span className="text-slate-400">Name:</span> <span className="font-bold text-slate-800">{selectedApp.guarantor.fullName}</span></div>
-                      <div><span className="text-slate-400">ID / Passport:</span> <span className="font-mono font-bold">{selectedApp.guarantor.passportOrIdNumber}</span></div>
-                      <div><span className="text-slate-400">Phone:</span> {selectedApp.guarantor.mobilePhoneNumber}</div>
-                      <div><span className="text-slate-400">Relationship:</span> {selectedApp.guarantor.relationship}</div>
-                    </>
-                  ) : (
-                    <div className="text-slate-500 py-3">
-                      No guarantor provided (Self-guaranteed personal microloan).
-                    </div>
-                  )}
+                  {(() => {
+                    const list = (Array.isArray(selectedApp.guarantors) && selectedApp.guarantors.length > 0)
+                      ? selectedApp.guarantors
+                      : (selectedApp.guarantor?.hasGuarantor ? [{
+                          id: 'g_1',
+                          fullName: selectedApp.guarantor.fullName || '',
+                          passportOrIdNumber: selectedApp.guarantor.passportOrIdNumber || '',
+                          mobilePhoneNumber: selectedApp.guarantor.mobilePhoneNumber || '',
+                          relationship: selectedApp.guarantor.relationship || 'Co-worker',
+                          idDocument: selectedApp.guarantor.passportPhoto,
+                        }] : []);
+
+                    if (list.length === 0) {
+                      return (
+                        <div className="text-slate-500 py-3 text-xs">
+                          No guarantor provided (Self-guaranteed personal microloan).
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="space-y-2">
+                        {list.map((g, idx) => (
+                          <div key={g.id || idx} className="p-2 rounded-xl bg-white border border-slate-200 text-xs space-y-1">
+                            <div className="flex items-center justify-between font-bold text-slate-800">
+                              <span>Guarantor {idx + 1}: {g.fullName}</span>
+                              <span className="text-[10px] font-normal text-slate-500">{g.relationship}</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-1 text-[11px] text-slate-600">
+                              <div>ID: <span className="font-mono font-semibold">{g.passportOrIdNumber}</span></div>
+                              <div>Tel: {g.mobilePhoneNumber}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
 
@@ -877,6 +904,18 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
                     <span>No underwriting risk flags triggered. Clean borrower profile.</span>
                   </div>
                 )}
+              </div>
+
+              {/* Indicative Loan Eligibility Score */}
+              <div>
+                <EligibilityScoreBar
+                  scoreData={
+                    selectedApp.eligibilityBreakdown ||
+                    calculateIndicativeEligibility(selectedApp)
+                  }
+                  language={language}
+                  showBreakdownToggle={true}
+                />
               </div>
 
               {/* Uploaded Documents Gallery & OCR verification */}
