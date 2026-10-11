@@ -1,0 +1,800 @@
+openapi: 3.0.3
+info:
+  title: QuickLoan / LendGlobal API
+  version: "0.0.0-undocumented"
+  description: |
+    Reverse-engineered from backend/server.js on 2026-10-11 (branch feature/guarantor-enhancements-and-scoring).
+    The server publishes no official spec. Response schemas mirror the source objects and are not enforced.
+    WARNING: while DEMO_MODE is on (the default unless NODE_ENV=production or DEMO_MODE=false), the bearer
+    requirement can be bypassed. See docs/security-and-privacy.md (SEC-01).
+    Every response uses the envelope {success: boolean, error?: string, ...}.
+servers:
+  - url: http://localhost:5000/api
+    description: Local development (PORT defaults to 5000)
+  - url: https://{host}/api
+    description: Placeholder. No deployed environment is defined in the repository.
+    variables:
+      host:
+        default: api.example.invalid
+tags:
+  - name: auth
+  - name: users
+  - name: files
+  - name: applications
+  - name: notifications
+  - name: staff
+security:
+  - bearerAuth: []
+  - queryToken: []
+
+paths:
+  /health:
+    get:
+      tags: [auth]
+      security: []
+      summary: Liveness check (also reveals whether demo mode is on)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  demoMode: { type: boolean }
+
+  /users/lookup:
+    post:
+      tags: [auth]
+      security: []
+      summary: Report whether an account exists for a phone and whether it has a password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phoneNumber]
+              properties:
+                phoneNumber: { type: string }
+      responses:
+        "200":
+          description: Lookup result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  exists: { type: boolean }
+                  hasPassword: { type: boolean }
+        "400": { $ref: "#/components/responses/Error" }
+
+  /users/login:
+    post:
+      tags: [auth]
+      security: []
+      summary: Sign in with password (identifier is a phone number or an email)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [identifier, password]
+              properties:
+                identifier: { type: string }
+                password: { type: string, format: password }
+      responses:
+        "200": { $ref: "#/components/responses/AuthOk" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /users/request-otp:
+    post:
+      tags: [auth]
+      security: []
+      summary: Send a 6-digit SMS code (5-minute TTL). No rate limit is applied.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phoneNumber]
+              properties:
+                phoneNumber: { type: string, description: "Must contain at least 7 digits" }
+      responses:
+        "200":
+          description: Code sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  expiresInSeconds: { type: integer, example: 300 }
+                  demoCode: { type: string, description: "DEMO_MODE only" }
+        "400": { $ref: "#/components/responses/Error" }
+
+  /users/verify-otp:
+    post:
+      tags: [auth]
+      security: []
+      summary: Verify the code. Creates the borrower account if none exists.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phoneNumber, code]
+              properties:
+                phoneNumber: { type: string }
+                code: { type: string, pattern: "^\\d{6}$" }
+                preferredLanguage: { $ref: "#/components/schemas/Language" }
+      responses:
+        "200": { $ref: "#/components/responses/AuthOk" }
+        "400": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+
+  /users/register:
+    post:
+      tags: [auth]
+      summary: Set a password on a phone-verified account (the token's phone claim must match)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phoneNumber, password]
+              properties:
+                phoneNumber: { type: string }
+                password: { type: string, minLength: 8, format: password }
+                fullName: { type: string }
+                email: { type: string, format: email }
+                preferredLanguage: { $ref: "#/components/schemas/Language" }
+      responses:
+        "200": { $ref: "#/components/responses/AuthOk" }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /users/google-demo:
+    post:
+      tags: [auth]
+      security: []
+      summary: DEMO ONLY. Mock Google sign-in with no OAuth. Returns 404 when demo mode is off.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string }
+                name: { type: string }
+                preferredLanguage: { $ref: "#/components/schemas/Language" }
+      responses:
+        "200": { $ref: "#/components/responses/AuthOk" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /users/forgot-password:
+    post:
+      tags: [auth]
+      security: []
+      summary: Send a reset code (15-minute TTL). Same response whether or not the account exists.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [identifier]
+              properties:
+                identifier: { type: string }
+      responses:
+        "200":
+          description: Generic acknowledgement
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  message: { type: string }
+                  demoCode: { type: string, description: "DEMO_MODE only" }
+        "400": { $ref: "#/components/responses/Error" }
+
+  /users/reset-password:
+    post:
+      tags: [auth]
+      security: []
+      summary: Reset the password with a code
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [identifier, code, newPassword]
+              properties:
+                identifier: { type: string }
+                code: { type: string }
+                newPassword: { type: string, minLength: 8, format: password }
+      responses:
+        "200": { $ref: "#/components/responses/AuthOk" }
+        "400": { $ref: "#/components/responses/Error" }
+
+  /auth/staff-token:
+    post:
+      tags: [staff]
+      security: []
+      summary: DEMO ONLY. Issue a 12-hour staff JWT for any role with no credentials. Returns 404 when demo mode is off.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role]
+              properties:
+                role: { $ref: "#/components/schemas/StaffRole" }
+      responses:
+        "200":
+          description: Token issued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  token: { type: string }
+                  role: { $ref: "#/components/schemas/StaffRole" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /users/me:
+    get:
+      tags: [users]
+      summary: Current identity
+      responses:
+        "200":
+          description: Borrower user or staff role
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  user: { $ref: "#/components/schemas/User" }
+                  staff:
+                    type: object
+                    properties:
+                      role: { $ref: "#/components/schemas/StaffRole" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /upload:
+    post:
+      tags: [files]
+      summary: Upload one document (JPEG/PNG/WebP/HEIC/HEIF/PDF, max 10 MB by default) with a magic-byte check
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        "200":
+          description: Stored
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  file:
+                    type: object
+                    properties:
+                      filename: { type: string }
+                      url: { type: string, example: "/api/uploads/<epoch-ms>_<16-hex>.png" }
+                      originalName: { type: string }
+                      mimeType: { type: string }
+                      size: { type: integer }
+        "400": { $ref: "#/components/responses/Error" }
+
+  /uploads/{filename}:
+    get:
+      tags: [files]
+      summary: Download an uploaded file (owner or staff; files with no ownership row are open to any caller)
+      parameters:
+        - { name: filename, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: File bytes. Content-Type is derived from the stored extension.
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /applications:
+    get:
+      tags: [applications, staff]
+      summary: All submitted applications (staff, any role). Not paginated.
+      responses:
+        "200":
+          description: List
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  applications:
+                    type: array
+                    items: { $ref: "#/components/schemas/LoanApplication" }
+        "403": { $ref: "#/components/responses/Error" }
+
+  /applications/active/{userId}:
+    get:
+      tags: [applications]
+      summary: Get or create the user's current draft, prefilled for returning users
+      parameters:
+        - { name: userId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Draft
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  application: { $ref: "#/components/schemas/LoanApplication" }
+                  isReturningUser: { type: boolean }
+                  previousDocumentsReport:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        documentTypeCode: { type: string }
+                        originalFilename: { type: string }
+                        isValid: { type: boolean }
+                        reason: { type: string }
+        "403": { $ref: "#/components/responses/Error" }
+
+  /applications/history/{userId}:
+    get:
+      tags: [applications]
+      summary: Submitted applications for a user (risk fields removed for non-staff callers)
+      parameters:
+        - { name: userId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: List
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  applications:
+                    type: array
+                    items: { $ref: "#/components/schemas/LoanApplication" }
+        "403": { $ref: "#/components/responses/Error" }
+
+  /applications/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Application id OR requestNumber (both accepted on GET)
+        schema: { type: string }
+    get:
+      tags: [applications]
+      summary: Get one application
+      responses:
+        "200":
+          description: Application
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  application: { $ref: "#/components/schemas/LoanApplication" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+    put:
+      tags: [applications]
+      summary: Create or update (full-document upsert). See docs/api-reference.md for the server-side rules.
+      description: |
+        Risk and eligibility fields in the body are ignored and recomputed on the server. Borrowers cannot change
+        core fields after submission. Staff may set any field and any status, and no transition validation is applied.
+        No idempotency key and no version precondition.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LoanApplication" }
+      responses:
+        "200":
+          description: Saved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  application: { $ref: "#/components/schemas/LoanApplication" }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+
+  /applications/{id}/events:
+    get:
+      tags: [applications]
+      summary: Server-Sent Events stream (events connected, status, updated; ping every 25 s). Typically authenticated with ?token=.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: text/event-stream
+          content:
+            text/event-stream:
+              schema: { type: string }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /applications/{id}/pdf:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [applications]
+      summary: Stream a PDF summary (risk section included for staff only)
+      responses:
+        "200":
+          description: PDF
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+    post:
+      tags: [applications]
+      summary: "Same as GET. If the id is unknown, the body is PERSISTED before authorization (defect SEC-02)."
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LoanApplication" }
+      responses:
+        "200":
+          description: PDF
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /notifications:
+    post:
+      tags: [notifications, staff]
+      summary: Create a notification (staff); sends an SMS when the channel is sms
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId, title, message]
+              properties:
+                userId: { type: string }
+                applicationId: { type: string }
+                title: { type: string }
+                message: { type: string }
+                notificationType: { type: string, default: MANUAL }
+                channel: { type: string, enum: [sms, push], default: sms }
+      responses:
+        "200":
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  notification: { $ref: "#/components/schemas/Notification" }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+
+  /notifications/{userId}:
+    get:
+      tags: [notifications]
+      summary: Latest 100 notifications for a user
+      parameters:
+        - { name: userId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: List
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  unreadCount: { type: integer }
+                  notifications:
+                    type: array
+                    items: { $ref: "#/components/schemas/Notification" }
+        "403": { $ref: "#/components/responses/Error" }
+
+  /notifications/{id}/read:
+    patch:
+      tags: [notifications]
+      summary: Mark one notification read
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /notifications/{userId}/read-all:
+    post:
+      tags: [notifications]
+      summary: Mark all of a user's notifications read
+      parameters:
+        - { name: userId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Ok" }
+        "403": { $ref: "#/components/responses/Error" }
+
+  /notifications/send-sms:
+    post:
+      tags: [notifications, staff]
+      summary: Free-form SMS to any number (system_admin, customer_service)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [to, message]
+              properties:
+                to: { type: string }
+                message: { type: string }
+      responses:
+        "200":
+          description: Sent (or mocked)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  mock: { type: boolean }
+                  sid: { type: string }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+        "502": { $ref: "#/components/responses/Error" }
+
+  /analytics/summary:
+    get:
+      tags: [staff]
+      summary: KPI summary over all submitted applications (credit_reviewer, system_admin)
+      responses:
+        "200":
+          description: Summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  summary: { $ref: "#/components/schemas/AnalyticsSummary" }
+        "403": { $ref: "#/components/responses/Error" }
+
+  /config/credit-rules:
+    get:
+      tags: [staff]
+      summary: Current and default credit pre-screen rules (any staff role)
+      responses:
+        "200":
+          description: Rules
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  rules: { $ref: "#/components/schemas/CreditRules" }
+                  defaults: { $ref: "#/components/schemas/CreditRules" }
+        "403": { $ref: "#/components/responses/Error" }
+    put:
+      tags: [staff]
+      summary: Update rules and re-score all submitted applications (system_admin)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                rules: { $ref: "#/components/schemas/CreditRules" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  rules: { $ref: "#/components/schemas/CreditRules" }
+                  rescored: { type: integer }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { $ref: "#/components/responses/Error" }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    queryToken:
+      type: apiKey
+      in: query
+      name: token
+      description: Accepted for GET requests only (EventSource and img/a links)
+
+  responses:
+    Ok:
+      description: OK
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success: { type: boolean }
+    Error:
+      description: Error envelope
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    AuthOk:
+      description: Authenticated
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success: { type: boolean }
+              user: { $ref: "#/components/schemas/User" }
+              token: { type: string, description: "Borrower JWT (default lifetime 7d)" }
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        success: { type: boolean, example: false }
+        error: { type: string }
+    Language:
+      type: string
+      enum: [en, he, th, zh, tl]
+    StaffRole:
+      type: string
+      enum: [customer_service, credit_reviewer, system_admin, funding_entity]
+    Status:
+      type: string
+      enum: [Received, Under Review, Additional Document Required, Approved, Rejected, Forwarded to Funding Entity]
+    User:
+      type: object
+      properties:
+        id: { type: string }
+        phoneNumber: { type: string, description: "Normalised phone, or google:<email> for demo Google users" }
+        email: { type: string, nullable: true }
+        fullName: { type: string, nullable: true }
+        authProvider: { type: string, enum: [phone, password, google] }
+        phoneVerifiedAt: { type: string, format: date-time }
+        preferredLanguage: { $ref: "#/components/schemas/Language" }
+        roles: { type: array, items: { type: string } }
+        isActive: { type: boolean }
+        hasPassword: { type: boolean }
+        profileData: { type: string, nullable: true, description: "Raw JSON TEXT; returned unparsed by sanitizeUser" }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    LoanApplication:
+      type: object
+      description: Stored as columns plus JSON TEXT; see docs/data-models.md for nested shapes.
+      properties:
+        id: { type: string }
+        userId: { type: string }
+        requestNumber: { type: string, example: "REQ-2026-000137" }
+        isSubmitted: { type: boolean }
+        submittedAt: { type: string, format: date-time, nullable: true }
+        status: { $ref: "#/components/schemas/Status" }
+        language: { $ref: "#/components/schemas/Language" }
+        currentStep: { type: integer }
+        borrowerDetails: { type: object, additionalProperties: true }
+        residencyDetails: { type: object, additionalProperties: true }
+        employmentDetails: { type: object, additionalProperties: true }
+        loanRequest:
+          type: object
+          properties:
+            requestedAmountNis: { type: number }
+            loanPurpose: { type: string }
+            otherPurposeDetails: { type: string }
+            repaymentPeriodMonths: { type: integer, enum: [3, 6, 9, 12] }
+            gracePeriodMonths: { type: integer }
+            repaymentSource: { type: string }
+            estimatedMonthlyPaymentNis: { type: number, description: "Client-computed; not verified by the server" }
+            totalRepaymentNis: { type: number, description: "Client-computed; not verified by the server" }
+        bankAccount:
+          type: object
+          properties:
+            bankName: { type: string }
+            bankCode: { type: string }
+            branchNumber: { type: string }
+            accountNumber: { type: string }
+            accountHolderName: { type: string }
+        bankAccountConfirmed: { type: boolean }
+        guarantor: { type: object, additionalProperties: true, description: "Legacy single guarantor; kept in sync with guarantors[0]" }
+        guarantors: { type: array, items: { type: object, additionalProperties: true } }
+        documents: { type: array, items: { type: object, additionalProperties: true } }
+        consents: { type: array, items: { type: object, additionalProperties: true } }
+        digitalSignature: { type: object, additionalProperties: true }
+        statusHistory: { type: array, items: { type: object, additionalProperties: true } }
+        missingDocumentNotes: { type: string, nullable: true }
+        riskScore: { type: integer, description: "Staff responses only" }
+        riskLevel: { type: string, enum: [Low, Medium, High], description: "Staff responses only" }
+        riskFlags: { type: array, items: { type: string }, description: "Staff responses only" }
+        eligibilityScore: { type: number, description: "Server-computed, 0 to 100" }
+        eligibilityBreakdown: { type: object, additionalProperties: true }
+        isReturningUser: { type: boolean, description: "Response-only flag; not a DB column" }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    Notification:
+      type: object
+      properties:
+        id: { type: string }
+        userId: { type: string }
+        applicationId: { type: string }
+        channel: { type: string, enum: [sms, push] }
+        notificationType: { type: string }
+        title: { type: string }
+        message: { type: string }
+        deliveryStatus: { type: string, enum: [pending, sent, delivered, failed] }
+        read: { type: boolean }
+        language: { type: string }
+        createdAt: { type: string, format: date-time }
+    CreditRules:
+      type: object
+      properties:
+        salaryMultiplier: { type: number, default: 6 }
+        salaryWarnRatio: { type: number, default: 1.5 }
+        salaryFailPenalty: { type: number, default: 40 }
+        salaryWarnPenalty: { type: number, default: 15 }
+        visaBufferMonths: { type: number, default: 3 }
+        visaPenalty: { type: number, default: 25 }
+        minTenureMonths: { type: number, default: 6 }
+        hardMinTenureMonths: { type: number, default: 3 }
+        tenureFailPenalty: { type: number, default: 20 }
+        tenureWarnPenalty: { type: number, default: 10 }
+        guarantorBonus: { type: number, default: 10 }
+        lowRiskMinScore: { type: number, default: 80 }
+        mediumRiskMinScore: { type: number, default: 50 }
+    AnalyticsSummary:
+      type: object
+      properties:
+        totalApplications: { type: integer }
+        openApplications: { type: integer }
+        approvalRate: { type: number, nullable: true }
+        avgLoanAmountNis: { type: number, nullable: true }
+        totalRequestedNis: { type: number }
+        avgProcessingDays: { type: number, nullable: true }
+        byStatus: { type: array, items: { type: object, properties: { status: { type: string }, count: { type: integer } } } }
+        byPurpose: { type: array, items: { type: object, properties: { purpose: { type: string }, count: { type: integer } } } }
+        byRisk: { type: array, items: { type: object, properties: { level: { type: string }, count: { type: integer } } } }
+        dailySubmissions: { type: array, items: { type: object, properties: { date: { type: string, format: date }, count: { type: integer } } } }
+        generatedAt: { type: string, format: date-time }
