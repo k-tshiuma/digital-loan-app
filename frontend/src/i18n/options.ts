@@ -1,6 +1,6 @@
 import { CanonicalStatus, Language } from '../types';
 import { TRANSLATIONS, t } from './translations';
-import { DOCUMENT_TYPE_CONFIG } from '../config/appConfig';
+import { DOCUMENT_TYPE_CONFIG, VISA_TYPES } from '../config/appConfig';
 
 /**
  * Option groups whose stored values are English words (from config/appConfig.ts).
@@ -16,8 +16,21 @@ export type OptionGroup =
   | 'visa';
 
 /** Display label for a stored option value, e.g. optionLabel('he', 'marital', 'Single') → 'רווק/ה'. */
+/**
+ * Older records stored the visa's display label ("B-1 Work Visa (Agriculture / חקלאות)") instead of
+ * its code ("b1_agri"). Map such labels back to the code so they are shown translated.
+ */
+export function canonicalOptionValue(group: OptionGroup, value: string): string {
+  if (group === 'visa') {
+    const match = VISA_TYPES.find((v) => v.label.toLowerCase() === value.trim().toLowerCase());
+    if (match) return match.code;
+  }
+  return value;
+}
+
 export function optionLabel(lang: Language, group: OptionGroup, value: string | undefined | null): string {
   if (!value) return '';
+  value = canonicalOptionValue(group, value);
   const key = `opt.${group}.${value}`;
   if (TRANSLATIONS.en[key]) return t(lang, key);
   // Values are not always cased consistently ("Bank transfer" vs "Bank Transfer").

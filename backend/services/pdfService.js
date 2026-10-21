@@ -1,6 +1,6 @@
 const path = require('path');
 const PDFDocument = require('pdfkit');
-const { FIELDS, VALUES, DOC_TITLE_KEYS } = require('./pdfLabels');
+const { FIELDS, VALUES, DOC_TITLE_KEYS, LEGACY_VALUES } = require('./pdfLabels');
 const { statusName, resolveMessageLanguage } = require('./messages');
 const { HEBREW, ltr, stripBidiControls, drawParagraph, wrapLines } = require('./pdfRtl');
 
@@ -40,6 +40,9 @@ function makeLabels(lang) {
   /** Stored dropdown value → label (keys are matched case-insensitively, like the frontend). */
   const option = (group, stored) => {
     if (stored === undefined || stored === null || stored === '') return '';
+    // Older records stored the display label instead of the code.
+    const legacy = Object.entries(LEGACY_VALUES[group] || {}).find(([label]) => label.toLowerCase() === String(stored).trim().toLowerCase());
+    if (legacy) stored = legacy[1];
     const exact = `opt.${group}.${stored}`;
     const key = VALUES.en[exact] ? exact : Object.keys(VALUES.en).find((k) => k.toLowerCase() === exact.toLowerCase());
     return key ? value(key) : String(stored);

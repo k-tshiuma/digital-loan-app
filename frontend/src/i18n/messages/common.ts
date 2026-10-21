@@ -94,6 +94,8 @@ export const common: MessageModule = {
     'opt.visa.b1_expert': 'B-1 work visa (Foreign expert)',
     'opt.visa.b1_hotel': 'B-1 work visa (Hotel services)',
     'opt.visa.other_permit': 'Other valid work permit',
+    // Older records: B-1 visa without a sector.
+    'opt.visa.b1': 'B-1 work visa',
     'err.fileTooLarge': 'File size exceeds the 10MB limit. Please choose a smaller file.',
     'err.invalidFileType': 'Invalid file type. Only PDF, JPEG and PNG files are accepted.',
     fileTypesHint: 'PDF, JPG, PNG · Max 10MB',
@@ -230,6 +232,7 @@ export const common: MessageModule = {
     'opt.visa.b1_expert': 'אשרת עבודה B-1 (מומחה זר)',
     'opt.visa.b1_hotel': 'אשרת עבודה B-1 (מלונאות)',
     'opt.visa.other_permit': 'אשרת עבודה אחרת בתוקף',
+    'opt.visa.b1': 'אשרת עבודה B-1',
     'err.fileTooLarge': 'גודל הקובץ חורג ממגבלת 10MB. נא לבחור קובץ קטן יותר.',
     'err.invalidFileType': 'סוג קובץ לא נתמך. ניתן להעלות קובצי PDF, JPEG ו-PNG בלבד.',
     fileTypesHint: 'PDF, JPG, PNG · עד 10MB',

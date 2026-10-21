@@ -5,11 +5,11 @@ import { createRequire } from 'module';
 import { describe, it, expect } from 'vitest';
 import { TRANSLATIONS } from '../translations';
 import { statusLabel } from '../options';
-import { DOCUMENT_TYPE_CONFIG } from '../../config/appConfig';
+import { DOCUMENT_TYPE_CONFIG, VISA_TYPES } from '../../config/appConfig';
 import { CanonicalStatus } from '../../types';
 
 const requireBackend = createRequire(path.resolve(__dirname, '../../../../backend/package.json'));
-const { VALUES, DOC_TITLE_KEYS } = requireBackend('./services/pdfLabels.js');
+const { VALUES, DOC_TITLE_KEYS, LEGACY_VALUES } = requireBackend('./services/pdfLabels.js');
 const { STATUS_NAMES } = requireBackend('./services/messages.js');
 
 const SHARED = /^(opt\.|bo\.risk\.|bo\.riskLevel\.|bo\.quality\.|reason\.|doc\.)/;
@@ -33,6 +33,10 @@ describe('PDF labels match the frontend dictionaries', () => {
   it('document type titles use the same keys', () => {
     const app = Object.fromEntries(DOCUMENT_TYPE_CONFIG.map((d) => [d.code, d.titleKey]));
     expect(DOC_TITLE_KEYS).toEqual(app);
+  });
+
+  it('old visa labels map to the same codes as VISA_TYPES', () => {
+    expect(LEGACY_VALUES.visa).toEqual(Object.fromEntries(VISA_TYPES.map((v) => [v.label, v.code])));
   });
 
   it('status names match', () => {

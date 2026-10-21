@@ -224,7 +224,7 @@ async function runTests() {
         addressFull: 'Herzl St 15, Tel Aviv',
       };
       app1.residencyDetails = {
-        visaType: 'B-1 Work Visa (Agriculture / חקלאות)',
+        visaType: 'b1_agri', // the code, as the app stores it (not the display label)
         visaExpiryDate: new Date(Date.now() + 365 * 86400000).toISOString().split('T')[0], // 1 year validity
         dateOfEntry: '2022-01-10',
         yearsOfResidency: 3,

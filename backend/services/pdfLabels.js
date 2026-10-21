@@ -204,6 +204,7 @@ const VALUES = {
     'opt.visa.b1_expert': 'B-1 work visa (Foreign expert)',
     'opt.visa.b1_hotel': 'B-1 work visa (Hotel services)',
     'opt.visa.other_permit': 'Other valid work permit',
+    'opt.visa.b1': 'B-1 work visa',
     'doc.BANK_STATEMENT': 'Bank statement (last 3 months)',
     'doc.PAY_SLIP': 'Salary pay slip',
     'doc.EMPLOYMENT_CONFIRMATION': 'Employer letter',
@@ -281,6 +282,7 @@ const VALUES = {
     'opt.visa.b1_expert': 'אשרת עבודה B-1 (מומחה זר)',
     'opt.visa.b1_hotel': 'אשרת עבודה B-1 (מלונאות)',
     'opt.visa.other_permit': 'אשרת עבודה אחרת בתוקף',
+    'opt.visa.b1': 'אשרת עבודה B-1',
     'doc.BANK_STATEMENT': 'דף חשבון בנק (3 חודשים אחרונים)',
     'doc.PAY_SLIP': 'תלוש שכר',
     'doc.EMPLOYMENT_CONFIRMATION': 'מכתב מהמעסיק',
@@ -324,4 +326,20 @@ const DOC_TITLE_KEYS = {
   WORKERS_CARD: 'docWorkersCardTitle',
 };
 
-module.exports = { FIELDS, VALUES, DOC_TITLE_KEYS };
+/**
+ * Older records stored the visa's display label instead of its code. Same labels as VISA_TYPES in
+ * frontend/src/config/appConfig.ts (pdfLabels.test.ts checks they match).
+ */
+const LEGACY_VALUES = {
+  visa: {
+    'B-1 Work Visa (Agriculture / חקלאות)': 'b1_agri',
+    'B-1 Work Visa (Caregiving / סיעוד)': 'b1_care',
+    'B-1 Work Visa (Construction / בניין)': 'b1_const',
+    'B-1 Work Visa (Ethnic Cook / מסעדנות)': 'b1_rest',
+    'B-1 Work Visa (Foreign Expert / מומחה זר)': 'b1_expert',
+    'B-1 Work Visa (Hotel Services / מלונאות)': 'b1_hotel',
+    'Other Valid Work Permit / אשרת עבודה אחרת': 'other_permit',
+  },
+};
+
+module.exports = { FIELDS, VALUES, DOC_TITLE_KEYS, LEGACY_VALUES };
