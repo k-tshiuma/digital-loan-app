@@ -95,10 +95,11 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
   const [auditEvents, setAuditEvents] = useState<AuditEvent[]>(() => storageService.getAuditEvents());
 
   const fetchBackendData = async () => {
+    // The list and credit rules are staff-only endpoints. In the borrower view there is no staff
+    // token, so asking would only get a 403; show the local data until a staff role is picked.
+    if (currentRole === 'borrower') return;
     try {
-      if (currentRole !== 'borrower') {
-        await apiService.ensureStaffToken(currentRole);
-      }
+      await apiService.ensureStaffToken(currentRole);
       const backendApps = await apiService.listAllApplications();
       if (backendApps && backendApps.length > 0) {
         setApplications(backendApps);
