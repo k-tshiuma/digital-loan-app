@@ -4,6 +4,7 @@ import { Language, EmploymentDetails } from '../types';
 import { SALARY_PAYMENT_METHODS, calculateJobTenureMonths } from '../config/appConfig';
 import { t } from '../i18n/translations';
 import { optionLabel } from '../i18n/options';
+import { DateInput } from './DateInput';
 
 interface Step5EmploymentDetailsProps {
   language: Language;
@@ -190,18 +191,18 @@ export const Step5EmploymentDetails: React.FC<Step5EmploymentDetailsProps> = ({
           <label htmlFor="start-date-input" className="block text-xs font-bold text-slate-700 ">
             {t(language, 'employmentStartDateLabel')} <span className="text-red-500">*</span>
           </label>
-          <input
+          <DateInput
             id="start-date-input"
-            type="date"
+            language={language}
             required
             max={new Date().toISOString().split('T')[0]}
             value={formData.employmentStartDate || ''}
-            onChange={(e) => handleStartDateChange(e.target.value)}
-            className={`w-full px-4 py-3 rounded-xl border bg-white text-slate-900 text-sm font-medium focus:outline-none focus:ring-2 transition-all ${
+            onChange={handleStartDateChange}
+            className={
               errors.employmentStartDate
                 ? 'border-red-400 focus:ring-red-200'
                 : 'border-slate-300 focus:border-blue-900 focus:ring-blue-900/20'
-            }`}
+            }
           />
           {errors.employmentStartDate && <p className="text-xs text-red-600">{errors.employmentStartDate}</p>}
         </div>

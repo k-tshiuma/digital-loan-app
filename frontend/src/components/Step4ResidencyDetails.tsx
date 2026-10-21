@@ -4,6 +4,7 @@ import { Language, ResidencyDetails } from '../types';
 import { VISA_TYPES, calculateYearsOfResidency, isVisaValidForLoan } from '../config/appConfig';
 import { t } from '../i18n/translations';
 import { optionLabel } from '../i18n/options';
+import { DateInput } from './DateInput';
 
 interface Step4ResidencyDetailsProps {
   language: Language;
@@ -162,17 +163,17 @@ export const Step4ResidencyDetails: React.FC<Step4ResidencyDetailsProps> = ({
               </span>
             )}
           </div>
-          <input
+          <DateInput
             id="visa-expiry-input"
-            type="date"
+            language={language}
             required
             value={formData.visaExpiryDate}
-            onChange={(e) => setFormData({ ...formData, visaExpiryDate: e.target.value })}
-            className={`w-full px-4 py-3 rounded-xl border bg-white text-slate-900 text-sm font-medium focus:outline-none focus:ring-2 transition-all ${
+            onChange={(iso) => setFormData({ ...formData, visaExpiryDate: iso })}
+            className={
               errors.visaExpiryDate || !visaValidation.valid
                 ? 'border-amber-400 focus:ring-amber-200'
                 : 'border-slate-300 focus:border-blue-900 focus:ring-blue-900/20'
-            }`}
+            }
           />
           {errors.visaExpiryDate && <p className="text-xs text-red-600">{errors.visaExpiryDate}</p>}
           {!visaValidation.valid && (
@@ -192,14 +193,14 @@ export const Step4ResidencyDetails: React.FC<Step4ResidencyDetailsProps> = ({
           <label htmlFor="entry-date-input" className="block text-xs font-bold text-slate-700 ">
             {t(language, 'dateOfEntryLabel')} <span className="text-red-500">*</span>
           </label>
-          <input
+          <DateInput
             id="entry-date-input"
-            type="date"
+            language={language}
             required
             max={new Date().toISOString().split('T')[0]}
             value={formData.dateOfEntry}
-            onChange={(e) => setFormData({ ...formData, dateOfEntry: e.target.value })}
-            className="w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm font-medium focus:border-blue-900 focus:ring-2 focus:ring-blue-900/20 focus:outline-none transition-all"
+            onChange={(iso) => setFormData({ ...formData, dateOfEntry: iso })}
+            className="border-slate-300 focus:border-blue-900 focus:ring-blue-900/20"
           />
         </div>
 

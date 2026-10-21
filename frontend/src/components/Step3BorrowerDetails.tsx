@@ -5,6 +5,7 @@ import { ORIGIN_COUNTRIES, MARITAL_STATUSES, calculateAge } from '../config/appC
 import { t } from '../i18n/translations';
 import { optionLabel } from '../i18n/options';
 import { storageService } from '../services/storage';
+import { DateInput } from './DateInput';
 
 interface Step3BorrowerDetailsProps {
   language: Language;
@@ -271,18 +272,18 @@ export const Step3BorrowerDetails: React.FC<Step3BorrowerDetailsProps> = ({
               </span>
             )}
           </div>
-          <input
+          <DateInput
             id="dob-input"
-            type="date"
+            language={language}
             required
             max={new Date().toISOString().split('T')[0]}
             value={formData.dateOfBirth}
-            onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-            className={`w-full px-4 py-3 rounded-xl border bg-white text-slate-900 text-sm font-medium focus:outline-none focus:ring-2 transition-all ${
+            onChange={(iso) => setFormData({ ...formData, dateOfBirth: iso })}
+            className={
               errors.dateOfBirth
                 ? 'border-red-400 focus:ring-red-200'
                 : 'border-slate-300 focus:border-blue-900 focus:ring-blue-900/20'
-            }`}
+            }
           />
           {errors.dateOfBirth && <p className="text-xs text-red-600">{errors.dateOfBirth}</p>}
         </div>

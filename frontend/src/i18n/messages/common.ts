@@ -127,6 +127,14 @@ export const common: MessageModule = {
     'faq.4.a': 'Yes. QuickLoan uses bank-grade encryption in transit (TLS 1.3) and at rest. Credit card numbers are masked, and tamper-proof audit logs record every access.',
     'footer.encrypted': 'Encrypted via TLS 1.3',
     'footer.languages': '{n} languages supported',
+    'date.day': 'Day',
+    'date.month': 'Month',
+    'date.year': 'Year',
+    'date.dayPlaceholder': 'DD',
+    'date.monthPlaceholder': 'MM',
+    'date.yearPlaceholder': 'YYYY',
+    'date.openCalendar': 'Choose from calendar',
+    'date.invalid': 'Enter a valid date: day, month and year.',
     // @en-end
   },
   he: {
@@ -255,6 +263,14 @@ export const common: MessageModule = {
     'faq.4.a': 'כן. QuickLoan משתמשת בהצפנה ברמה בנקאית בזמן ההעברה (TLS 1.3) ובזמן האחסון. מספרי כרטיסי אשראי מוסתרים, וכל גישה למידע נרשמת ביומן ביקורת שאינו ניתן לשינוי.',
     'footer.encrypted': 'מוצפן באמצעות TLS 1.3',
     'footer.languages': '{n} שפות נתמכות',
+    'date.day': 'יום',
+    'date.month': 'חודש',
+    'date.year': 'שנה',
+    'date.dayPlaceholder': 'יום',
+    'date.monthPlaceholder': 'חודש',
+    'date.yearPlaceholder': 'שנה',
+    'date.openCalendar': 'בחירה מלוח השנה',
+    'date.invalid': 'נא להזין תאריך תקין: יום, חודש ושנה.',
     // @he-end
   },
 };
