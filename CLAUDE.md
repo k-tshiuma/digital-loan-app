@@ -20,6 +20,7 @@ Backend (from `backend/`, port 5000 by default):
   - `node test_verification.js`
   - `node test_guarantors_and_scoring.js`
   - `node test_returning_user_prefill.js`
+  - `node test_i18n.js` (port 5005; also starts a child server on 5006 with `DEMO_MODE=false`)
   - `npm test` is a placeholder and does nothing.
 - Tests use the real `database.sqlite`. There is no separate test DB.
 
@@ -27,6 +28,7 @@ Frontend (from `frontend/`, port 3000):
 - `npm run dev`: Vite dev server
 - `npm run build`
 - `npm run lint`: type-check only (`tsc --noEmit`). There is no ESLint.
+- `npm test`: Vitest + React Testing Library (jsdom). `npm run test:watch` for watch mode, `npx vitest run <path>` for one file. Tests live in `__tests__/` folders next to the code; setup is `src/test/setup.ts`.
 
 ## Backend architecture
 
@@ -48,6 +50,12 @@ Frontend (from `frontend/`, port 3000):
   - `services/api.ts`: the backend client. Base URL is `VITE_API_URL` or `http://localhost:5000/api`. It stores separate borrower and staff JWTs in localStorage and exports `ApiError` and `isNetworkError`.
   - `services/storage.ts`: a large `StorageService` that keeps a localStorage/in-memory model of users, applications, notifications, audit events and config, with seeded demo applications. It handles draft persistence and offline backup. Components often call both layers, so check which one a change belongs in.
 - Shared types: `types.ts`. Business limits (loan amounts, repayment periods, fees, min age, visa validity): `config/appConfig.ts`.
-- i18n: `i18n/translations.ts` with `en`, `he`, `th`, `zh` and a `t()` helper. Hebrew is RTL. New UI strings need entries in all four languages.
+- i18n: `i18n/translations.ts` holds the dictionaries and a `t(lang, key)` helper. `i18n/LanguageContext.tsx` (`LanguageProvider` in `main.tsx`, `useI18n()` hook) owns the current language, saves it in localStorage (`quickloan_language`), and sets `<html lang dir>`. Hebrew is RTL.
+  - Only English and Hebrew are enabled (`enabled` flag in `SUPPORTED_LANGUAGES`, `ENABLED_LANGUAGES`). Thai, Chinese and Filipino are on hold: hidden from pickers, dictionaries kept. New UI strings need `en` and `he` entries only. `translations.test.ts` enforces en/he key parity.
+  - New UI strings go in `i18n/messages/*.ts` (grouped by area, en + he), not in the base dictionary. Never hard-code visible text: tests scan components for English JSX text and check every `t()` key exists. Use `{/* i18n-ignore */}` only for brand names or demo data.
+  - Stored values (dropdown options, statuses, roles, risk flags, document codes) stay English. Show them with the helpers in `i18n/options.ts` (`optionLabel`, `statusLabel`, …). Show errors with `localizeError()` from `i18n/apiErrors.ts`.
+  - Eligibility factor descriptions carry `descriptionKey`/`descriptionParams` in both scoring mirrors; keep the keys in sync too.
+  - Language changes go through `handleLanguageSelect` in `App.tsx`, which also saves the choice to the user's account (`PUT /api/users/me/language`, accepts `en`/`he`).
+  - Ongoing Hebrew work is tracked in `hebrew-localization-plan.md`.
 - The `@` import alias resolves to `frontend/` (not `src/`).
 - The `.py` scripts in `frontend/` (`clean.py`, `fix_case.py`, `recover.py`) are one-off maintenance helpers, not part of the build. `scratch/` is gitignored.

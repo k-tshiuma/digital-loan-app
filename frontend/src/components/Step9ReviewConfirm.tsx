@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { Language, LoanApplication, DigitalSignature, ConsentRecord } from '../types';
 import { t } from '../i18n/translations';
+import { optionLabel } from '../i18n/options';
 import { calculateIndicativeEligibility } from '../services/eligibilityScoring';
 import { EligibilityScoreBar } from './EligibilityScoreBar';
 
@@ -223,19 +224,19 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
           </div>
           <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 text-xs">
             <div>
-              <span className="text-slate-400 block text-[11px]">Name:</span>
+              <span className="text-slate-400 block text-[11px]">{t(language, 'review.name')}</span>
               <span className="font-semibold text-slate-800">{b?.fullName || '—'}</span>
             </div>
             <div>
-              <span className="text-slate-400 block text-[11px]">Passport:</span>
+              <span className="text-slate-400 block text-[11px]">{t(language, 'review.passport')}</span>
               <span className="font-mono font-bold text-slate-800">{b?.passportNumber || '—'}</span>
             </div>
             <div>
-              <span className="text-slate-400 block text-[11px]">Origin & DOB:</span>
-              <span className="text-slate-700">{b?.countryOfOrigin}, {b?.dateOfBirth}</span>
+              <span className="text-slate-400 block text-[11px]">{t(language, 'review.originDob')}</span>
+              <span className="text-slate-700">{optionLabel(language, 'country', b?.countryOfOrigin)}, {b?.dateOfBirth}</span>
             </div>
             <div>
-              <span className="text-slate-400 block text-[11px]">Address:</span>
+              <span className="text-slate-400 block text-[11px]">{t(language, 'review.address')}</span>
               <span className="text-slate-700 truncate block">{b?.addressFull || b?.addressCity || '—'}</span>
             </div>
           </div>
@@ -257,20 +258,20 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
           </div>
           <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 text-xs">
             <div>
-              <span className="text-slate-400 block text-[11px]">Visa Category:</span>
-              <span className="font-semibold text-slate-800">{r?.visaType || '—'}</span>
+              <span className="text-slate-400 block text-[11px]">{t(language, 'review.visaCategory')}</span>
+              <span className="font-semibold text-slate-800">{r?.visaType ? optionLabel(language, 'visa', r.visaType) : '—'}</span>
             </div>
             <div>
-              <span className="text-slate-400 block text-[11px]">Visa Expiry:</span>
+              <span className="text-slate-400 block text-[11px]">{t(language, 'review.visaExpiry')}</span>
               <span className="font-semibold text-slate-800">{r?.visaExpiryDate || '—'}</span>
             </div>
             <div>
-              <span className="text-slate-400 block text-[11px]">Entry Date:</span>
+              <span className="text-slate-400 block text-[11px]">{t(language, 'review.entryDate')}</span>
               <span className="text-slate-700">{r?.dateOfEntry || '—'}</span>
             </div>
             <div>
-              <span className="text-slate-400 block text-[11px]">Time in Israel:</span>
-              <span className="font-bold text-blue-900">{r?.yearsOfResidency || 0} years</span>
+              <span className="text-slate-400 block text-[11px]">{t(language, 'review.timeInIsrael')}</span>
+              <span className="font-bold text-blue-900">{t(language, 'review.yearsN', { n: r?.yearsOfResidency || 0 })}</span>
             </div>
           </div>
         </div>
@@ -291,20 +292,23 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
           </div>
           <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 text-xs">
             <div>
-              <span className="text-slate-400 block text-[11px]">Employer:</span>
+              <span className="text-slate-400 block text-[11px]">{t(language, 'review.employer')}</span>
               <span className="font-semibold text-slate-800 truncate block">{em?.employerName || '—'}</span>
             </div>
             <div>
-              <span className="text-slate-400 block text-[11px]">Monthly Salary:</span>
+              <span className="text-slate-400 block text-[11px]">{t(language, 'review.monthlySalary')}</span>
               <span className="font-bold font-mono text-emerald-800">₪{em?.monthlySalaryNis?.toLocaleString() || 0}</span>
             </div>
             <div>
-              <span className="text-slate-400 block text-[11px]">Tenure:</span>
-              <span className="text-slate-700">{em?.jobTenureMonths || 0} months</span>
+              <span className="text-slate-400 block text-[11px]">{t(language, 'review.tenure')}</span>
+              <span className="text-slate-700">
+                {t(language, 'review.monthsN', { n: em?.jobTenureMonths || 0 })}
+                {em?.employmentStartDate ? t(language, 'review.fromDate', { date: em.employmentStartDate }) : ''}
+              </span>
             </div>
             <div>
-              <span className="text-slate-400 block text-[11px]">Payment Method:</span>
-              <span className="text-slate-700">{em?.salaryPaymentMethod || '—'}</span>
+              <span className="text-slate-400 block text-[11px]">{t(language, 'review.paymentMethod')}</span>
+              <span className="text-slate-700">{em?.salaryPaymentMethod ? optionLabel(language, 'salaryMethod', em.salaryPaymentMethod) : '—'}</span>
             </div>
           </div>
         </div>
@@ -325,19 +329,19 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
           </div>
           <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 text-xs">
             <div>
-              <span className="text-blue-300 block text-[11px]">Requested Amount:</span>
+              <span className="text-blue-300 block text-[11px]">{t(language, 'review.requestedAmount')}</span>
               <span className="text-lg font-bold font-mono text-white">₪{l?.requestedAmountNis?.toLocaleString() || 0}</span>
             </div>
             <div>
-              <span className="text-blue-300 block text-[11px]">Repayment Term:</span>
-              <span className="text-sm font-bold text-white">{l?.repaymentPeriodMonths || 6} Months</span>
+              <span className="text-blue-300 block text-[11px]">{t(language, 'review.repaymentTerm')}</span>
+              <span className="text-sm font-bold text-white">{t(language, 'review.monthsN', { n: l?.repaymentPeriodMonths || 6 })}</span>
             </div>
             <div>
-              <span className="text-blue-300 block text-[11px]">Est. Monthly Payment:</span>
-              <span className="font-mono font-bold text-blue-100">₪{l?.estimatedMonthlyPaymentNis || 0} / mo</span>
+              <span className="text-blue-300 block text-[11px]">{t(language, 'review.estMonthly')}</span>
+              <span className="font-mono font-bold text-blue-100">₪{l?.estimatedMonthlyPaymentNis || 0} {t(language, 'review.perMonth')}</span>
             </div>
             <div>
-              <span className="text-blue-300 block text-[11px]">Total Repayment:</span>
+              <span className="text-blue-300 block text-[11px]">{t(language, 'review.totalRepayment')}</span>
               <span className="font-mono font-bold text-blue-100">₪{l?.totalRepaymentNis || 0}</span>
             </div>
           </div>
@@ -359,19 +363,19 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
           </div>
           <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 text-xs">
             <div>
-              <span className="text-slate-400 block text-[11px]">Bank:</span>
+              <span className="text-slate-400 block text-[11px]">{t(language, 'review.bank')}</span>
               <span className="font-semibold text-slate-800">{bank?.bankName || '—'}</span>
             </div>
             <div>
-              <span className="text-slate-400 block text-[11px]">Branch:</span>
+              <span className="text-slate-400 block text-[11px]">{t(language, 'review.branch')}</span>
               <span className="font-mono font-bold text-slate-800">{bank?.branchNumber || '—'}</span>
             </div>
             <div>
-              <span className="text-slate-400 block text-[11px]">Account #:</span>
+              <span className="text-slate-400 block text-[11px]">{t(language, 'review.accountNumber')}</span>
               <span className="font-mono font-bold text-slate-800">{bank?.accountNumber || '—'}</span>
             </div>
             <div>
-              <span className="text-slate-400 block text-[11px]">Account Holder:</span>
+              <span className="text-slate-400 block text-[11px]">{t(language, 'review.accountHolder')}</span>
               <span className="text-slate-800 truncate block">{bank?.accountHolderName || b?.fullName || '—'}</span>
             </div>
           </div>
@@ -417,29 +421,29 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
                 {list.map((guar, i) => (
                   <div key={guar.id || i} className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 space-y-2">
                     <div className="flex items-center justify-between text-xs font-bold text-slate-800">
-                      <span>Guarantor {i + 1} {i === 0 ? '(Required)' : '(Optional)'}</span>
+                      <span>{i === 0 ? t(language, 'review.guarantorRequired', { n: i + 1 }) : t(language, 'review.guarantorOptional', { n: i + 1 })}</span>
                       {guar.idDocument && (
                         <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                          ID Document Verified
+                          {t(language, 'review.idVerified')}
                         </span>
                       )}
                     </div>
                     <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 text-xs">
                       <div>
-                        <span className="text-slate-400 block text-[11px]">Name:</span>
+                        <span className="text-slate-400 block text-[11px]">{t(language, 'review.name')}</span>
                         <span className="font-semibold text-slate-800">{guar.fullName}</span>
                       </div>
                       <div>
-                        <span className="text-slate-400 block text-[11px]">ID / Passport:</span>
+                        <span className="text-slate-400 block text-[11px]">{t(language, 'review.idPassport')}</span>
                         <span className="font-mono font-bold text-slate-800">{guar.passportOrIdNumber}</span>
                       </div>
                       <div>
-                        <span className="text-slate-400 block text-[11px]">Phone:</span>
+                        <span className="text-slate-400 block text-[11px]">{t(language, 'review.phone')}</span>
                         <span className="text-slate-700">{guar.mobilePhoneNumber}</span>
                       </div>
                       <div>
-                        <span className="text-slate-400 block text-[11px]">Relationship:</span>
-                        <span className="text-slate-700">{guar.relationship}</span>
+                        <span className="text-slate-400 block text-[11px]">{t(language, 'review.relationship')}</span>
+                        <span className="text-slate-700">{optionLabel(language, 'relationship', guar.relationship)}</span>
                       </div>
                     </div>
                   </div>
@@ -454,7 +458,7 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
             <span className="font-medium text-slate-800">
-              {docCount} Supporting Document{docCount !== 1 ? 's' : ''} Attached
+              {docCount === 1 ? t(language, 'review.docsAttachedOne') : t(language, 'review.docsAttachedMany', { n: docCount })}
             </span>
           </div>
           <button
@@ -462,7 +466,7 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
             onClick={() => onEditStep(8)}
             className="text-xs font-bold text-blue-900 hover:underline"
           >
-            Manage
+            {t(language, 'review.manage')}
           </button>
         </div>
       </div>
@@ -470,7 +474,7 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
       {/* Mandatory Legal Consents */}
       <div className="space-y-3 mb-6 p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
         <div className="text-xs font-bold text-slate-800 ">
-          Legal Consents & Authorization
+          {t(language, 'review.legalConsents')}
         </div>
 
         {/* Checkbox 1 */}
@@ -483,7 +487,7 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
             className="mt-1 w-4 h-4 rounded text-blue-900 border-slate-300 focus:ring-blue-900 accent-blue-900"
           />
           <span className="text-xs text-slate-600 group-hover:text-slate-900 leading-relaxed">
-            {t(language, 'consentTermsText') || 'Consent Terms'}
+            {t(language, 'consentTermsText')}
           </span>
         </label>
 
@@ -497,7 +501,7 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
             className="mt-1 w-4 h-4 rounded text-blue-900 border-slate-300 focus:ring-blue-900 accent-blue-900"
           />
           <span className="text-xs text-slate-600 group-hover:text-slate-900 leading-relaxed">
-            {t(language, 'consentCreditCheckText') || 'Consent Credit Check'}
+            {t(language, 'consentCreditCheckText')}
           </span>
         </label>
       </div>
@@ -506,7 +510,7 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
       <div className="space-y-3 mb-6 p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
         <div className="flex items-center justify-between">
           <label className="block text-xs font-bold text-slate-800 ">
-            {t(language, 'digitalSignatureLabel') || 'Signature'} <span className="text-red-500">*</span>
+            {t(language, 'digitalSignatureLabel')} <span className="text-red-500">*</span>
           </label>
           {/* Tabs */}
           <div className="flex bg-slate-100 p-0.5 rounded-lg text-xs font-medium">
@@ -520,7 +524,7 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
               }`}
             >
               <PenTool className="w-3 h-3 inline mr-1" />
-              {t(language, 'drawSignature') || 'Draw Signature'}
+              {t(language, 'drawSignature')}
             </button>
             <button
               type="button"
@@ -532,7 +536,7 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
               }`}
             >
               <Type className="w-3 h-3 inline mr-1" />
-              {t(language, 'typeSignature') || 'Type Signature'}
+              {t(language, 'typeSignature')}
             </button>
           </div>
         </div>
@@ -553,13 +557,13 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
               />
               {!hasDrawn && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-slate-400 text-xs">
-                  Sign with finger or stylus here
+                  {t(language, 'review.signHere')}
                 </div>
               )}
             </div>
             <div className="flex justify-between items-center text-xs">
               <span className="text-[11px] text-slate-400">
-                Draw full signature as on passport
+                {t(language, 'review.drawFullSignature')}
               </span>
               <button
                 type="button"
@@ -578,11 +582,11 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
               type="text"
               value={typedName}
               onChange={(e) => setTypedName(e.target.value)}
-              placeholder="Type full legal name"
+              placeholder={t(language, 'review.typedNamePlaceholder')}
               className="w-full px-4 py-3 rounded-xl border border-slate-300 bg-white font-serif text-lg text-blue-950 italic focus:border-blue-900 focus:outline-none"
             />
             <span className="text-[11px] text-slate-400 block">
-              Typed name acts as binding legal electronic signature under Israeli e-Signature law.
+              {t(language, 'review.typedNameLegal')}
             </span>
           </div>
         )}
@@ -617,7 +621,7 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
             <RotateCw className="w-5 h-5 animate-spin" />
           ) : (
             <>
-              <span>{t(language, 'submitApplication') || 'Submit Application'}</span>
+              <span>{t(language, 'submitApplication')}</span>
               <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1 rtl:rotate-180" />
             </>
           )}
@@ -630,7 +634,7 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] flex flex-col shadow-xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <h2 className="text-lg font-bold text-slate-900">{t(language, 'termsAndConditionsTitle') || 'Terms & Conditions'}</h2>
+              <h2 className="text-lg font-bold text-slate-900">{t(language, 'termsAndConditionsTitle')}</h2>
               <button 
                 onClick={() => setShowTermsModal(false)}
                 className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-200/50 transition-colors"
@@ -641,15 +645,15 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
             </div>
             
             <div className="p-5 overflow-y-auto text-sm text-slate-600 space-y-4">
-              <p>Please read and accept the following terms and conditions to proceed with your loan application.</p>
+              <p>{t(language, 'review.termsIntro')}</p>
               <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl h-48 overflow-y-auto text-xs space-y-3 shadow-inner">
-                <p>1. By submitting this application, you declare that all provided information is accurate and truthful.</p>
-                <p>2. You authorize the funding entity to perform background and credit history checks.</p>
-                <p>3. You agree to the proposed repayment schedule, which includes processing fees and interest rates as specified in the estimate.</p>
-                <p>4. In the event of default, you agree that your employer may be contacted, and late fees may be applied.</p>
-                <p>5. Your digital signature carries the same legal weight as a physical signature under applicable laws.</p>
-                <p>6. All documents uploaded are certified as true copies of the originals.</p>
-                <p>7. You understand that this application is subject to final approval by the credit committee.</p>
+                <p>{t(language, 'review.term1')}</p>
+                <p>{t(language, 'review.term2')}</p>
+                <p>{t(language, 'review.term3')}</p>
+                <p>{t(language, 'review.term4')}</p>
+                <p>{t(language, 'review.term5')}</p>
+                <p>{t(language, 'review.term6')}</p>
+                <p>{t(language, 'review.term7')}</p>
               </div>
             </div>
 
@@ -659,14 +663,14 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
                 onClick={() => setShowTermsModal(false)}
                 className="flex-1 py-3 px-4 rounded-xl border border-slate-300 bg-white text-slate-700 font-semibold text-sm hover:bg-slate-50 transition-colors"
               >
-                {t(language, 'decline') || 'Decline'}
+                {t(language, 'decline')}
               </button>
               <button
                 type="button"
                 onClick={handleFinalSubmit}
                 className="flex-1 py-3 px-4 rounded-xl bg-blue-900 text-white font-semibold text-sm hover:bg-blue-800 transition-colors shadow-sm"
               >
-                {t(language, 'acceptAndSubmit') || 'Accept & Submit'}
+                {t(language, 'acceptAndSubmit')}
               </button>
             </div>
           </div>

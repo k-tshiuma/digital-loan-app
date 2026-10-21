@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ShieldCheck, Info, ChevronDown, ChevronUp, CheckCircle2, AlertCircle } from 'lucide-react';
-import { Language, EligibilityScoreBreakdown } from '../types';
+import { Language, EligibilityScoreBreakdown, EligibilityFactorDetail } from '../types';
+import { t } from '../i18n/translations';
 
 interface EligibilityScoreBarProps {
   scoreData: EligibilityScoreBreakdown;
@@ -16,6 +17,9 @@ export const EligibilityScoreBar: React.FC<EligibilityScoreBarProps> = ({
   className = '',
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  // Older saved breakdowns have only the English description.
+  const describe = (f: EligibilityFactorDetail) =>
+    f.descriptionKey ? t(language, f.descriptionKey, f.descriptionParams) : f.description;
 
   // Score metrics
   const { rawScore, maxRawScore, percentageOfMax, segmentsFilled, factors } = scoreData;
@@ -40,10 +44,10 @@ export const EligibilityScoreBar: React.FC<EligibilityScoreBarProps> = ({
           </div>
           <div>
             <h3 className="text-xs font-bold text-slate-800 tracking-tight">
-              Estimated Loan Eligibility
+              {t(language, 'elig.title')}
             </h3>
             <p className="text-[11px] text-slate-500">
-              Indicative score based on current data
+              {t(language, 'elig.subtitle')}
             </p>
           </div>
         </div>
@@ -59,7 +63,7 @@ export const EligibilityScoreBar: React.FC<EligibilityScoreBarProps> = ({
             </span>
           </div>
           <span className="text-[10px] font-semibold text-slate-500 block">
-            ({segmentsFilled} of 10 sections)
+            {t(language, 'elig.sectionsOf', { n: segmentsFilled })}
           </span>
         </div>
       </div>
@@ -71,7 +75,7 @@ export const EligibilityScoreBar: React.FC<EligibilityScoreBarProps> = ({
             <div
               key={idx}
               className={`h-2.5 rounded-full transition-all duration-300 ${getSegmentColor(idx)}`}
-              title={`Section ${idx + 1} of 10 (${(idx + 1) * 10}% threshold)`}
+              title={t(language, 'elig.segmentTitle', { n: idx + 1, pct: (idx + 1) * 10 })}
             />
           ))}
         </div>
@@ -86,7 +90,7 @@ export const EligibilityScoreBar: React.FC<EligibilityScoreBarProps> = ({
       <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-[11px] text-slate-600 flex items-start gap-2">
         <Info className="w-3.5 h-3.5 text-blue-700 shrink-0 mt-0.5" />
         <p className="leading-relaxed">
-          This estimate is based on the information and documents currently provided. The final lending decision may depend on additional verification and underwriting.
+          {t(language, 'elig.notice')}
         </p>
       </div>
 
@@ -98,7 +102,7 @@ export const EligibilityScoreBar: React.FC<EligibilityScoreBarProps> = ({
             onClick={() => setIsExpanded(!isExpanded)}
             className="w-full flex items-center justify-between text-xs font-semibold text-blue-900 hover:text-blue-800 transition-colors py-1"
           >
-            <span>View eligibility factor breakdown</span>
+            <span>{t(language, 'elig.viewBreakdown')}</span>
             {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
 
@@ -107,8 +111,8 @@ export const EligibilityScoreBar: React.FC<EligibilityScoreBarProps> = ({
               {/* Factor 1: Identity & Visa Document */}
               <div className="p-2 rounded-xl bg-slate-50 border border-slate-100 flex items-start justify-between gap-2">
                 <div className="flex-1">
-                  <span className="font-semibold text-slate-800 block">Identity & Passport Verification</span>
-                  <span className="text-[11px] text-slate-500">{factors.identity.description}</span>
+                  <span className="font-semibold text-slate-800 block">{t(language, 'elig.f.identity')}</span>
+                  <span className="text-[11px] text-slate-500">{describe(factors.identity)}</span>
                 </div>
                 <span className="font-mono font-bold text-slate-900 shrink-0">
                   {factors.identity.awarded} / {factors.identity.max}%
@@ -118,8 +122,8 @@ export const EligibilityScoreBar: React.FC<EligibilityScoreBarProps> = ({
               {/* Factor 2: Monthly Salary */}
               <div className="p-2 rounded-xl bg-slate-50 border border-slate-100 flex items-start justify-between gap-2">
                 <div className="flex-1">
-                  <span className="font-semibold text-slate-800 block">Monthly Salary (7,500+ NIS threshold)</span>
-                  <span className="text-[11px] text-slate-500">{factors.salary.description}</span>
+                  <span className="font-semibold text-slate-800 block">{t(language, 'elig.f.salary')}</span>
+                  <span className="text-[11px] text-slate-500">{describe(factors.salary)}</span>
                 </div>
                 <span className="font-mono font-bold text-slate-900 shrink-0">
                   {factors.salary.awarded} / {factors.salary.max}%
@@ -129,8 +133,8 @@ export const EligibilityScoreBar: React.FC<EligibilityScoreBarProps> = ({
               {/* Factor 3: Employment Tenure */}
               <div className="p-2 rounded-xl bg-slate-50 border border-slate-100 flex items-start justify-between gap-2">
                 <div className="flex-1">
-                  <span className="font-semibold text-slate-800 block">Employment Duration in Israel</span>
-                  <span className="text-[11px] text-slate-500">{factors.employmentDuration.description}</span>
+                  <span className="font-semibold text-slate-800 block">{t(language, 'elig.f.duration')}</span>
+                  <span className="text-[11px] text-slate-500">{describe(factors.employmentDuration)}</span>
                 </div>
                 <span className="font-mono font-bold text-slate-900 shrink-0">
                   {factors.employmentDuration.awarded} / {factors.employmentDuration.max}%
@@ -140,8 +144,8 @@ export const EligibilityScoreBar: React.FC<EligibilityScoreBarProps> = ({
               {/* Factor 4: Visa Validity Remaining */}
               <div className="p-2 rounded-xl bg-slate-50 border border-slate-100 flex items-start justify-between gap-2">
                 <div className="flex-1">
-                  <span className="font-semibold text-slate-800 block">Remaining Visa Validity</span>
-                  <span className="text-[11px] text-slate-500">{factors.visaValidity.description}</span>
+                  <span className="font-semibold text-slate-800 block">{t(language, 'elig.f.visa')}</span>
+                  <span className="text-[11px] text-slate-500">{describe(factors.visaValidity)}</span>
                 </div>
                 <span className="font-mono font-bold text-slate-900 shrink-0">
                   {factors.visaValidity.awarded} / {factors.visaValidity.max}%
@@ -151,8 +155,8 @@ export const EligibilityScoreBar: React.FC<EligibilityScoreBarProps> = ({
               {/* Factor 5: Number of Guarantors */}
               <div className="p-2 rounded-xl bg-slate-50 border border-slate-100 flex items-start justify-between gap-2">
                 <div className="flex-1">
-                  <span className="font-semibold text-slate-800 block">Guarantors with ID Documents</span>
-                  <span className="text-[11px] text-slate-500">{factors.guarantors.description}</span>
+                  <span className="font-semibold text-slate-800 block">{t(language, 'elig.f.guarantors')}</span>
+                  <span className="text-[11px] text-slate-500">{describe(factors.guarantors)}</span>
                 </div>
                 <span className="font-mono font-bold text-slate-900 shrink-0">
                   {factors.guarantors.awarded} / {factors.guarantors.max}%

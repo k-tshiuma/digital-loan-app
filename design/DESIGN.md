@@ -1,94 +1,82 @@
 ---
-name: High-Integrity Fintech
+name: FinBest High-Integrity Fintech
 colors:
-  surface: '#f9f9ff'
-  surface-dim: '#cadaff'
-  surface-bright: '#f9f9ff'
+  surface: '#f4f7fb'
+  surface-dim: '#e2e8f0'
+  surface-bright: '#ffffff'
   surface-container-lowest: '#ffffff'
-  surface-container-low: '#f1f3ff'
-  surface-container: '#e8edff'
-  surface-container-high: '#e0e8ff'
-  surface-container-highest: '#d7e2ff'
-  on-surface: '#041b3c'
-  on-surface-variant: '#434654'
-  inverse-surface: '#1d3052'
-  inverse-on-surface: '#edf0ff'
-  outline: '#737685'
-  outline-variant: '#c3c6d6'
-  surface-tint: '#0c56d0'
-  primary: '#003d9b'
+  surface-container-low: '#f8fafc'
+  surface-container: '#f1f5f9'
+  surface-container-high: '#e2e8f0'
+  surface-container-highest: '#cbd5e1'
+  on-surface: '#0b1a2d'
+  on-surface-variant: '#475569'
+  inverse-surface: '#0b1a2d'
+  inverse-on-surface: '#f0f9ff'
+  outline: '#64748b'
+  outline-variant: '#cbd5e1'
+  surface-tint: '#0284c7'
+  primary: '#0284c7'
   on-primary: '#ffffff'
-  primary-container: '#0052cc'
-  on-primary-container: '#c4d2ff'
-  inverse-primary: '#b2c5ff'
-  secondary: '#285ab9'
+  primary-container: '#e0f2fe'
+  on-primary-container: '#0369a1'
+  inverse-primary: '#38bdf8'
+  secondary: '#0b1a2d'
   on-secondary: '#ffffff'
-  secondary-container: '#709bfe'
-  on-secondary-container: '#003179'
-  tertiary: '#004e32'
+  secondary-container: '#10243e'
+  on-secondary-container: '#38bdf8'
+  tertiary: '#ff6b35'
   on-tertiary: '#ffffff'
-  tertiary-container: '#006844'
-  on-tertiary-container: '#72e9af'
-  error: '#ba1a1a'
+  tertiary-container: '#fff7ed'
+  on-tertiary-container: '#c2410c'
+  accent-indigo: '#4f46e5'
+  error: '#dc2626'
   on-error: '#ffffff'
-  error-container: '#ffdad6'
-  on-error-container: '#93000a'
-  primary-fixed: '#dae2ff'
-  primary-fixed-dim: '#b2c5ff'
-  on-primary-fixed: '#001848'
-  on-primary-fixed-variant: '#0040a2'
-  secondary-fixed: '#d9e2ff'
-  secondary-fixed-dim: '#b1c6ff'
-  on-secondary-fixed: '#001946'
-  on-secondary-fixed-variant: '#00419d'
-  tertiary-fixed: '#82f9be'
-  tertiary-fixed-dim: '#65dca4'
-  on-tertiary-fixed: '#002113'
-  on-tertiary-fixed-variant: '#005235'
-  background: '#f9f9ff'
-  on-background: '#041b3c'
-  surface-variant: '#d7e2ff'
+  error-container: '#fee2e2'
+  on-error-container: '#991b1b'
+  background: '#f4f7fb'
+  on-background: '#0b1a2d'
 typography:
   headline-lg:
-    fontFamily: Inter
+    fontFamily: Plus Jakarta Sans
     fontSize: 32px
     fontWeight: '700'
     lineHeight: 40px
-    letterSpacing: -0.02em
+    letterSpacing: -0.025em
   headline-lg-mobile:
-    fontFamily: Inter
+    fontFamily: Plus Jakarta Sans
     fontSize: 24px
     fontWeight: '700'
     lineHeight: 32px
-    letterSpacing: -0.01em
+    letterSpacing: -0.02em
   headline-md:
-    fontFamily: Inter
+    fontFamily: Plus Jakarta Sans
     fontSize: 20px
     fontWeight: '600'
     lineHeight: 28px
   body-lg:
-    fontFamily: Inter
+    fontFamily: Plus Jakarta Sans
     fontSize: 18px
     fontWeight: '400'
     lineHeight: 28px
   body-md:
-    fontFamily: Inter
+    fontFamily: Plus Jakarta Sans
     fontSize: 16px
     fontWeight: '400'
     lineHeight: 24px
   body-sm:
-    fontFamily: Inter
+    fontFamily: Plus Jakarta Sans
     fontSize: 14px
     fontWeight: '400'
     lineHeight: 20px
   label-md:
-    fontFamily: Inter
+    fontFamily: Plus Jakarta Sans
     fontSize: 14px
     fontWeight: '600'
     lineHeight: 16px
     letterSpacing: 0.01em
   label-sm:
-    fontFamily: Inter
+    fontFamily: Plus Jakarta Sans
     fontSize: 12px
     fontWeight: '500'
     lineHeight: 16px
@@ -113,27 +101,29 @@ spacing:
 
 ## Brand & Style
 
-This design system is built on the pillars of **security, clarity, and guidance**. Designed for a mobile-first loan application, the visual language prioritizes user confidence through a professional and modern aesthetic.
+This design system is inspired by the **FinBest Banking & Finance** aesthetic, built on the pillars of **security, clarity, and guidance**. Designed for a mobile-first loan application, the visual language prioritizes user confidence through a professional and modern aesthetic.
 
-The style is **Corporate Modern with a Focus on Accessibility**. It utilizes a systematic approach to hierarchy, ensuring that complex financial information is digestible and transparent. The interface employs generous whitespace to reduce cognitive load, while subtle depth markers (shadows and tonal layers) provide clear mental models of the application flow. The emotional response should be one of calm assurance—moving the user from the stress of borrowing to the relief of a structured, supportive path.
+The style is **Fintech Modern with High Legibility**. It utilizes a systematic approach to hierarchy, ensuring that complex financial information is digestible and transparent. The interface employs generous whitespace to reduce cognitive load, while subtle depth markers (shadows and tonal layers) provide clear mental models of the application flow.
 
 ## Colors
 
-The palette is anchored in deep, trustworthy blues to establish authority and institutional stability. 
+The palette is anchored in FinBest's deep midnight navy, vibrant cyan-blue, energetic coral orange, and cool ambient surfaces:
 
-- **Primary & Secondary Blues:** Used for the most critical actions and brand touchpoints. They provide high contrast against the background to guide the eye toward "Next" and "Submit" actions.
-- **Surface & Background:** A clean `#F4F5F7` background is used to differentiate the app frame from card-based content surfaces (`#FFFFFF`), creating a clear "layered" feel.
-- **Semantic Colors:** Success, Warning, and Error colors are calibrated for high legibility. Error states specifically use a high-chroma red to ensure immediate visibility during sensitive data entry (like account numbers).
-- **Contrast:** All color combinations must meet WCAG 2.1 AA standards (4.5:1 for normal text) to ensure accessibility for all users.
+- **Midnight Navy (`#0B1A2D`):** Primary brand anchor, dark hero surfaces, high-contrast headings, and deep trust elements.
+- **Vibrant Cerulean / Cyan (`#0284C7`):** Primary interactive CTA color, active progress markers, sparkles, and financial rates.
+- **Coral / Sunset Orange (`#FF6B35`):** Warm accent, badges, and high-priority callout indicators.
+- **Royal Indigo / Violet (`#4F46E5`):** Gradient flourish and accent highlights.
+- **Surface & Background (`#F4F7FB`):** A clean cool-grey background differentiating the app frame from card-based content surfaces (`#FFFFFF`).
+- **Semantic Colors:** Success (Emerald `#10B981`), Warning (Amber `#F59E0B`), and Error (Crimson `#DC2626`).
 
 ## Typography
 
-The typography system uses **Inter**, a typeface specifically designed for high legibility on screens. 
+The typography system uses **Plus Jakarta Sans**, a modern geometric grotesque typeface designed for screens.
 
-- **Hierarchy:** We use semi-bold and bold weights for headings to create a clear "scan-path" for users.
-- **Scale:** On mobile devices, large headlines scale down to prevent excessive word-wrapping, maintaining a maximum of 2-3 lines for main headers.
-- **Readability:** Line heights are set at 1.5x for body text to improve readability for users with visual impairments or dyslexia.
-- **Bi-directional Support:** Inter provides excellent glyph support for LTR and RTL transitions. When switching to Hebrew, line heights should be increased by an additional 10% to accommodate tall characters.
+- **Hierarchy:** Bold (700) and Extra-Bold (800) weights with tight letter-spacing (-0.025em) for headings.
+- **Scale:** On mobile devices, large headlines scale down to prevent excessive word-wrapping.
+- **Readability:** Line heights are set at 1.5x for body text.
+- **Multi-language Support:** Paired with **Heebo** for RTL Hebrew, **Sarabun** for Thai, and **Noto Sans SC** for Simplified Chinese.
 
 ## Layout & Spacing
 

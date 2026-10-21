@@ -19,6 +19,8 @@ import {
 import { Language, LoanApplication, CanonicalStatus, UploadedFile, NotificationItem } from '../types';
 import { STATUS_BADGE_CONFIG } from '../config/appConfig';
 import { t } from '../i18n/translations';
+import { optionLabel, statusLabel } from '../i18n/options';
+import { localizeError } from '../i18n/apiErrors';
 import { storageService } from '../services/storage';
 import { apiService } from '../services/api';
 import { calculateIndicativeEligibility } from '../services/eligibilityScoring';
@@ -112,7 +114,7 @@ export const Step11StatusTimeline: React.FC<Step11StatusTimelineProps> = ({
     let fileUrl: string | undefined;
 
     try {
-      const uploadRes = await apiService.uploadFile(file, missingDocType);
+      const uploadRes = await apiService.uploadFile(file);
       if (uploadRes?.url) {
         fileUrl = uploadRes.url;
       }
@@ -155,7 +157,7 @@ export const Step11StatusTimeline: React.FC<Step11StatusTimelineProps> = ({
     }
 
     onApplicationUpdated(updatedApp);
-    setUploadSuccessMessage('Document uploaded successfully! Application is now Under Review.');
+    setUploadSuccessMessage(t(language, 'status.docUploadedUnderReview'));
     setIsUploadingMissing(false);
     setTimeout(() => setUploadSuccessMessage(null), 4000);
   };
@@ -166,7 +168,7 @@ export const Step11StatusTimeline: React.FC<Step11StatusTimelineProps> = ({
       await apiService.downloadApplicationPdf(application);
     } catch (err: any) {
       console.error('Failed to download PDF:', err);
-      alert(err?.message || 'Could not download PDF summary. Please verify the server is running.');
+      alert(localizeError(err, language, 'pdf.downloadFailed'));
     } finally {
       setIsDownloadingPdf(false);
     }
@@ -196,7 +198,7 @@ export const Step11StatusTimeline: React.FC<Step11StatusTimelineProps> = ({
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
                 </span>
-                <span>Live</span>
+                <span>{t(language, 'status.live')}</span>
               </span>
             )}
           </div>
@@ -209,7 +211,7 @@ export const Step11StatusTimeline: React.FC<Step11StatusTimelineProps> = ({
         <span
           className={`px-3 py-1 rounded-full text-xs font-bold border shadow-2xs ${statusConfig.badgeColor}`}
         >
-          {application.status}
+          {statusLabel(language, application.status)}
         </span>
       </div>
 
@@ -267,12 +269,12 @@ export const Step11StatusTimeline: React.FC<Step11StatusTimelineProps> = ({
             {isDownloadingPdf ? (
               <>
                 <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
-                <span>Generating PDF Summary...</span>
+                <span>{t(language, 'pdf.generating')}</span>
               </>
             ) : (
               <>
                 <Download className="w-3.5 h-3.5 text-blue-600" />
-                <span>Download Application Summary (PDF)</span>
+                <span>{t(language, 'pdf.download')}</span>
               </>
             )}
           </button>
@@ -289,18 +291,18 @@ export const Step11StatusTimeline: React.FC<Step11StatusTimelineProps> = ({
       {isUploadingMissing && (
         <div className="p-4 mb-4 rounded-2xl bg-amber-50 border border-amber-200 space-y-3 animate-in fade-in">
           <div className="text-xs font-bold text-amber-950 ">
-            Select Document to Upload:
+            {t(language, 'status.selectDocToUpload')}
           </div>
           <select
             value={missingDocType}
             onChange={(e) => setMissingDocType(e.target.value)}
             className="w-full px-3 py-2 rounded-xl border border-amber-300 bg-white text-xs text-slate-900"
           >
-            <option value="BANK_STATEMENT">Bank Statement (Last 3 Months)</option>
-            <option value="PAY_SLIP">Salary Pay Slip</option>
-            <option value="EMPLOYMENT_CONFIRMATION">Employer Letter</option>
-            <option value="PASSPORT">Passport Photo Page</option>
-            <option value="WORK_VISA">Visa Sticker</option>
+            <option value="BANK_STATEMENT">{t(language, 'doc.BANK_STATEMENT')}</option>
+            <option value="PAY_SLIP">{t(language, 'doc.PAY_SLIP')}</option>
+            <option value="EMPLOYMENT_CONFIRMATION">{t(language, 'doc.EMPLOYMENT_CONFIRMATION')}</option>
+            <option value="PASSPORT">{t(language, 'doc.PASSPORT')}</option>
+            <option value="WORK_VISA">{t(language, 'doc.WORK_VISA')}</option>
           </select>
           <div className="flex gap-2">
             <button
@@ -308,14 +310,14 @@ export const Step11StatusTimeline: React.FC<Step11StatusTimelineProps> = ({
               onClick={() => fileInputRef.current?.click()}
               className="flex-1 py-2 px-3 rounded-xl bg-amber-700 text-white font-bold text-xs hover:bg-amber-800"
             >
-              Choose File / Camera
+              {t(language, 'status.chooseFileOrCamera')}
             </button>
             <button
               type="button"
               onClick={() => setIsUploadingMissing(false)}
               className="px-3 py-2 rounded-xl bg-white border border-amber-300 text-slate-700 text-xs"
             >
-              Cancel
+              {t(language, 'cancel')}
             </button>
           </div>
         </div>
@@ -370,7 +372,7 @@ export const Step11StatusTimeline: React.FC<Step11StatusTimelineProps> = ({
             : 'border-transparent text-slate-500 hover:text-slate-800'
             }`}
         >
-          Loan Package
+          {t(language, 'status.loanPackage')}
         </button>
       </div>
 
@@ -390,7 +392,7 @@ export const Step11StatusTimeline: React.FC<Step11StatusTimelineProps> = ({
                   <div className="p-3 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-1">
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-bold text-slate-900">
-                        {item.toStatus}
+                        {statusLabel(language, item.toStatus)}
                       </span>
                       <span className="text-[10px] text-slate-400 font-mono">
                         {new Date(item.createdAt).toLocaleDateString()}
@@ -400,14 +402,14 @@ export const Step11StatusTimeline: React.FC<Step11StatusTimelineProps> = ({
                       <p className="text-xs text-slate-600">{item.reason}</p>
                     )}
                     <div className="text-[10px] text-slate-400 font-medium">
-                      By: {item.changedByName || item.changedByType}
+                      {t(language, 'status.by', { name: item.changedByName || item.changedByType || '' })}
                     </div>
                   </div>
                 </div>
               ))
             ) : (
               <div className="p-3 rounded-xl bg-white border border-slate-200 text-xs text-slate-500">
-                Application successfully submitted. Initial review in progress.
+                {t(language, 'status.submittedInitialReview')}
               </div>
             )}
           </div>
@@ -431,15 +433,15 @@ export const Step11StatusTimeline: React.FC<Step11StatusTimelineProps> = ({
                 </div>
                 <p className="text-xs text-slate-600 leading-relaxed">{notif.message}</p>
                 <div className="flex items-center gap-1.5 text-[10px] text-slate-400 pt-1 border-t border-slate-100">
-                  <span className="uppercase font-semibold text-blue-900">Channel: {notif.channel}</span>
+                  <span className="uppercase font-semibold text-blue-900">{t(language, 'status.channel', { channel: notif.channel })}</span>
                   <span>•</span>
-                  <span>Delivered via Mock SMS</span>
+                  <span>{t(language, 'status.deliveredMockSms')}</span>
                 </div>
               </div>
             ))
           ) : (
             <div className="p-6 text-center text-xs text-slate-400 bg-slate-50 rounded-2xl border border-slate-200">
-              No notifications yet. You will receive updates here and via SMS.
+              {t(language, 'status.noNotifications')}
             </div>
           )}
         </div>
@@ -449,29 +451,29 @@ export const Step11StatusTimeline: React.FC<Step11StatusTimelineProps> = ({
       {activeTab === 'details' && (
         <div className="space-y-3 mb-6">
           <div className="p-3.5 rounded-xl bg-white border border-slate-200 text-xs space-y-2">
-            <div className="font-bold text-slate-900 border-b pb-1">Borrower Information</div>
+            <div className="font-bold text-slate-900 border-b pb-1">{t(language, 'status.borrowerInfo')}</div>
             <div className="grid grid-cols-2 gap-2 text-slate-700">
-              <div><span className="text-slate-400 block">Name:</span> {application.borrowerDetails?.fullName}</div>
-              <div><span className="text-slate-400 block">Passport:</span> {application.borrowerDetails?.passportNumber}</div>
-              <div><span className="text-slate-400 block">Origin:</span> {application.borrowerDetails?.countryOfOrigin}</div>
-              <div><span className="text-slate-400 block">Salary:</span> ₪{application.employmentDetails?.monthlySalaryNis?.toLocaleString()}</div>
+              <div><span className="text-slate-400 block">{t(language, 'status.name')}</span> {application.borrowerDetails?.fullName}</div>
+              <div><span className="text-slate-400 block">{t(language, 'status.passport')}</span> {application.borrowerDetails?.passportNumber}</div>
+              <div><span className="text-slate-400 block">{t(language, 'status.origin')}</span> {optionLabel(language, 'country', application.borrowerDetails?.countryOfOrigin)}</div>
+              <div><span className="text-slate-400 block">{t(language, 'status.salary')}</span> ₪{application.employmentDetails?.monthlySalaryNis?.toLocaleString()}</div>
             </div>
           </div>
 
           <div className="p-3.5 rounded-xl bg-white border border-slate-200 text-xs space-y-2">
-            <div className="font-bold text-slate-900 border-b pb-1">Loan Parameters</div>
+            <div className="font-bold text-slate-900 border-b pb-1">{t(language, 'status.loanParameters')}</div>
             <div className="grid grid-cols-2 gap-2 text-slate-700">
-              <div><span className="text-slate-400 block">Requested Amount:</span> <span className="font-bold font-mono">₪{application.loanRequest?.requestedAmountNis?.toLocaleString()}</span></div>
-              <div><span className="text-slate-400 block">Term:</span> {application.loanRequest?.repaymentPeriodMonths} Months</div>
-              <div><span className="text-slate-400 block">Monthly Repayment:</span> ₪{application.loanRequest?.estimatedMonthlyPaymentNis}</div>
-              <div><span className="text-slate-400 block">Repayment Source:</span> {application.loanRequest?.repaymentSource}</div>
+              <div><span className="text-slate-400 block">{t(language, 'status.requestedAmount')}</span> <span className="font-bold font-mono">₪{application.loanRequest?.requestedAmountNis?.toLocaleString()}</span></div>
+              <div><span className="text-slate-400 block">{t(language, 'status.term')}</span> {t(language, 'status.monthsN', { n: application.loanRequest?.repaymentPeriodMonths ?? 0 })}</div>
+              <div><span className="text-slate-400 block">{t(language, 'status.monthlyRepayment')}</span> ₪{application.loanRequest?.estimatedMonthlyPaymentNis}</div>
+              <div><span className="text-slate-400 block">{t(language, 'status.repaymentSource')}</span> {optionLabel(language, 'repaymentSource', application.loanRequest?.repaymentSource)}</div>
             </div>
           </div>
 
           {/* Guarantor Details */}
           <div className="p-3.5 rounded-xl bg-white border border-slate-200 text-xs space-y-2">
             <div className="font-bold text-slate-900 border-b pb-1">
-              Guarantor Information ({((Array.isArray(application.guarantors) && application.guarantors.length > 0) ? application.guarantors.length : (application.guarantor?.hasGuarantor ? 1 : 0))})
+              {t(language, 'status.guarantorInfo', { n: (Array.isArray(application.guarantors) && application.guarantors.length > 0) ? application.guarantors.length : (application.guarantor?.hasGuarantor ? 1 : 0) })}
             </div>
             {(() => {
               const list = (Array.isArray(application.guarantors) && application.guarantors.length > 0)
@@ -486,7 +488,7 @@ export const Step11StatusTimeline: React.FC<Step11StatusTimelineProps> = ({
                   }] : []);
 
               if (list.length === 0) {
-                return <div className="text-slate-500 py-1">No guarantor provided</div>;
+                return <div className="text-slate-500 py-1">{t(language, 'status.noGuarantor')}</div>;
               }
 
               return (
@@ -494,11 +496,11 @@ export const Step11StatusTimeline: React.FC<Step11StatusTimelineProps> = ({
                   {list.map((g, idx) => (
                     <div key={g.id || idx} className="p-2 rounded-lg bg-slate-50 border border-slate-100 space-y-1">
                       <div className="font-semibold text-slate-800">
-                        Guarantor {idx + 1}: {g.fullName} ({g.relationship})
+                        {t(language, 'status.guarantorLine', { n: idx + 1, name: g.fullName, relationship: optionLabel(language, 'relationship', g.relationship) })}
                       </div>
                       <div className="text-slate-500 text-[11px] grid grid-cols-2 gap-1">
-                        <div>ID: <span className="font-mono text-slate-700">{g.passportOrIdNumber}</span></div>
-                        <div>Phone: {g.mobilePhoneNumber}</div>
+                        <div>{t(language, 'status.id')} <span className="font-mono text-slate-700">{g.passportOrIdNumber}</span></div>
+                        <div>{t(language, 'status.phone')} {g.mobilePhoneNumber}</div>
                       </div>
                     </div>
                   ))}
@@ -516,7 +518,7 @@ export const Step11StatusTimeline: React.FC<Step11StatusTimelineProps> = ({
           onClick={onStartNewApplication}
           className="text-xs text-slate-500 hover:text-blue-900 font-semibold underline"
         >
-          {t(language, 'Start New Application')}
+          {t(language, 'startNewApplication')}
         </button>
       </div>
     </div>

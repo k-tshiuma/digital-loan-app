@@ -80,6 +80,7 @@ function streamApplicationPdf(app, res, options = {}) {
   section('Employment');
   row('Employer', e.employerName);
   row('Staffing agency', e.staffingAgencyName);
+  row('Employment start date', e.employmentStartDate);
   row('Job tenure (months)', e.jobTenureMonths);
   row('Monthly salary', fmtMoney(e.monthlySalaryNis));
   row('Salary payment method', e.salaryPaymentMethod);

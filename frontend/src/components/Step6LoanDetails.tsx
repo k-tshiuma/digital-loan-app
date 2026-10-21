@@ -8,8 +8,10 @@ import {
   GRACE_PERIOD_OPTIONS,
   ISRAELI_BANKS,
   calculateLoanRepayment,
+  DEFAULT_APP_CONFIG,
 } from '../config/appConfig';
 import { t } from '../i18n/translations';
+import { optionLabel } from '../i18n/options';
 
 interface Step6LoanDetailsProps {
   language: Language;
@@ -152,7 +154,7 @@ export const Step6LoanDetails: React.FC<Step6LoanDetailsProps> = ({
               {t(language, 'loanAmountLabel')}
             </label>
             <span className="text-[11px] text-slate-400 font-semibold">
-              Min ₪500 — Max ₪10,000
+              {t(language, 'wizard.amountRange', { min: DEFAULT_APP_CONFIG.minLoanAmountNis.toLocaleString(), max: DEFAULT_APP_CONFIG.maxLoanAmountNis.toLocaleString() })}
             </span>
           </div>
 
@@ -200,7 +202,7 @@ export const Step6LoanDetails: React.FC<Step6LoanDetailsProps> = ({
                       : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
                   }`}
                 >
-                  {opt.label}
+                  {t(language, 'wizard.monthsShort', { n: opt.months })}
                 </button>
               );
             })}
@@ -229,7 +231,7 @@ export const Step6LoanDetails: React.FC<Step6LoanDetailsProps> = ({
                       : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
                   }`}
                 >
-                  {months === 0 ? 'None' : `${months} Mos`}
+                  {months === 0 ? t(language, 'wizard.none') : t(language, 'wizard.monthsShort', { n: months })}
                 </button>
               );
             })}
@@ -249,7 +251,7 @@ export const Step6LoanDetails: React.FC<Step6LoanDetailsProps> = ({
           >
             {LOAN_PURPOSE_OPTIONS.map((p) => (
               <option key={p} value={p}>
-                {p}
+                {optionLabel(language, 'loanPurpose', p)}
               </option>
             ))}
           </select>
@@ -279,49 +281,50 @@ export const Step6LoanDetails: React.FC<Step6LoanDetailsProps> = ({
           >
             {REPAYMENT_SOURCE_OPTIONS.map((s) => (
               <option key={s} value={s}>
-                {s}
+                {optionLabel(language, 'repaymentSource', s)}
               </option>
             ))}
           </select>
         </div>
 
-        {/* Live Calculation / Transparent Repayment Breakdown Card */}
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-900 to-blue-950 text-white shadow-md space-y-3">
-          <div className="flex items-center justify-between border-b border-blue-800/80 pb-2.5">
+        {/* Live Calculation / Transparent Repayment Breakdown Card - FinBest Theme */}
+        <div className="p-4.5 rounded-2xl bg-gradient-to-br from-[#0b1a2d] via-[#0d2038] to-[#122846] text-white shadow-xl border border-sky-500/30 space-y-3 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-sky-500/10 rounded-full blur-xl pointer-events-none" />
+          <div className="flex items-center justify-between border-b border-slate-700/60 pb-2.5 relative z-10">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-blue-300" />
-              <span className="text-xs font-bold text-blue-200">
+              <Sparkles className="w-4 h-4 text-sky-400" />
+              <span className="text-xs font-bold text-sky-200">
                 {t(language, 'estimatedRepaymentTitle')}
               </span>
             </div>
-            <span className="text-[10px] bg-blue-800 text-blue-200 px-2 py-0.5 rounded-full font-medium">
-              {repaymentMonths} months plan
+            <span className="text-[10px] bg-sky-500/20 text-sky-300 border border-sky-500/30 px-2.5 py-0.5 rounded-full font-bold">
+              {t(language, 'wizard.monthsPlan', { n: repaymentMonths })}
             </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 pt-1">
+          <div className="grid grid-cols-2 gap-3 pt-1 relative z-10">
             <div>
-              <div className="text-[11px] text-blue-300 font-medium">
+              <div className="text-[11px] text-slate-300 font-medium">
                 {t(language, 'estimatedMonthlyRepayment')}
               </div>
-              <div className="text-2xl font-extrabold font-mono text-white mt-0.5">
+              <div className="text-2xl font-extrabold font-mono text-sky-400 mt-0.5">
                 ₪{calculation.monthlyPaymentNis.toLocaleString()}
               </div>
             </div>
 
             <div className="text-right">
-              <div className="text-[11px] text-blue-300 font-medium">
+              <div className="text-[11px] text-slate-300 font-medium">
                 {t(language, 'totalRepayment')}
               </div>
-              <div className="text-2xl font-extrabold font-mono text-blue-100 mt-0.5">
+              <div className="text-2xl font-extrabold font-mono text-white mt-0.5">
                 ₪{calculation.totalRepaymentNis.toLocaleString()}
               </div>
             </div>
           </div>
 
-          <div className="text-[10px] text-blue-300/80 border-t border-blue-800/60 pt-2 flex items-center justify-between">
-            <span>Interest & Processing Fee ({calculation.interestRatePercent}% APR + ₪{calculation.managementFeeNis})</span>
-            <span className="font-mono text-white font-semibold">₪{calculation.totalInterestNis + calculation.managementFeeNis}</span>
+          <div className="text-[10px] text-slate-400 border-t border-slate-700/60 pt-2 flex items-center justify-between relative z-10">
+            <span>{t(language, 'wizard.interestAndFee', { rate: calculation.interestRatePercent, fee: calculation.managementFeeNis })}</span>
+            <span className="font-mono text-sky-300 font-semibold">₪{calculation.totalInterestNis + calculation.managementFeeNis}</span>
           </div>
         </div>
 
@@ -346,10 +349,10 @@ export const Step6LoanDetails: React.FC<Step6LoanDetailsProps> = ({
             <div className="p-2.5 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-between text-xs animate-in fade-in">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-3.5 h-3.5 text-blue-700 shrink-0" />
-                <span className="text-[11px] text-blue-900 font-medium">Bank account on file pre-filled. You can update any detail below.</span>
+                <span className="text-[11px] text-blue-900 font-medium">{t(language, 'wizard.bankOnFile')}</span>
               </div>
               <span className="text-[10px] font-bold text-blue-800 bg-blue-100 px-2 py-0.5 rounded-full shrink-0">
-                On File
+                {t(language, 'wizard.onFile')}
               </span>
             </div>
           )}
@@ -366,7 +369,7 @@ export const Step6LoanDetails: React.FC<Step6LoanDetailsProps> = ({
             >
               {ISRAELI_BANKS.map((b) => (
                 <option key={b.code} value={b.name}>
-                  {b.name} ({b.hebrewName})
+                  {language === 'he' ? b.hebrewName : `${b.name} (${b.hebrewName})`}
                 </option>
               ))}
             </select>
@@ -440,7 +443,7 @@ export const Step6LoanDetails: React.FC<Step6LoanDetailsProps> = ({
                   setBankErrors((prev) => ({ ...prev, accountHolderName: '' }));
                 }
               }}
-              placeholder="e.g. John Doe"
+              placeholder={t(language, 'wizard.accountHolderPlaceholder')}
               className={`w-full px-3.5 py-2.5 rounded-xl border ${
                 bankErrors.accountHolderName ? 'border-red-500 bg-red-50/30' : 'border-slate-300 bg-white'
               } text-slate-900 text-sm focus:border-blue-900 focus:outline-none`}

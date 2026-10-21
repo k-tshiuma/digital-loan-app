@@ -123,6 +123,11 @@ export const apiService = {
     return !!authTokens.get();
   },
 
+  async updatePreferredLanguage(language: Language): Promise<User> {
+    const res = await request<{ success: true; user: User }>('/users/me/language', { method: 'PUT', body: { language } });
+    return res.user;
+  },
+
   async lookupPhone(phoneNumber: string): Promise<{ exists: boolean; hasPassword: boolean }> {
     return request('/users/lookup', { method: 'POST', body: { phoneNumber }, auth: false });
   },

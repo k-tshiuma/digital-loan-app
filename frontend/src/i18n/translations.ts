@@ -1,4 +1,5 @@
 import { Language } from '../types';
+import { MESSAGE_MODULES } from './messages';
 
 export interface LanguageOption {
   code: Language;
@@ -7,6 +8,8 @@ export interface LanguageOption {
   abbr: string;
   dir: 'ltr' | 'rtl';
   flag: string;
+  /** Shown in the language pickers. th/zh/tl are on hold (see hebrew-localization-plan.md). */
+  enabled: boolean;
 }
 
 export const SUPPORTED_LANGUAGES: LanguageOption[] = [
@@ -17,6 +20,7 @@ export const SUPPORTED_LANGUAGES: LanguageOption[] = [
     abbr: 'IL',
     dir: 'rtl',
     flag: '🇮🇱',
+    enabled: true,
   },
   {
     code: 'en',
@@ -25,6 +29,7 @@ export const SUPPORTED_LANGUAGES: LanguageOption[] = [
     abbr: 'EN',
     dir: 'ltr',
     flag: '🇬🇧',
+    enabled: true,
   },
   {
     code: 'th',
@@ -33,6 +38,7 @@ export const SUPPORTED_LANGUAGES: LanguageOption[] = [
     abbr: 'TH',
     dir: 'ltr',
     flag: '🇹🇭',
+    enabled: false,
   },
   {
     code: 'zh',
@@ -41,6 +47,7 @@ export const SUPPORTED_LANGUAGES: LanguageOption[] = [
     abbr: 'CN',
     dir: 'ltr',
     flag: '🇨🇳',
+    enabled: false,
   },
   {
     code: 'tl',
@@ -49,10 +56,25 @@ export const SUPPORTED_LANGUAGES: LanguageOption[] = [
     abbr: 'PH',
     dir: 'ltr',
     flag: '🇵🇭',
+    enabled: false,
   },
 ];
 
-export const TRANSLATIONS: Record<Language, Record<string, string>> = {
+/** Languages users can currently pick. */
+export const ENABLED_LANGUAGES: LanguageOption[] = SUPPORTED_LANGUAGES.filter((l) => l.enabled);
+
+export const DEFAULT_LANGUAGE: Language = 'en';
+
+export function isEnabledLanguage(value: unknown): value is Language {
+  return ENABLED_LANGUAGES.some((l) => l.code === value);
+}
+
+export function getLanguageDir(lang: Language): 'ltr' | 'rtl' {
+  return SUPPORTED_LANGUAGES.find((l) => l.code === lang)?.dir ?? 'ltr';
+}
+
+/** Original dictionaries. New strings go in ./messages/*.ts instead. */
+export const BASE_TRANSLATIONS: Record<Language, Record<string, string>> = {
   en: {
     // App Header & Global
     appName: 'QuickLoan',
@@ -85,6 +107,7 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
 
     // Step 1: Language Selection
     chooseLanguageTitle: 'Choose your language',
+    languageSelector: 'Language selector',
     chooseLanguageSubtitle: 'Select your preferred language to continue with your application.',
 
     // Step 2: Registration & OTP
@@ -146,6 +169,7 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     employerNameLabel: 'Employer / Farm / Caregiver Family Name',
     employerNamePlaceholder: 'e.g. Yossi Cohen / AgroFarm Ltd.',
     staffingAgencyLabel: 'Staffing / Manpower Agency (If applicable)',
+    employmentStartDateLabel: 'Employment Start Date',
     jobTenureMonthsLabel: 'Job Tenure (Months)',
     jobTenureLabel: 'Job Tenure (Months)',
     jobTenurePlaceholder: 'e.g. 18',
@@ -366,6 +390,11 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
   },
 
   he: {
+    // Glossary — keep these terms consistent across the Hebrew text:
+    //   loan = הלוואה · guarantor = ערב · repayment = החזר · monthly repayment = החזר חודשי
+    //   interest = ריבית · grace period = תקופת גרייס · pay slip = תלוש שכר · employer = מעסיק
+    //   passport = דרכון · visa = אשרה / ויזה · work visa = אשרת עבודה · application = בקשה
+    //   status = סטטוס · documents = מסמכים · credit reviewer = חתם אשראי
     // App Header & Global (עברית - RTL)
     appName: 'קוויק-לואן (QuickLoan)',
     appTagline: 'בקשת הלוואה מהירה ומאובטחת לעובדים זרים בישראל',
@@ -397,6 +426,7 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
 
     // Step 1: Language Selection
     chooseLanguageTitle: 'בחר את שפת הממשק',
+    languageSelector: 'בחירת שפה',
     chooseLanguageSubtitle: 'בחר את השפה המועדפת עליך להמשך מילוי הבקשה.',
 
     // Step 2: Registration & OTP
@@ -458,6 +488,7 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     employerNameLabel: 'שם המעסיק / משק / משפחה מעסיקה',
     employerNamePlaceholder: 'לדוגמה: יוסף כהן / משק הדרים',
     staffingAgencyLabel: 'חברת כוח אדם / תאגיד (אם רלוונטי)',
+    employmentStartDateLabel: 'תאריך תחילת עבודה אצל המעסיק',
     jobTenureMonthsLabel: 'ותק בעבודה (חודשים)',
     jobTenureLabel: 'ותק בעבודה (חודשים)',
     jobTenurePlaceholder: 'לדוגמה: 18',
@@ -477,7 +508,6 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     loanPurposeLabel: 'מטרת ההלוואה',
     cashFlow: 'תזרים מזומנים שוטף',
     equipment: 'רכישת ציוד',
-    investment: 'השקעה',
     otherSpecify: 'פרט מטרת הלוואה אחרת',
     repaymentSourceLabel: 'מקור החזר',
     salaryDeduction: 'ניכוי משכר',
@@ -639,6 +669,36 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     guarantorOptionalNotice: 'ערב הינו אופציונלי עבור הלוואות סטנדרטיות. הוספת ערב עשויה לשפר את תנאי ואישור ההלוואה.',
     guarantorUploadNotice: 'בשלב הבא תידרש להעלות צילום דרכון/תעודת זהות של הערב.',
     selfGuaranteedLabel: 'ללא ערב (בקשה עצמאית)',
+
+    // Added in Phase 2 of hebrew-localization-plan.md
+    pleaseSpecify: 'נא לפרט',
+    provideDetails: 'פרטים נוספים',
+    docPassportTitle: 'דרכון (עמוד התמונה)',
+    docPassportDesc: 'צילום ברור שרואים בו את שמך ואת מספר הדרכון.',
+    docPaySlipTitle: 'תלושי שכר',
+    docPaySlipDesc: 'יש להעלות את 3 תלושי השכר האחרונים.',
+    docWorkersCardTitle: 'כרטיס עובד',
+    docWorkersCardDesc: 'כרטיס זיהוי עובד שהונפק על ידי המעסיק (לא חובה).',
+    ocrExtractionTitle: 'נתונים שחולצו מהמסמך',
+    ocrExtractionDesc: 'חילצנו באופן אוטומטי את הפרטים הבאים מהמסמך. נא לוודא שהם נכונים.',
+    confirmOcrData: 'אישור הנתונים',
+    imageBlurWarning: 'אזהרה: איכות התמונה נמוכה',
+    uploadFile: 'העלאת קובץ',
+    gracePeriodLabel: 'תקופת גרייס (חודשים)',
+    gracePeriodHint: 'חודשים שבהם משלמים ריבית בלבד, לפני תחילת החזר הקרן.',
+    loanAmountLabel: 'סכום ההלוואה',
+    estimatedRepaymentTitle: 'החזר משוער',
+    estimatedMonthlyRepayment: 'החזר חודשי',
+    otherPurposePlaceholder: 'נא לתאר את מטרת ההלוואה',
+    requiredField: 'זהו שדה חובה',
+    minAgeError: 'גיל הלווה חייב להיות {age} לפחות',
+    ageYears: 'גיל {age}',
+    addressInIsraelLabel: 'כתובת מגורים בישראל',
+    city: 'עיר',
+    streetBuilding: 'רחוב ומספר בניין',
+    fullNamePassportLabel: 'שם מלא (כפי שמופיע בדרכון)',
+    trackApplicationStatus: 'מעקב אחר סטטוס הבקשה ←',
+    nextStepsTitle: 'מה קורה עכשיו?',
   },
 
   th: {
@@ -734,6 +794,7 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     employerNameLabel: 'ชื่อนายจ้าง / ฟาร์ม / ครอบครัวผู้ว่าจ้าง',
     employerNamePlaceholder: 'เช่น Yossi Cohen / AgroFarm Ltd.',
     staffingAgencyLabel: 'บริษัทจัดหางาน / เอเจนซี่ (ถ้ามี)',
+    employmentStartDateLabel: 'วันที่เริ่มทำงานกับนายจ้างปัจจุบัน',
     jobTenureMonthsLabel: 'อายุงาน (เดือน)',
     jobTenureLabel: 'อายุงาน (เดือน)',
     jobTenurePlaceholder: 'เช่น 18',
@@ -753,7 +814,6 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     loanPurposeLabel: 'วัตถุประสงค์ในการกู้',
     cashFlow: 'หมุนเวียนค่าใช้จ่ายทั่วไป',
     equipment: 'ซื้ออุปกรณ์/เครื่องมือ',
-    investment: 'ลงทุน',
     otherSpecify: 'โปรดระบุวัตถุประสงค์อื่นๆ',
     repaymentSourceLabel: 'แหล่งเงินในการชำระคืน',
     salaryDeduction: 'หักจากเงินเดือน',
@@ -1010,6 +1070,7 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     employerNameLabel: '雇主名称 / 农场 / 雇主家庭',
     employerNamePlaceholder: '例如：Yossi Cohen / AgroFarm Ltd.',
     staffingAgencyLabel: '劳务中介 / 派遣公司（如有）',
+    employmentStartDateLabel: '入职/开始工作日期',
     jobTenureMonthsLabel: '工作年限（月）',
     jobTenureLabel: '工作年限（月）',
     jobTenurePlaceholder: '例如：18',
@@ -1029,7 +1090,6 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     loanPurposeLabel: '借款用途',
     cashFlow: '日常资金周转',
     equipment: '购置工具/设备',
-    investment: '投资经营',
     otherSpecify: '请注明其他借款用途',
     repaymentSourceLabel: '还款来源',
     salaryDeduction: '工资代扣',
@@ -1287,6 +1347,7 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     employerNamePlaceholder: 'hal. Yossi Cohen / AgroFarm Ltd.',
     staffingAgencyLabel: 'Manpower / Staffing Agency (Kung mayroon)',
     staffingAgencyPlaceholder: 'hal. Manpower Israel',
+    employmentStartDateLabel: 'Petsa ng Pagsisimula sa Trabaho',
     jobTenureMonthsLabel: 'Tagal sa Trabaho (Buwan)',
     jobTenureLabel: 'Tagal sa Trabaho (Buwan)',
     jobTenurePlaceholder: 'hal. 18',
@@ -1306,7 +1367,6 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     loanPurposeLabel: 'Layunin ng Pautang',
     cashFlow: 'Pang-araw-araw na gastusin',
     equipment: 'Kagamitan/Gamit',
-    investment: 'Pamumuhunan',
     otherSpecify: 'Pakitukoy ang ibang layunin',
     repaymentSourceLabel: 'Pinagmumulan ng Pagbayad',
     salaryDeduction: 'Bawas sa sahod',
@@ -1470,6 +1530,18 @@ export const TRANSLATIONS: Record<Language, Record<string, string>> = {
     selfGuaranteedLabel: 'Walang guarantor (Sariling aplikasyon)',
   },
 };
+
+/** All UI strings: the base dictionaries plus every group in ./messages. */
+export const TRANSLATIONS: Record<Language, Record<string, string>> = Object.fromEntries(
+  (Object.keys(BASE_TRANSLATIONS) as Language[]).map((lang) => [
+    lang,
+    Object.assign(
+      {},
+      BASE_TRANSLATIONS[lang],
+      ...Object.values(MESSAGE_MODULES).map((m) => (lang === 'en' || lang === 'he' ? m[lang] : {}))
+    ),
+  ])
+) as Record<Language, Record<string, string>>;
 
 /**
  * Helper to get a translation with optional placeholder replacements

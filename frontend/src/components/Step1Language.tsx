@@ -1,7 +1,7 @@
 import React from 'react';
 import { Globe, Check, ArrowRight } from 'lucide-react';
 import { Language } from '../types';
-import { SUPPORTED_LANGUAGES, t } from '../i18n/translations';
+import { ENABLED_LANGUAGES, t } from '../i18n/translations';
 
 interface Step1LanguageProps {
   selectedLanguage: Language;
@@ -35,7 +35,7 @@ export const Step1Language: React.FC<Step1LanguageProps> = ({
 
       {/* Language cards */}
       <div className="space-y-3 mb-8">
-        {SUPPORTED_LANGUAGES.map((lang) => {
+        {ENABLED_LANGUAGES.map((lang) => {
           const isSelected = selectedLanguage === lang.code;
           return (
             <button

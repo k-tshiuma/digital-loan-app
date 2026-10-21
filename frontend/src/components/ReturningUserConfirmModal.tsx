@@ -87,10 +87,10 @@ export const ReturningUserConfirmModal: React.FC<ReturningUserConfirmModalProps>
             </div>
             <div>
               <h2 className="text-lg font-bold">
-                {t(language, 'returningUserConfirmTitle') || 'Confirm Your Current Details'}
+                {t(language, 'returningUserConfirmTitle')}
               </h2>
               <p className="text-xs text-blue-200">
-                {t(language, 'returningUserConfirmSubtitle') || 'Welcome back! Please verify that your employment and salary information is up to date.'}
+                {t(language, 'returningUserConfirmSubtitle')}
               </p>
             </div>
           </div>
@@ -112,7 +112,7 @@ export const ReturningUserConfirmModal: React.FC<ReturningUserConfirmModalProps>
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
                 <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                   <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                    {t(language, 'employmentAndIdDetails') || 'Current Profile & Employment'}
+                    {t(language, 'employmentAndIdDetails')}
                   </span>
                   <button
                     type="button"
@@ -120,29 +120,31 @@ export const ReturningUserConfirmModal: React.FC<ReturningUserConfirmModalProps>
                     className="text-xs font-bold text-blue-900 hover:text-blue-700 flex items-center gap-1 hover:underline"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
-                    {t(language, 'edit') || 'Update'}
+                    {t(language, 'edit')}
                   </button>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 text-xs">
                   <div>
-                    <span className="text-slate-400 block text-[11px]">{t(language, 'passportOrId') || 'Passport / ID'}:</span>
+                    <span className="text-slate-400 block text-[11px]">{t(language, 'passportOrId')}:</span>
                     <span className="font-mono font-bold text-slate-800">{b?.passportNumber || '—'}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[11px]">{t(language, 'employerName') || 'Employer'}:</span>
+                    <span className="text-slate-400 block text-[11px]">{t(language, 'employerName')}:</span>
                     <span className="font-semibold text-slate-800 truncate block">{em?.employerName || '—'}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[11px]">{t(language, 'monthlySalary') || 'Monthly Salary'}:</span>
+                    <span className="text-slate-400 block text-[11px]">{t(language, 'monthlySalary')}:</span>
                     <span className="font-mono font-bold text-emerald-800">
                       ₪{em?.monthlySalaryNis ? em.monthlySalaryNis.toLocaleString() : '—'}
                     </span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[11px]">{t(language, 'bankAccount') || 'Bank Account'}:</span>
+                    <span className="text-slate-400 block text-[11px]">{t(language, 'bankAccount')}:</span>
                     <span className="font-semibold text-slate-800 truncate block">
-                      {bank?.bankName ? `${bank.bankName} (Br. ${bank.branchNumber})` : 'To be provided'}
+                      {bank?.bankName
+                        ? t(language, 'returning.bankWithBranch', { bank: bank.bankName, branch: bank.branchNumber })
+                        : t(language, 'returning.toBeProvided')}
                     </span>
                   </div>
                 </div>
@@ -151,17 +153,17 @@ export const ReturningUserConfirmModal: React.FC<ReturningUserConfirmModalProps>
               {/* Document Validity Status Checklist */}
               <div className="p-4 rounded-2xl bg-white border border-slate-200 space-y-2.5">
                 <div className="text-xs font-bold text-slate-700">
-                  {t(language, 'documentVerificationStatus') || 'Document Verification Status'}
+                  {t(language, 'documentVerificationStatus')}
                 </div>
 
                 {/* Passport Doc */}
                 <div className="flex items-center justify-between text-xs py-1 border-b border-slate-100">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    <span className="font-medium text-slate-800">Passport Photo Page</span>
+                    <span className="font-medium text-slate-800">{t(language, 'doc.PASSPORT')}</span>
                   </div>
                   <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-                    ✓ Valid (Reused)
+                    {t(language, 'returning.validReused')}
                   </span>
                 </div>
 
@@ -173,15 +175,15 @@ export const ReturningUserConfirmModal: React.FC<ReturningUserConfirmModalProps>
                     ) : (
                       <AlertTriangle className="w-4 h-4 text-amber-500" />
                     )}
-                    <span className="font-medium text-slate-800">Work Visa / Permit</span>
+                    <span className="font-medium text-slate-800">{t(language, 'returning.workVisa')}</span>
                   </div>
                   {!isVisaExpired ? (
                     <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-                      ✓ Valid (Reused)
+                      {t(language, 'returning.validReused')}
                     </span>
                   ) : (
                     <span className="text-[11px] font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full">
-                      ⚠ Needs Renewal
+                      {t(language, 'returning.needsRenewal')}
                     </span>
                   )}
                 </div>
@@ -194,15 +196,15 @@ export const ReturningUserConfirmModal: React.FC<ReturningUserConfirmModalProps>
                     ) : (
                       <AlertTriangle className="w-4 h-4 text-amber-500" />
                     )}
-                    <span className="font-medium text-slate-800">Salary Pay Slip</span>
+                    <span className="font-medium text-slate-800">{t(language, 'doc.PAY_SLIP')}</span>
                   </div>
                   {!isPaySlipOutdated ? (
                     <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-                      ✓ Recent (Reused)
+                      {t(language, 'returning.recentReused')}
                     </span>
                   ) : (
                     <span className="text-[11px] font-semibold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full">
-                      ⚠ Needs Latest Pay Slip
+                      {t(language, 'returning.needsLatestPaySlip')}
                     </span>
                   )}
                 </div>
@@ -215,15 +217,15 @@ export const ReturningUserConfirmModal: React.FC<ReturningUserConfirmModalProps>
                     ) : (
                       <AlertTriangle className="w-4 h-4 text-blue-500" />
                     )}
-                    <span className="font-medium text-slate-800">Bank Ownership Certificate</span>
+                    <span className="font-medium text-slate-800">{t(language, 'returning.bankCert')}</span>
                   </div>
                   {bankDoc ? (
                     <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-                      ✓ On File
+                      {t(language, 'wizard.onFileCheck')}
                     </span>
                   ) : (
                     <span className="text-[11px] font-semibold text-blue-800 bg-blue-50 px-2 py-0.5 rounded-full">
-                      Upload in Step 8
+                      {t(language, 'returning.uploadInStep8')}
                     </span>
                   )}
                 </div>
@@ -231,20 +233,20 @@ export const ReturningUserConfirmModal: React.FC<ReturningUserConfirmModalProps>
 
               {/* Security & Audit notice */}
               <p className="text-[11px] text-slate-500 leading-relaxed text-center">
-                {t(language, 'returningUserAuditNotice') || 'Valid documents are carried forward automatically. You will only be asked to upload missing or outdated documents.'}
+                {t(language, 'returningUserAuditNotice')}
               </p>
             </>
           ) : (
             /* Quick Edit Form */
             <form onSubmit={handleSaveUpdatedDetails} className="space-y-3 animate-in fade-in">
               <div className="text-xs font-bold text-slate-800 border-b border-slate-200 pb-1.5">
-                Update Employment & Bank Information
+                {t(language, 'returning.updateTitle')}
               </div>
 
               {/* Employer Name */}
               <div className="space-y-1">
                 <label className="block text-xs font-semibold text-slate-700">
-                  Current Employer / Farm / Family
+                  {t(language, 'returning.currentEmployer')}
                 </label>
                 <input
                   type="text"
@@ -252,14 +254,14 @@ export const ReturningUserConfirmModal: React.FC<ReturningUserConfirmModalProps>
                   value={employerName}
                   onChange={(e) => setEmployerName(e.target.value)}
                   className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:border-blue-900 focus:outline-none"
-                  placeholder="e.g. Yossi Cohen / AgroFarm"
+                  placeholder={t(language, 'returning.employerPlaceholder')}
                 />
               </div>
 
               {/* Monthly Salary */}
               <div className="space-y-1">
                 <label className="block text-xs font-semibold text-slate-700">
-                  Current Net Monthly Salary (₪ NIS)
+                  {t(language, 'returning.currentSalary')}
                 </label>
                 <input
                   type="number"
@@ -268,14 +270,14 @@ export const ReturningUserConfirmModal: React.FC<ReturningUserConfirmModalProps>
                   value={monthlySalary || ''}
                   onChange={(e) => setMonthlySalary(Number(e.target.value))}
                   className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:border-blue-900 focus:outline-none"
-                  placeholder="e.g. 7500"
+                  placeholder={t(language, 'egValue', { value: '7500' })}
                 />
               </div>
 
               {/* Bank Name */}
               <div className="space-y-1">
                 <label className="block text-xs font-semibold text-slate-700">
-                  Disbursement Bank
+                  {t(language, 'returning.disbursementBank')}
                 </label>
                 <select
                   value={bankName}
@@ -284,7 +286,7 @@ export const ReturningUserConfirmModal: React.FC<ReturningUserConfirmModalProps>
                 >
                   {ISRAELI_BANKS.map((b) => (
                     <option key={b.code} value={b.name}>
-                      {b.name} ({b.hebrewName})
+                      {language === 'he' ? b.hebrewName : `${b.name} (${b.hebrewName})`}
                     </option>
                   ))}
                 </select>
@@ -293,7 +295,7 @@ export const ReturningUserConfirmModal: React.FC<ReturningUserConfirmModalProps>
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <label className="block text-xs font-semibold text-slate-700">
-                    Branch Number
+                    {t(language, 'returning.branchNumber')}
                   </label>
                   <input
                     type="text"
@@ -302,12 +304,12 @@ export const ReturningUserConfirmModal: React.FC<ReturningUserConfirmModalProps>
                     value={branchNumber}
                     onChange={(e) => setBranchNumber(e.target.value.replace(/\D/g, ''))}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:border-blue-900 focus:outline-none"
-                    placeholder="e.g. 612"
+                    placeholder={t(language, 'egValue', { value: '612' })}
                   />
                 </div>
                 <div className="space-y-1">
                   <label className="block text-xs font-semibold text-slate-700">
-                    Account Number
+                    {t(language, 'returning.accountNumber')}
                   </label>
                   <input
                     type="text"
@@ -316,7 +318,7 @@ export const ReturningUserConfirmModal: React.FC<ReturningUserConfirmModalProps>
                     value={accountNumber}
                     onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, ''))}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:border-blue-900 focus:outline-none"
-                    placeholder="e.g. 123456"
+                    placeholder={t(language, 'egValue', { value: '123456' })}
                   />
                 </div>
               </div>
@@ -327,13 +329,13 @@ export const ReturningUserConfirmModal: React.FC<ReturningUserConfirmModalProps>
                   onClick={() => setIsEditing(false)}
                   className="w-1/2 py-2 px-3 text-xs font-semibold rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50"
                 >
-                  Cancel
+                  {t(language, 'cancel')}
                 </button>
                 <button
                   type="submit"
                   className="w-1/2 py-2 px-3 text-xs font-semibold rounded-xl bg-blue-900 text-white hover:bg-blue-800"
                 >
-                  Save Changes
+                  {t(language, 'returning.saveChanges')}
                 </button>
               </div>
             </form>
@@ -349,7 +351,7 @@ export const ReturningUserConfirmModal: React.FC<ReturningUserConfirmModalProps>
               onClick={onConfirmEverything}
               className="w-full py-3.5 px-4 rounded-xl bg-blue-900 hover:bg-blue-800 text-white font-bold text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 group"
             >
-              <span>{t(language, 'everythingIsCorrect') || 'Everything is correct — Continue to Loan Request'}</span>
+              <span>{t(language, 'everythingIsCorrect')}</span>
               <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1 rtl:rotate-180" />
             </button>
 
@@ -358,7 +360,7 @@ export const ReturningUserConfirmModal: React.FC<ReturningUserConfirmModalProps>
               onClick={() => setIsEditing(true)}
               className="w-full py-2.5 px-4 rounded-xl border border-slate-300 text-slate-700 font-semibold text-xs hover:bg-white transition-colors"
             >
-              {t(language, 'updateMyDetails') || 'Update my details'}
+              {t(language, 'updateMyDetails')}
             </button>
           </div>
         )}

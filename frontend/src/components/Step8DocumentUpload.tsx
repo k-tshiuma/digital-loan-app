@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Camera,
   Upload,
@@ -16,6 +16,7 @@ import {
 import { Language, UploadedFile, DocumentTypeCode, GuarantorItem, LoanApplication } from '../types';
 import { DOCUMENT_TYPE_CONFIG } from '../config/appConfig';
 import { t } from '../i18n/translations';
+import { localizeError } from '../i18n/apiErrors';
 import { apiService } from '../services/api';
 import { calculateIndicativeEligibility } from '../services/eligibilityScoring';
 import { EligibilityScoreBar } from './EligibilityScoreBar';
@@ -91,7 +92,7 @@ export const Step8DocumentUpload: React.FC<Step8DocumentUploadProps> = ({
 
     // Client-side file size validation (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
-      setUploadError('File size exceeds the 10MB limit. Please choose a smaller file.');
+      setUploadError(t(language, 'err.fileTooLarge'));
       if (fileInputRef.current) fileInputRef.current.value = '';
       if (cameraInputRef.current) cameraInputRef.current.value = '';
       return;
@@ -101,7 +102,7 @@ export const Step8DocumentUpload: React.FC<Step8DocumentUploadProps> = ({
     const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf', 'image/webp'];
     const isAllowedExt = file.name.match(/\.(pdf|jpe?g|png|webp)$/i);
     if (!allowedMimeTypes.includes(file.type.toLowerCase()) && !isAllowedExt) {
-      setUploadError('Invalid file type. Only PDF, JPEG, and PNG files are accepted.');
+      setUploadError(t(language, 'err.invalidFileType'));
       if (fileInputRef.current) fileInputRef.current.value = '';
       if (cameraInputRef.current) cameraInputRef.current.value = '';
       return;
@@ -121,7 +122,7 @@ export const Step8DocumentUpload: React.FC<Step8DocumentUploadProps> = ({
       console.warn('Real file upload failed, falling back to local storage:', uploadErr);
       const errMsg = uploadErr?.response?.data?.error || uploadErr?.message || '';
       if (errMsg.includes('disguised') || errMsg.includes('magic bytes') || errMsg.includes('Invalid file type') || errMsg.includes('size limit')) {
-        setUploadError(errMsg);
+        setUploadError(localizeError(errMsg, language, 'err.fileRejected'));
         setIsProcessing(false);
         if (fileInputRef.current) fileInputRef.current.value = '';
         if (cameraInputRef.current) cameraInputRef.current.value = '';
@@ -280,13 +281,13 @@ export const Step8DocumentUpload: React.FC<Step8DocumentUploadProps> = ({
         <div className="mb-4 p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200/90 flex items-start gap-3 text-xs animate-in fade-in">
           <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
           <div className="flex-1">
-            <h4 className="font-bold text-emerald-950">Documents on file recognized</h4>
+            <h4 className="font-bold text-emerald-950">{t(language, 'wizard.docsOnFile')}</h4>
             <p className="text-emerald-800 mt-0.5 leading-relaxed">
-              Your previously verified documents have been retrieved and associated with your account. You do not need to upload them again unless you wish to replace or update them.
+              {t(language, 'wizard.docsOnFileHint')}
             </p>
           </div>
           <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full shrink-0">
-            On File
+            {t(language, 'onFile')}
           </span>
         </div>
       )}
@@ -297,11 +298,11 @@ export const Step8DocumentUpload: React.FC<Step8DocumentUploadProps> = ({
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             <span className="font-semibold text-slate-800">
-              {guarantors.length} Guarantor ID document{guarantors.length > 1 ? 's' : ''} uploaded in Step 7
+              {guarantors.length > 1 ? t(language, 'wizard.guarantorDocsUploadedMany', { n: guarantors.length }) : t(language, 'wizard.guarantorDocsUploadedOne')}
             </span>
           </div>
           <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-            Verified
+            {t(language, 'verified')}
           </span>
         </div>
       )}
@@ -311,7 +312,7 @@ export const Step8DocumentUpload: React.FC<Step8DocumentUploadProps> = ({
         <div className="p-3.5 mb-4 rounded-2xl bg-red-50 border border-red-200 animate-in fade-in flex items-start gap-2.5">
           <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
           <div className="flex-1">
-            <h4 className="text-xs font-bold text-red-900">Upload Issue</h4>
+            <h4 className="text-xs font-bold text-red-900">{t(language, 'wizard.uploadIssue')}</h4>
             <p className="text-xs text-red-700 mt-0.5">{uploadError}</p>
           </div>
           <button
@@ -338,19 +339,19 @@ export const Step8DocumentUpload: React.FC<Step8DocumentUploadProps> = ({
           <div className="p-3 bg-white rounded-xl border border-blue-100 space-y-1 font-mono text-xs text-slate-800">
             {ocrPromptDoc.ocrExtractedData.passportNumber && (
               <div>
-                <span className="text-slate-400 font-sans text-[11px] block">Passport Number:</span>
+                <span className="text-slate-400 font-sans text-[11px] block">{t(language, 'wizard.ocrPassportNumber')}</span>
                 <span className="font-bold text-sm text-blue-900">{ocrPromptDoc.ocrExtractedData.passportNumber}</span>
               </div>
             )}
             {ocrPromptDoc.ocrExtractedData.visaExpiryDate && (
               <div>
-                <span className="text-slate-400 font-sans text-[11px] block">Visa Expiry Date:</span>
+                <span className="text-slate-400 font-sans text-[11px] block">{t(language, 'wizard.ocrVisaExpiry')}</span>
                 <span className="font-bold text-sm text-blue-900">{ocrPromptDoc.ocrExtractedData.visaExpiryDate}</span>
               </div>
             )}
             {ocrPromptDoc.ocrExtractedData.maskedPan && (
               <div>
-                <span className="text-slate-400 font-sans text-[11px] block">Card Number (Masked):</span>
+                <span className="text-slate-400 font-sans text-[11px] block">{t(language, 'wizard.ocrCardNumber')}</span>
                 <span className="font-bold text-sm text-blue-900">{ocrPromptDoc.ocrExtractedData.maskedPan}</span>
               </div>
             )}
@@ -376,7 +377,7 @@ export const Step8DocumentUpload: React.FC<Step8DocumentUploadProps> = ({
             <span>{t(language, 'imageBlurWarning')}</span>
           </div>
           <p className="text-xs text-amber-800">
-            {qualityWarningDoc.qualityIssues?.[0] || 'Image may be blurry or poorly lit. You can retake it now.'}
+            {t(language, 'wizard.blurDetected')}
           </p>
           <div className="flex justify-end gap-2 pt-1">
             <button
@@ -396,7 +397,7 @@ export const Step8DocumentUpload: React.FC<Step8DocumentUploadProps> = ({
               onClick={() => setQualityWarningDoc(null)}
               className="px-3 py-1.5 rounded-lg bg-white border border-amber-300 text-slate-700 font-medium text-xs"
             >
-              Keep Anyway
+              {t(language, 'wizard.keepAnyway')}
             </button>
           </div>
         </div>
@@ -405,8 +406,8 @@ export const Step8DocumentUpload: React.FC<Step8DocumentUploadProps> = ({
       {/* Document Category Tabs / Checklist */}
       <div className="space-y-3 mb-6">
         <div className="text-xs font-bold text-slate-700 flex items-center justify-between">
-          <span>Required Documents ({mandatoryTypes.length} items)</span>
-          <span className="text-[11px] text-slate-400 font-normal">PDF, JPG, PNG (Max 10MB)</span>
+          <span>{t(language, 'wizard.requiredDocs', { n: mandatoryTypes.length })}</span>
+          <span className="text-[11px] text-slate-400 font-normal">{t(language, 'wizard.fileTypesHintParen')}</span>
         </div>
 
         {mandatoryTypes.map((typeCode) => {
@@ -457,11 +458,13 @@ export const Step8DocumentUpload: React.FC<Step8DocumentUploadProps> = ({
                         : 'text-emerald-700 bg-emerald-50'
                     }`}>
                       {uploadedList.some((d) => d.isReused)
-                        ? '✓ On File'
-                        : `${uploadedList.length} file${uploadedList.length > 1 ? 's' : ''}`}
+                        ? t(language, 'wizard.onFileCheck')
+                        : uploadedList.length > 1
+                          ? t(language, 'wizard.fileCountMany', { n: uploadedList.length })
+                          : t(language, 'wizard.fileCountOne')}
                     </span>
                   ) : (
-                    <span className="text-slate-400 font-sans text-[11px]">Missing</span>
+                    <span className="text-slate-400 font-sans text-[11px]">{t(language, 'missing')}</span>
                   )}
                 </div>
               </div>
@@ -508,7 +511,7 @@ export const Step8DocumentUpload: React.FC<Step8DocumentUploadProps> = ({
                             type="button"
                             onClick={() => handleDeleteDocument(doc.id)}
                             className="text-red-500 hover:text-red-700 p-1"
-                            title="Delete file"
+                            title={t(language, 'wizard.deleteFile')}
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -557,7 +560,7 @@ export const Step8DocumentUpload: React.FC<Step8DocumentUploadProps> = ({
 
         {/* Optional Documents Section */}
         <div className="pt-2 text-xs font-bold text-slate-700 ">
-          Optional Supporting Documents
+          {t(language, 'wizard.optionalDocs')}
         </div>
 
         {optionalTypes.map((typeCode) => {
@@ -586,7 +589,7 @@ export const Step8DocumentUpload: React.FC<Step8DocumentUploadProps> = ({
                   <div>
                     <div className="text-sm font-bold text-slate-900">
                       {t(language, config?.titleKey || '')}{' '}
-                      <span className="text-[10px] font-normal text-slate-400">(Optional)</span>
+                      <span className="text-[10px] font-normal text-slate-400">{t(language, 'wizard.optionalParen')}</span>
                     </div>
                     <div className="text-[11px] text-slate-400">
                       {t(language, config?.descKey || '')}
@@ -594,7 +597,7 @@ export const Step8DocumentUpload: React.FC<Step8DocumentUploadProps> = ({
                   </div>
                 </div>
                 <div className="text-xs font-semibold text-slate-500">
-                  {uploadedList.length > 0 ? `${uploadedList.length} uploaded` : 'Optional'}
+                  {uploadedList.length > 0 ? t(language, 'wizard.uploadedCount', { n: uploadedList.length }) : t(language, 'optional')}
                 </div>
               </div>
 
@@ -671,11 +674,11 @@ export const Step8DocumentUpload: React.FC<Step8DocumentUploadProps> = ({
             <CheckCircle2 className="w-3.5 h-3.5 text-white absolute opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity" strokeWidth={3} />
           </div>
           <span className="text-sm font-medium text-slate-700 group-hover:text-slate-900 transition-colors">
-            Bank Account Management Confirmation <span className="text-red-500">*</span>
+            {t(language, 'wizard.bankConfirmTitle')} <span className="text-red-500">*</span>
           </span>
         </label>
         <p className="text-[11px] text-slate-500 ml-8">
-          I confirm that the bank account details provided for loan repayment are managed by me and the information is accurate.
+          {t(language, 'wizard.bankConfirmText')}
         </p>
       </div>
 

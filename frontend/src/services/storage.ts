@@ -766,6 +766,16 @@ class StorageService {
     return this.memoryUsers.get(uid) || null;
   }
 
+  /** Update the saved user's preferred language in the local copy. */
+  public updateUserLanguage(userId: string, language: Language): User | null {
+    const user = this.memoryUsers.get(userId);
+    if (!user) return null;
+    user.preferredLanguage = language;
+    user.updatedAt = new Date().toISOString();
+    this.saveUsers();
+    return user;
+  }
+
   public logout() {
     localStorage.removeItem(STORAGE_KEYS.CURRENT_USER_ID);
     localStorage.removeItem(STORAGE_KEYS.ACTIVE_APPLICATION_ID);

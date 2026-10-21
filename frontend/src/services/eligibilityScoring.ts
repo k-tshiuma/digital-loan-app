@@ -168,15 +168,23 @@ export function calculateIndicativeEligibility(
 
   let identityScore = 0;
   let identityDesc = '';
+  let identityKey = '';
+  let identityParams: Record<string, string | number> = {};
   if (isPassportProvided && hasValidVisa) {
     identityScore = 20;
     identityDesc = 'Identity document verified with valid visa status (+20%).';
+    identityKey = 'elig.identity.ok';
+    identityParams = {};
   } else if (!isPassportProvided) {
     identityScore = 0;
     identityDesc = 'Required passport / identity document missing or invalid (0%).';
+    identityKey = 'elig.identity.missingDoc';
+    identityParams = {};
   } else {
     identityScore = 0;
     identityDesc = 'Valid visa cannot be verified or has expired (0%).';
+    identityKey = 'elig.identity.visaInvalid';
+    identityParams = {};
   }
 
   // 2. Salary (max 20%)
@@ -186,15 +194,23 @@ export function calculateIndicativeEligibility(
   const salary = Number(employmentDetails?.monthlySalaryNis || 0);
   let salaryScore = 0;
   let salaryDesc = '';
+  let salaryKey = '';
+  let salaryParams: Record<string, string | number> = {};
   if (salary >= 7500) {
     salaryScore = 20;
     salaryDesc = `Monthly salary (${salary.toLocaleString()} NIS) is 7,500 NIS or higher (+20%).`;
+    salaryKey = 'elig.salary.high';
+    salaryParams = { salary: salary.toLocaleString() };
   } else if (salary > 0) {
     salaryScore = 10;
     salaryDesc = `Monthly salary (${salary.toLocaleString()} NIS) is below 7,500 NIS (+10%).`;
+    salaryKey = 'elig.salary.low';
+    salaryParams = { salary: salary.toLocaleString() };
   } else {
     salaryScore = 0;
     salaryDesc = 'Monthly salary information missing or invalid (0%).';
+    salaryKey = 'elig.salary.missing';
+    salaryParams = {};
   }
 
   // 3. Employment Duration (max 20%)
@@ -209,22 +225,34 @@ export function calculateIndicativeEligibility(
 
   let employmentDurationScore = 0;
   let employmentDurationDesc = '';
+  let employmentDurationKey = '';
+  let employmentDurationParams: Record<string, string | number> = {};
 
   if (!hasEmploymentData && durationMonths === 0) {
     employmentDurationScore = 0;
     employmentDurationDesc = 'Employment duration data missing (0%).';
+    employmentDurationKey = 'elig.duration.missing';
+    employmentDurationParams = {};
   } else if (durationMonths > 36) {
     employmentDurationScore = 20;
     employmentDurationDesc = `Employment duration is ${durationMonths} months (>36 months) (+20%).`;
+    employmentDurationKey = 'elig.duration.gt36';
+    employmentDurationParams = { months: durationMonths };
   } else if (durationMonths > 24) {
     employmentDurationScore = 15;
     employmentDurationDesc = `Employment duration is ${durationMonths} months (>24 and ≤36 months) (+15%).`;
+    employmentDurationKey = 'elig.duration.gt24';
+    employmentDurationParams = { months: durationMonths };
   } else if (durationMonths > 12) {
     employmentDurationScore = 10;
     employmentDurationDesc = `Employment duration is ${durationMonths} months (>12 and ≤24 months) (+10%).`;
+    employmentDurationKey = 'elig.duration.gt12';
+    employmentDurationParams = { months: durationMonths };
   } else {
     employmentDurationScore = 5;
     employmentDurationDesc = `Employment duration is ${durationMonths} months (0–12 months) (+5%).`;
+    employmentDurationKey = 'elig.duration.upTo12';
+    employmentDurationParams = { months: durationMonths };
   }
 
   // 4. Visa Validity (max 20%)
@@ -235,20 +263,30 @@ export function calculateIndicativeEligibility(
   // 0% if expired or < 3.0 months
   let visaValidityScore = 0;
   let visaValidityDesc = '';
+  let visaValidityKey = '';
+  let visaValidityParams: Record<string, string | number> = {};
   if (visaMonths >= 12.0) {
     visaValidityScore = 20;
     visaValidityDesc = `Remaining visa validity is ${visaMonths.toFixed(1)} months (12+ months) (+20%).`;
+    visaValidityKey = 'elig.visa.gte12';
+    visaValidityParams = { months: visaMonths.toFixed(1) };
   } else if (visaMonths >= 6.0) {
     visaValidityScore = 10;
     visaValidityDesc = `Remaining visa validity is ${visaMonths.toFixed(1)} months (~6 months buffer) (+10%).`;
+    visaValidityKey = 'elig.visa.gte6';
+    visaValidityParams = { months: visaMonths.toFixed(1) };
   } else if (visaMonths >= 3.0) {
     visaValidityScore = 5;
     visaValidityDesc = `Remaining visa validity is ${visaMonths.toFixed(1)} months (~3 months buffer) (+5%).`;
+    visaValidityKey = 'elig.visa.gte3';
+    visaValidityParams = { months: visaMonths.toFixed(1) };
   } else {
     visaValidityScore = 0;
     visaValidityDesc = visaMonths > 0
       ? `Remaining visa validity is ${visaMonths.toFixed(1)} months (< 3 months minimum) (0%).`
       : 'Visa has expired or expiry date missing (0%).';
+    visaValidityKey = visaMonths > 0 ? 'elig.visa.lt3' : 'elig.visa.expired';
+    visaValidityParams = visaMonths > 0 ? { months: visaMonths.toFixed(1) } : {};
   }
 
   // 5. Number of Guarantors (max 20%)
@@ -259,15 +297,23 @@ export function calculateIndicativeEligibility(
   const guarantorCount = validGuarantors.length;
   let guarantorsScore = 0;
   let guarantorsDesc = '';
+  let guarantorsKey = '';
+  let guarantorsParams: Record<string, string | number> = {};
   if (guarantorCount >= 2) {
     guarantorsScore = 20;
     guarantorsDesc = `${guarantorCount} verified guarantors with ID documents (+20%).`;
+    guarantorsKey = 'elig.guarantors.many';
+    guarantorsParams = { n: guarantorCount };
   } else if (guarantorCount === 1) {
     guarantorsScore = 10;
     guarantorsDesc = '1 verified guarantor with ID document (+10%).';
+    guarantorsKey = 'elig.guarantors.one';
+    guarantorsParams = {};
   } else {
     guarantorsScore = 0;
     guarantorsDesc = 'No guarantor with ID document provided (0%).';
+    guarantorsKey = 'elig.guarantors.none';
+    guarantorsParams = {};
   }
 
   // Total raw score out of 100 (direct sum, clamped 0 to 100)
@@ -288,11 +334,11 @@ export function calculateIndicativeEligibility(
     visaValidityScore,
     guarantorsScore,
     factors: {
-      identity: { awarded: identityScore, max: 20, description: identityDesc },
-      salary: { awarded: salaryScore, max: 20, description: salaryDesc },
-      employmentDuration: { awarded: employmentDurationScore, max: 20, description: employmentDurationDesc },
-      visaValidity: { awarded: visaValidityScore, max: 20, description: visaValidityDesc },
-      guarantors: { awarded: guarantorsScore, max: 20, description: guarantorsDesc },
+      identity: { awarded: identityScore, max: 20, description: identityDesc, descriptionKey: identityKey, descriptionParams: identityParams },
+      salary: { awarded: salaryScore, max: 20, description: salaryDesc, descriptionKey: salaryKey, descriptionParams: salaryParams },
+      employmentDuration: { awarded: employmentDurationScore, max: 20, description: employmentDurationDesc, descriptionKey: employmentDurationKey, descriptionParams: employmentDurationParams },
+      visaValidity: { awarded: visaValidityScore, max: 20, description: visaValidityDesc, descriptionKey: visaValidityKey, descriptionParams: visaValidityParams },
+      guarantors: { awarded: guarantorsScore, max: 20, description: guarantorsDesc, descriptionKey: guarantorsKey, descriptionParams: guarantorsParams },
     },
   };
 }
