@@ -14,6 +14,7 @@ import {
 import { Language, LoanApplication, BankAccountDetails } from '../types';
 import { ISRAELI_BANKS } from '../config/appConfig';
 import { t } from '../i18n/translations';
+import { formatCurrency } from '../i18n/format';
 
 interface ReturningUserConfirmModalProps {
   language: Language;
@@ -136,7 +137,7 @@ export const ReturningUserConfirmModal: React.FC<ReturningUserConfirmModalProps>
                   <div>
                     <span className="text-slate-400 block text-[11px]">{t(language, 'monthlySalary')}:</span>
                     <span className="font-mono font-bold text-emerald-800">
-                      ₪{em?.monthlySalaryNis ? em.monthlySalaryNis.toLocaleString() : '—'}
+                      {formatCurrency(em?.monthlySalaryNis, language)}
                     </span>
                   </div>
                   <div>

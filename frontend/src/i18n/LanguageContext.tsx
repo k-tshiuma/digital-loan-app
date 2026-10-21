@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Language } from '../types';
 import { DEFAULT_LANGUAGE, getLanguageDir, isEnabledLanguage, t as translate } from './translations';
+import * as fmt from './format';
 
 export const LANGUAGE_STORAGE_KEY = 'quickloan_language';
 
@@ -39,6 +40,12 @@ interface LanguageContextValue {
   /** Switch language and remember it. Disabled or unknown languages fall back to English. */
   setLanguage: (lang: Language) => void;
   t: (key: string, params?: Record<string, string | number>) => string;
+  /** Formatters from ./format bound to the current language. */
+  formatCurrency: (value: Parameters<typeof fmt.formatCurrency>[0]) => string;
+  formatNumber: (value: Parameters<typeof fmt.formatNumber>[0], maximumFractionDigits?: number) => string;
+  formatDate: (value: Parameters<typeof fmt.formatDate>[0]) => string;
+  formatDateTime: (value: Parameters<typeof fmt.formatDateTime>[0]) => string;
+  formatTime: (value: Parameters<typeof fmt.formatTime>[0]) => string;
 }
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
@@ -70,8 +77,19 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode; initialLang
     [language]
   );
 
-  const value = useMemo(
-    () => ({ language, dir, hasSavedChoice, setLanguage, t }),
+  const value = useMemo<LanguageContextValue>(
+    () => ({
+      language,
+      dir,
+      hasSavedChoice,
+      setLanguage,
+      t,
+      formatCurrency: (v) => fmt.formatCurrency(v, language),
+      formatNumber: (v, digits) => fmt.formatNumber(v, language, digits),
+      formatDate: (v) => fmt.formatDate(v, language),
+      formatDateTime: (v) => fmt.formatDateTime(v, language),
+      formatTime: (v) => fmt.formatTime(v, language),
+    }),
     [language, dir, hasSavedChoice, setLanguage, t]
   );
 

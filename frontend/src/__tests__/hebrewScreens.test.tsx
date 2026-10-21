@@ -144,6 +144,30 @@ describe('Wizard steps in Hebrew (T3.3)', () => {
     expect(screen.getAllByText(t('he', 'statusReceived')).length).toBeGreaterThan(0);
     expect(englishIn(container, ['Test Person'])).toEqual([]);
   });
+
+  it('step 11 loan package shows amounts in the Hebrew currency format (T5)', async () => {
+    const user = userEvent.setup();
+    const app = {
+      id: 'app_t11b',
+      requestNumber: 'QL-2026-0003',
+      status: 'Received',
+      isSubmitted: true,
+      documents: [],
+      statusHistory: [],
+      borrowerDetails: { fullName: 'Test Person', countryOfOrigin: 'Thailand' },
+      employmentDetails: { monthlySalaryNis: 8000 },
+      loanRequest: { repaymentPeriodMonths: 6, repaymentSource: 'Bank transfer', requestedAmountNis: 5000, estimatedMonthlyPaymentNis: 912.5 },
+    } as unknown as LoanApplication;
+    const { container } = render(
+      <Step11StatusTimeline language="he" application={app} onApplicationUpdated={() => {}} onStartNewApplication={() => {}} />
+    );
+    await user.click(screen.getByRole('button', { name: t('he', 'status.loanPackage') }));
+    const text = (container.textContent || '').replace(/[‎‏]/g, '').replace(/[\s  ]+/g, ' ');
+    expect(text).toMatch(/5,000 ?₪/);
+    expect(text).toMatch(/8,000 ?₪/);
+    expect(text).toMatch(/912\.50 ?₪/);
+    expect(text).not.toMatch(/₪ ?\d/);
+  });
 });
 
 describe('Back office in Hebrew (T3.5)', () => {

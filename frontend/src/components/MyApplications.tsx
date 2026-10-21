@@ -16,6 +16,7 @@ import { STATUS_BADGE_CONFIG } from '../config/appConfig';
 import { t } from '../i18n/translations';
 import { statusLabel } from '../i18n/options';
 import { localizeError } from '../i18n/apiErrors';
+import { formatCurrency, formatDate } from '../i18n/format';
 import { apiService } from '../services/api';
 import { storageService } from '../services/storage';
 
@@ -182,7 +183,7 @@ export const MyApplications: React.FC<MyApplicationsProps> = ({
 
                       <div className="text-[11px] text-slate-400 flex items-center gap-1 font-mono">
                         <Calendar className="w-3.5 h-3.5" />
-                        <span>{new Date(app.createdAt).toLocaleDateString()}</span>
+                        <span>{formatDate(app.createdAt, language)}</span>
                       </div>
                     </div>
 
@@ -190,7 +191,7 @@ export const MyApplications: React.FC<MyApplicationsProps> = ({
                       <div>
                         <span className="text-slate-400 text-[10px] block">{t(language, 'myApps.amountRequested')}</span>
                         <span className="font-bold text-slate-900 font-mono">
-                          ₪{app.loanRequest?.requestedAmountNis?.toLocaleString() || 'N/A'}
+                          {formatCurrency(app.loanRequest?.requestedAmountNis, language)}
                         </span>
                       </div>
 
@@ -204,7 +205,7 @@ export const MyApplications: React.FC<MyApplicationsProps> = ({
                       <div>
                         <span className="text-slate-400 text-[10px] block">{t(language, 'myApps.estMonthly')}</span>
                         <span className="font-medium text-slate-800">
-                          ₪{app.loanRequest?.estimatedMonthlyPaymentNis || '—'}
+                          {formatCurrency(app.loanRequest?.estimatedMonthlyPaymentNis, language)}
                         </span>
                       </div>
 

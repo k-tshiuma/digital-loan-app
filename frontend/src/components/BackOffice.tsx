@@ -47,6 +47,7 @@ import {
   statusLabel,
 } from '../i18n/options';
 import { localizeError } from '../i18n/apiErrors';
+import { formatCurrency, formatDate, formatDateTime } from '../i18n/format';
 import { calculateIndicativeEligibility } from '../services/eligibilityScoring';
 import { EligibilityScoreBar } from './EligibilityScoreBar';
 
@@ -425,10 +426,10 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
                             </td>
                             <td className="py-3.5 px-4 text-end">
                               <span className="font-mono font-extrabold text-blue-900">
-                                ₪{app.loanRequest?.requestedAmountNis?.toLocaleString()}
+                                {formatCurrency(app.loanRequest?.requestedAmountNis, language)}
                               </span>
                               <span className="text-[10px] text-slate-400 block">
-                                {t(language, 'bo.termAtMonthly', { months: app.loanRequest?.repaymentPeriodMonths ?? 0, monthly: app.loanRequest?.estimatedMonthlyPaymentNis ?? 0 })}
+                                {t(language, 'bo.termAtMonthly', { months: app.loanRequest?.repaymentPeriodMonths ?? 0, monthly: formatCurrency(app.loanRequest?.estimatedMonthlyPaymentNis, language) })}
                               </span>
                             </td>
                             <td className="py-3.5 px-4 text-center">
@@ -524,7 +525,7 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
                     )}
                   </div>
                   <div className="text-end text-[10px] text-slate-400 font-mono shrink-0">
-                    {new Date(evt.createdAt).toLocaleString()}
+                    {formatDateTime(evt.createdAt, language)}
                   </div>
                 </div>
               ))}
@@ -726,7 +727,7 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
                 </div>
                 <div className="text-xs text-slate-300 mt-0.5">
                   {t(language, 'bo.submittedLang', {
-                    date: new Date(selectedApp.createdAt).toLocaleDateString(),
+                    date: formatDate(selectedApp.createdAt, language),
                     lang: selectedApp.language === 'he' ? 'עברית' : selectedApp.language === 'en' ? 'English' : selectedApp.language.toUpperCase(),
                   })}
                 </div>
@@ -778,7 +779,7 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
                   </div>
                   <div><span className="text-slate-400">{t(language, 'bo.fullName')}</span> <span className="font-bold text-slate-900">{selectedApp.borrowerDetails?.fullName}</span></div>
                   <div><span className="text-slate-400">{t(language, 'bo.passport')}</span> <span className="font-mono font-bold">{selectedApp.borrowerDetails?.passportNumber}</span></div>
-                  <div><span className="text-slate-400">{t(language, 'bo.originDob')}</span> {optionLabel(language, 'country', selectedApp.borrowerDetails?.countryOfOrigin)} ({selectedApp.borrowerDetails?.dateOfBirth})</div>
+                  <div><span className="text-slate-400">{t(language, 'bo.originDob')}</span> {optionLabel(language, 'country', selectedApp.borrowerDetails?.countryOfOrigin)} ({formatDate(selectedApp.borrowerDetails?.dateOfBirth, language)})</div>
                   <div><span className="text-slate-400">{t(language, 'bo.phone')}</span> <bdi dir="ltr">{selectedApp.borrowerDetails?.mobilePhoneNumber}</bdi></div>
                   <div><span className="text-slate-400">{t(language, 'bo.address')}</span> {selectedApp.borrowerDetails?.addressFull}</div>
                 </div>
@@ -788,10 +789,10 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
                     {t(language, 'bo.residencyEmployment')}
                   </div>
                   <div><span className="text-slate-400">{t(language, 'bo.visaType')}</span> <span className="font-bold">{optionLabel(language, 'visa', selectedApp.residencyDetails?.visaType)}</span></div>
-                  <div><span className="text-slate-400">{t(language, 'bo.visaExpiry')}</span> {selectedApp.residencyDetails?.visaExpiryDate}</div>
+                  <div><span className="text-slate-400">{t(language, 'bo.visaExpiry')}</span> {formatDate(selectedApp.residencyDetails?.visaExpiryDate, language)}</div>
                   <div><span className="text-slate-400">{t(language, 'bo.yearsInIsrael')}</span> {t(language, 'bo.yrs', { n: selectedApp.residencyDetails?.yearsOfResidency ?? 0 })}</div>
                   <div><span className="text-slate-400">{t(language, 'bo.employer')}</span> {selectedApp.employmentDetails?.employerName}</div>
-                  <div><span className="text-slate-400">{t(language, 'bo.monthlySalary')}</span> <span className="font-mono font-bold text-emerald-800">₪{selectedApp.employmentDetails?.monthlySalaryNis?.toLocaleString()}</span></div>
+                  <div><span className="text-slate-400">{t(language, 'bo.monthlySalary')}</span> <span className="font-mono font-bold text-emerald-800">{formatCurrency(selectedApp.employmentDetails?.monthlySalaryNis, language)}</span></div>
                 </div>
               </div>
 
@@ -858,15 +859,15 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
               <div className="p-4 rounded-2xl bg-blue-950 text-white flex items-center justify-between">
                 <div>
                   <div className="text-[11px] text-blue-300  font-bold">{t(language, 'bo.requestedAmount')}</div>
-                  <div className="text-2xl font-extrabold font-mono text-white">₪{selectedApp.loanRequest?.requestedAmountNis?.toLocaleString()}</div>
+                  <div className="text-2xl font-extrabold font-mono text-white">{formatCurrency(selectedApp.loanRequest?.requestedAmountNis, language)}</div>
                 </div>
                 <div>
                   <div className="text-[11px] text-blue-300  font-bold">{t(language, 'bo.termPlan')}</div>
-                  <div className="text-sm font-bold">{t(language, 'bo.monthsAtMonthly', { months: selectedApp.loanRequest?.repaymentPeriodMonths ?? 0, monthly: selectedApp.loanRequest?.estimatedMonthlyPaymentNis ?? 0 })}</div>
+                  <div className="text-sm font-bold">{t(language, 'bo.monthsAtMonthly', { months: selectedApp.loanRequest?.repaymentPeriodMonths ?? 0, monthly: formatCurrency(selectedApp.loanRequest?.estimatedMonthlyPaymentNis, language) })}</div>
                 </div>
                 <div>
                   <div className="text-[11px] text-blue-300  font-bold">{t(language, 'bo.totalRepayment')}</div>
-                  <div className="text-lg font-bold font-mono text-blue-100">₪{selectedApp.loanRequest?.totalRepaymentNis?.toLocaleString()}</div>
+                  <div className="text-lg font-bold font-mono text-blue-100">{formatCurrency(selectedApp.loanRequest?.totalRepaymentNis, language)}</div>
                 </div>
               </div>
 
@@ -1005,7 +1006,7 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
                         <span className="font-bold text-slate-800">{statusLabel(language, h.toStatus)}</span> — {h.reason || t(language, 'bo.statusUpdatedDefault')}
                         <span className="text-slate-400 block text-[10px]">{t(language, 'bo.by', { name: h.changedByName || h.changedByType || '' })}</span>
                       </div>
-                      <span className="font-mono text-slate-400 text-[10px]">{new Date(h.createdAt).toLocaleDateString()}</span>
+                      <span className="font-mono text-slate-400 text-[10px]">{formatDate(h.createdAt, language)}</span>
                     </div>
                   ))}
                 </div>

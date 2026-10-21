@@ -15,6 +15,7 @@ import {
 import { Language, LoanApplication, DigitalSignature, ConsentRecord } from '../types';
 import { t } from '../i18n/translations';
 import { optionLabel } from '../i18n/options';
+import { formatCurrency, formatDate } from '../i18n/format';
 import { calculateIndicativeEligibility } from '../services/eligibilityScoring';
 import { EligibilityScoreBar } from './EligibilityScoreBar';
 
@@ -233,7 +234,7 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
             </div>
             <div>
               <span className="text-slate-400 block text-[11px]">{t(language, 'review.originDob')}</span>
-              <span className="text-slate-700">{optionLabel(language, 'country', b?.countryOfOrigin)}, {b?.dateOfBirth}</span>
+              <span className="text-slate-700">{optionLabel(language, 'country', b?.countryOfOrigin)}, {formatDate(b?.dateOfBirth, language)}</span>
             </div>
             <div>
               <span className="text-slate-400 block text-[11px]">{t(language, 'review.address')}</span>
@@ -263,11 +264,11 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
             </div>
             <div>
               <span className="text-slate-400 block text-[11px]">{t(language, 'review.visaExpiry')}</span>
-              <span className="font-semibold text-slate-800">{r?.visaExpiryDate || '—'}</span>
+              <span className="font-semibold text-slate-800">{formatDate(r?.visaExpiryDate, language)}</span>
             </div>
             <div>
               <span className="text-slate-400 block text-[11px]">{t(language, 'review.entryDate')}</span>
-              <span className="text-slate-700">{r?.dateOfEntry || '—'}</span>
+              <span className="text-slate-700">{formatDate(r?.dateOfEntry, language)}</span>
             </div>
             <div>
               <span className="text-slate-400 block text-[11px]">{t(language, 'review.timeInIsrael')}</span>
@@ -297,13 +298,13 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
             </div>
             <div>
               <span className="text-slate-400 block text-[11px]">{t(language, 'review.monthlySalary')}</span>
-              <span className="font-bold font-mono text-emerald-800">₪{em?.monthlySalaryNis?.toLocaleString() || 0}</span>
+              <span className="font-bold font-mono text-emerald-800">{formatCurrency(em?.monthlySalaryNis || 0, language)}</span>
             </div>
             <div>
               <span className="text-slate-400 block text-[11px]">{t(language, 'review.tenure')}</span>
               <span className="text-slate-700">
                 {t(language, 'review.monthsN', { n: em?.jobTenureMonths || 0 })}
-                {em?.employmentStartDate ? t(language, 'review.fromDate', { date: em.employmentStartDate }) : ''}
+                {em?.employmentStartDate ? t(language, 'review.fromDate', { date: formatDate(em.employmentStartDate, language) }) : ''}
               </span>
             </div>
             <div>
@@ -330,7 +331,7 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
           <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 text-xs">
             <div>
               <span className="text-blue-300 block text-[11px]">{t(language, 'review.requestedAmount')}</span>
-              <span className="text-lg font-bold font-mono text-white">₪{l?.requestedAmountNis?.toLocaleString() || 0}</span>
+              <span className="text-lg font-bold font-mono text-white">{formatCurrency(l?.requestedAmountNis || 0, language)}</span>
             </div>
             <div>
               <span className="text-blue-300 block text-[11px]">{t(language, 'review.repaymentTerm')}</span>
@@ -338,11 +339,11 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
             </div>
             <div>
               <span className="text-blue-300 block text-[11px]">{t(language, 'review.estMonthly')}</span>
-              <span className="font-mono font-bold text-blue-100">₪{l?.estimatedMonthlyPaymentNis || 0} {t(language, 'review.perMonth')}</span>
+              <span className="font-mono font-bold text-blue-100">{formatCurrency(l?.estimatedMonthlyPaymentNis || 0, language)} {t(language, 'review.perMonth')}</span>
             </div>
             <div>
               <span className="text-blue-300 block text-[11px]">{t(language, 'review.totalRepayment')}</span>
-              <span className="font-mono font-bold text-blue-100">₪{l?.totalRepaymentNis || 0}</span>
+              <span className="font-mono font-bold text-blue-100">{formatCurrency(l?.totalRepaymentNis || 0, language)}</span>
             </div>
           </div>
         </div>

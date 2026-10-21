@@ -203,12 +203,12 @@ function calculateEligibilityScore(application, referenceDate = new Date()) {
     salaryScore = 20;
     salaryDesc = `Monthly salary (${salary.toLocaleString()} NIS) is 7,500 NIS or higher (+20%).`;
     salaryKey = 'elig.salary.high';
-    salaryParams = { salary: salary.toLocaleString() };
+    salaryParams = { salary };
   } else if (salary > 0) {
     salaryScore = 10;
     salaryDesc = `Monthly salary (${salary.toLocaleString()} NIS) is below 7,500 NIS (+10%).`;
     salaryKey = 'elig.salary.low';
-    salaryParams = { salary: salary.toLocaleString() };
+    salaryParams = { salary };
   } else {
     salaryScore = 0;
     salaryDesc = 'Monthly salary information missing or invalid (0%).';

@@ -30,6 +30,7 @@ import {
 import { AnalyticsSummary, LoanApplication, CanonicalStatus, RiskLevel, Language } from '../types';
 import { t } from '../i18n/translations';
 import { optionLabel, riskLevelLabel, statusLabel } from '../i18n/options';
+import { formatCurrency } from '../i18n/format';
 import { apiService, isNetworkError } from '../services/api';
 import { storageService } from '../services/storage';
 
@@ -238,10 +239,10 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ applicat
           </div>
           <div>
             <div className="text-2xl font-black font-mono text-blue-950">
-              ₪{currentSummary.avgLoanAmountNis ? currentSummary.avgLoanAmountNis.toLocaleString() : '0'}
+              {formatCurrency(currentSummary.avgLoanAmountNis || 0, language)}
             </div>
             <div className="text-[11px] text-slate-400 mt-0.5">
-              {t(language, 'an.total', { amount: currentSummary.totalRequestedNis.toLocaleString() })}
+              {t(language, 'an.total', { amount: formatCurrency(currentSummary.totalRequestedNis, language) })}
             </div>
           </div>
         </div>

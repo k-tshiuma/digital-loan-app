@@ -17,6 +17,7 @@ import { Language, UploadedFile, DocumentTypeCode, GuarantorItem, LoanApplicatio
 import { DOCUMENT_TYPE_CONFIG } from '../config/appConfig';
 import { t } from '../i18n/translations';
 import { localizeError } from '../i18n/apiErrors';
+import { formatDate } from '../i18n/format';
 import { apiService } from '../services/api';
 import { calculateIndicativeEligibility } from '../services/eligibilityScoring';
 import { EligibilityScoreBar } from './EligibilityScoreBar';
@@ -346,7 +347,7 @@ export const Step8DocumentUpload: React.FC<Step8DocumentUploadProps> = ({
             {ocrPromptDoc.ocrExtractedData.visaExpiryDate && (
               <div>
                 <span className="text-slate-400 font-sans text-[11px] block">{t(language, 'wizard.ocrVisaExpiry')}</span>
-                <span className="font-bold text-sm text-blue-900">{ocrPromptDoc.ocrExtractedData.visaExpiryDate}</span>
+                <span className="font-bold text-sm text-blue-900">{formatDate(ocrPromptDoc.ocrExtractedData.visaExpiryDate, language)}</span>
               </div>
             )}
             {ocrPromptDoc.ocrExtractedData.maskedPan && (

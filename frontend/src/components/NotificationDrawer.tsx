@@ -4,6 +4,7 @@ import { Language, NotificationItem } from '../types';
 import { apiService } from '../services/api';
 import { storageService } from '../services/storage';
 import { t } from '../i18n/translations';
+import { formatDateTime } from '../i18n/format';
 
 interface NotificationDrawerProps {
   isOpen: boolean;
@@ -193,11 +194,7 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
                       <span>•</span>
                       <span className="flex items-center gap-1 font-mono">
                         <Clock className="w-3 h-3" />
-                        {new Date(item.createdAt).toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}{' '}
-                        {new Date(item.createdAt).toLocaleDateString()}
+                        {formatDateTime(item.createdAt, language)}
                       </span>
                     </div>
                   </div>

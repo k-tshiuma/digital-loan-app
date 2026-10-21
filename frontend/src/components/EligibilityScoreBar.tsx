@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ShieldCheck, Info, ChevronDown, ChevronUp, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Language, EligibilityScoreBreakdown, EligibilityFactorDetail } from '../types';
 import { t } from '../i18n/translations';
+import { formatNumber } from '../i18n/format';
 
 interface EligibilityScoreBarProps {
   scoreData: EligibilityScoreBreakdown;
@@ -17,9 +18,15 @@ export const EligibilityScoreBar: React.FC<EligibilityScoreBarProps> = ({
   className = '',
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  // Older saved breakdowns have only the English description.
-  const describe = (f: EligibilityFactorDetail) =>
-    f.descriptionKey ? t(language, f.descriptionKey, f.descriptionParams) : f.description;
+  // Numbers in the params are formatted for the current language. Older saved breakdowns
+  // have pre-formatted strings, or only the English description.
+  const describe = (f: EligibilityFactorDetail) => {
+    if (!f.descriptionKey) return f.description;
+    const params = Object.fromEntries(
+      Object.entries(f.descriptionParams ?? {}).map(([k, v]) => [k, typeof v === 'number' ? formatNumber(v, language) : v])
+    );
+    return t(language, f.descriptionKey, params);
+  };
 
   // Score metrics
   const { rawScore, maxRawScore, percentageOfMax, segmentsFilled, factors } = scoreData;

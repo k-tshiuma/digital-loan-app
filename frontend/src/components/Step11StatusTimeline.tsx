@@ -21,6 +21,7 @@ import { STATUS_BADGE_CONFIG } from '../config/appConfig';
 import { t } from '../i18n/translations';
 import { optionLabel, statusLabel } from '../i18n/options';
 import { localizeError } from '../i18n/apiErrors';
+import { formatCurrency, formatDate, formatTime } from '../i18n/format';
 import { storageService } from '../services/storage';
 import { apiService } from '../services/api';
 import { calculateIndicativeEligibility } from '../services/eligibilityScoring';
@@ -395,7 +396,7 @@ export const Step11StatusTimeline: React.FC<Step11StatusTimelineProps> = ({
                         {statusLabel(language, item.toStatus)}
                       </span>
                       <span className="text-[10px] text-slate-400 font-mono">
-                        {new Date(item.createdAt).toLocaleDateString()}
+                        {formatDate(item.createdAt, language)}
                       </span>
                     </div>
                     {item.reason && (
@@ -428,7 +429,7 @@ export const Step11StatusTimeline: React.FC<Step11StatusTimelineProps> = ({
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-slate-900">{notif.title}</span>
                   <span className="text-[10px] text-slate-400 font-mono">
-                    {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {formatTime(notif.createdAt, language)}
                   </span>
                 </div>
                 <p className="text-xs text-slate-600 leading-relaxed">{notif.message}</p>
@@ -456,16 +457,16 @@ export const Step11StatusTimeline: React.FC<Step11StatusTimelineProps> = ({
               <div><span className="text-slate-400 block">{t(language, 'status.name')}</span> {application.borrowerDetails?.fullName}</div>
               <div><span className="text-slate-400 block">{t(language, 'status.passport')}</span> <bdi dir="ltr">{application.borrowerDetails?.passportNumber}</bdi></div>
               <div><span className="text-slate-400 block">{t(language, 'status.origin')}</span> {optionLabel(language, 'country', application.borrowerDetails?.countryOfOrigin)}</div>
-              <div><span className="text-slate-400 block">{t(language, 'status.salary')}</span> ₪{application.employmentDetails?.monthlySalaryNis?.toLocaleString()}</div>
+              <div><span className="text-slate-400 block">{t(language, 'status.salary')}</span> {formatCurrency(application.employmentDetails?.monthlySalaryNis, language)}</div>
             </div>
           </div>
 
           <div className="p-3.5 rounded-xl bg-white border border-slate-200 text-xs space-y-2">
             <div className="font-bold text-slate-900 border-b pb-1">{t(language, 'status.loanParameters')}</div>
             <div className="grid grid-cols-2 gap-2 text-slate-700">
-              <div><span className="text-slate-400 block">{t(language, 'status.requestedAmount')}</span> <span className="font-bold font-mono">₪{application.loanRequest?.requestedAmountNis?.toLocaleString()}</span></div>
+              <div><span className="text-slate-400 block">{t(language, 'status.requestedAmount')}</span> <span className="font-bold font-mono">{formatCurrency(application.loanRequest?.requestedAmountNis, language)}</span></div>
               <div><span className="text-slate-400 block">{t(language, 'status.term')}</span> {t(language, 'status.monthsN', { n: application.loanRequest?.repaymentPeriodMonths ?? 0 })}</div>
-              <div><span className="text-slate-400 block">{t(language, 'status.monthlyRepayment')}</span> ₪{application.loanRequest?.estimatedMonthlyPaymentNis}</div>
+              <div><span className="text-slate-400 block">{t(language, 'status.monthlyRepayment')}</span> {formatCurrency(application.loanRequest?.estimatedMonthlyPaymentNis, language)}</div>
               <div><span className="text-slate-400 block">{t(language, 'status.repaymentSource')}</span> {optionLabel(language, 'repaymentSource', application.loanRequest?.repaymentSource)}</div>
             </div>
           </div>

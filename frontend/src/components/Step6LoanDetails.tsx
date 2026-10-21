@@ -12,6 +12,7 @@ import {
 } from '../config/appConfig';
 import { t } from '../i18n/translations';
 import { optionLabel } from '../i18n/options';
+import { formatCurrency } from '../i18n/format';
 
 interface Step6LoanDetailsProps {
   language: Language;
@@ -154,13 +155,13 @@ export const Step6LoanDetails: React.FC<Step6LoanDetailsProps> = ({
               {t(language, 'loanAmountLabel')}
             </label>
             <span className="text-[11px] text-slate-400 font-semibold">
-              {t(language, 'wizard.amountRange', { min: DEFAULT_APP_CONFIG.minLoanAmountNis.toLocaleString(), max: DEFAULT_APP_CONFIG.maxLoanAmountNis.toLocaleString() })}
+              {t(language, 'wizard.amountRange', { min: formatCurrency(DEFAULT_APP_CONFIG.minLoanAmountNis, language), max: formatCurrency(DEFAULT_APP_CONFIG.maxLoanAmountNis, language) })}
             </span>
           </div>
 
           <div className="flex items-center justify-center py-1">
             <span className="text-3xl font-extrabold text-blue-900 font-mono tracking-tight">
-              ₪{requestedAmount.toLocaleString()}
+              {formatCurrency(requestedAmount, language)}
             </span>
           </div>
 
@@ -176,9 +177,9 @@ export const Step6LoanDetails: React.FC<Step6LoanDetailsProps> = ({
               className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-900"
             />
             <div className="flex justify-between text-[10px] text-slate-400 font-mono font-medium px-1">
-              <span>₪500</span>
-              <span>₪5,000</span>
-              <span>₪10,000</span>
+              <span>{formatCurrency(DEFAULT_APP_CONFIG.minLoanAmountNis, language)}</span>
+              <span>{formatCurrency(5000, language)}</span>
+              <span>{formatCurrency(DEFAULT_APP_CONFIG.maxLoanAmountNis, language)}</span>
             </div>
           </div>
         </div>
@@ -308,7 +309,7 @@ export const Step6LoanDetails: React.FC<Step6LoanDetailsProps> = ({
                 {t(language, 'estimatedMonthlyRepayment')}
               </div>
               <div className="text-2xl font-extrabold font-mono text-sky-400 mt-0.5">
-                ₪{calculation.monthlyPaymentNis.toLocaleString()}
+                {formatCurrency(calculation.monthlyPaymentNis, language)}
               </div>
             </div>
 
@@ -317,14 +318,14 @@ export const Step6LoanDetails: React.FC<Step6LoanDetailsProps> = ({
                 {t(language, 'totalRepayment')}
               </div>
               <div className="text-2xl font-extrabold font-mono text-white mt-0.5">
-                ₪{calculation.totalRepaymentNis.toLocaleString()}
+                {formatCurrency(calculation.totalRepaymentNis, language)}
               </div>
             </div>
           </div>
 
           <div className="text-[10px] text-slate-400 border-t border-slate-700/60 pt-2 flex items-center justify-between relative z-10">
-            <span>{t(language, 'wizard.interestAndFee', { rate: calculation.interestRatePercent, fee: calculation.managementFeeNis })}</span>
-            <span className="font-mono text-sky-300 font-semibold">₪{calculation.totalInterestNis + calculation.managementFeeNis}</span>
+            <span>{t(language, 'wizard.interestAndFee', { rate: calculation.interestRatePercent, fee: formatCurrency(calculation.managementFeeNis, language) })}</span>
+            <span className="font-mono text-sky-300 font-semibold">{formatCurrency(calculation.totalInterestNis + calculation.managementFeeNis, language)}</span>
           </div>
         </div>
 

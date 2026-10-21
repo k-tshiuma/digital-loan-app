@@ -18,7 +18,8 @@ Goal: a user can switch between **English** and **Hebrew** at any point in the a
 | 2 Complete the Hebrew dictionary | ✅ Done 2026-10-21. 28 keys added, orphan `investment` removed, glossary comment added at the top of the `he` block. |
 | 3 Hard-coded text | ✅ Done 2026-10-21. See notes below. |
 | 4 Right-to-left layout | ✅ Done 2026-10-21. See notes below. |
-| 5–7 | Not started |
+| 5 Numbers, currency and dates | ✅ Done 2026-10-21. See notes below. |
+| 6–7 | Not started |
 
 Phase 1 notes (where the build differs from the plan text):
 - The localStorage key is `quickloan_language` (matches the other `quickloan_*` keys).
@@ -47,6 +48,17 @@ Phase 4 notes:
 - The `animate-in`/`slide-in-*` classes used across components have no CSS behind them (no animation plugin is installed), so they do nothing in either direction.
 - Tests: `no-physical-direction.test.ts` (T4.1, with a self-check of its pattern) and `rtlLayout.test.tsx` (T4.2). T4.3 visual check: screenshots of login, language menu, OTP, returning-user modal, Step 6 and the back office in EN and HE at 375px and 1280px. No horizontal page scroll and no page errors.
 - Existing backend failures, not caused by this work: `test_guarantors_and_scoring.js` fails 3 of 45 in section 7 (expected scores of 90/100), with or without these changes.
+
+Phase 5 notes:
+- `i18n/format.ts` has `formatCurrency`, `formatNumber`, `formatDate`, `formatTime` and `formatDateTime`. `useI18n()` exposes them bound to the current language. Components that still take `language` as a prop call them directly.
+- Locales: `en-IL` for English (`₪12,500`, `21/10/2026`) and `he-IL` for Hebrew (`12,500 ₪`, `21.10.2026`). Western digits and a 24-hour clock in both. Times are shown in Israel time (`Asia/Jerusalem`). Date-only values such as a date of birth or visa expiry are not shifted by time zone.
+- Whole amounts show no decimals, others show 2. Missing values show `—`, and an unparseable date string is shown as it is.
+- Translation strings no longer contain `₪` next to a placeholder (`bo.termAtMonthly`, `bo.monthsAtMonthly`, `an.total`, `wizard.amountRange`, `wizard.interestAndFee`). The formatted amount carries the symbol.
+- Dates that were shown raw (`2026-10-21`) are now formatted too: date of birth, visa expiry, entry date, employment start date and the OCR visa expiry.
+- The eligibility salary factor now passes the raw salary number in `descriptionParams` (both scoring mirrors), and `EligibilityScoreBar` formats numeric params for the current language. Older saved breakdowns keep their pre-formatted string. The English `description` fallback is unchanged.
+- The slider labels under the Step 6 loan amount now come from `DEFAULT_APP_CONFIG` instead of hard-coded `₪500`/`₪10,000`.
+- Tests: `format.test.ts` (T5.1, including the `useI18n()` formatters), `no-bare-tolocale.test.ts` (T5.2, which also catches hand-written `₪{` prefixes), and a Step 11 render test checking that Hebrew amounts read `5,000 ₪`.
+- Not covered by the T5.2 guard: the `₪` symbol beside the Step 5 salary input (an input adornment, not a formatted amount), and file sizes in KB.
 
 ## 1. Where things stand (audit, 2026-10-21)
 
