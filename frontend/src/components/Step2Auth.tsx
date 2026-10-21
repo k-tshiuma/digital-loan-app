@@ -124,7 +124,7 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
       if (lookup.exists && lookup.hasPassword) {
         setAuthMode('signin_pwd');
       } else {
-        const otpRes = await apiService.requestOtp(fullSignInPhone);
+        const otpRes = await apiService.requestOtp(fullSignInPhone, language);
         if (otpRes.demoCode) setGeneratedDemoCode(otpRes.demoCode);
         setOtpDigits(['', '', '', '', '', '']);
         setResendTimer(otpRes.expiresInSeconds || 45);
@@ -212,7 +212,7 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
 
     setIsSubmitting(true);
     try {
-      const res = await apiService.forgotPassword(forgotIdentifier.trim());
+      const res = await apiService.forgotPassword(forgotIdentifier.trim(), language);
       setIsSubmitting(false);
       if (res.demoCode) {
         setResetCode(res.demoCode);
@@ -323,7 +323,7 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
 
     setIsSubmitting(true);
     try {
-      const otpRes = await apiService.requestOtp(fullRegPhone);
+      const otpRes = await apiService.requestOtp(fullRegPhone, language);
       const code = otpRes?.demoCode || storageService.generateOTP(fullRegPhone, language).code;
       setGeneratedDemoCode(code);
       storageService.generateOTP(fullRegPhone, language);
@@ -1419,7 +1419,7 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
                   type="button"
                   onClick={async () => {
                     try {
-                      const res = await apiService.requestOtp(fullRegPhone);
+                      const res = await apiService.requestOtp(fullRegPhone, language);
                       const code = res?.demoCode || storageService.generateOTP(fullRegPhone, language).code;
                       setGeneratedDemoCode(code);
                       storageService.generateOTP(fullRegPhone, language);

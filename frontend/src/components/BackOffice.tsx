@@ -45,6 +45,8 @@ import {
   riskLevelLabel,
   roleLabel,
   statusLabel,
+  statusReasonLabel,
+  DEFAULT_STATUS_REASONS,
 } from '../i18n/options';
 import { localizeError } from '../i18n/apiErrors';
 import { formatCurrency, formatDate, formatDateTime } from '../i18n/format';
@@ -1003,7 +1005,7 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
                   {selectedApp.statusHistory?.map((h) => (
                     <div key={h.id} className="p-2 rounded-lg bg-slate-100 text-[11px] flex justify-between">
                       <div>
-                        <span className="font-bold text-slate-800">{statusLabel(language, h.toStatus)}</span> — {h.reason || t(language, 'bo.statusUpdatedDefault')}
+                        <span className="font-bold text-slate-800">{statusLabel(language, h.toStatus)}</span> — {statusReasonLabel(language, h.reason) || t(language, 'bo.statusUpdatedDefault')}
                         <span className="text-slate-400 block text-[10px]">{t(language, 'bo.by', { name: h.changedByName || h.changedByType || '' })}</span>
                       </div>
                       <span className="font-mono text-slate-400 text-[10px]">{formatDate(h.createdAt, language)}</span>
@@ -1047,7 +1049,7 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
                     <>
                       <button
                         type="button"
-                        onClick={() => handleStatusChange('Approved', 'Loan criteria satisfied and credit risk approved.')}
+                        onClick={() => handleStatusChange('Approved', DEFAULT_STATUS_REASONS.approved)}
                         className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1 shadow-xs"
                       >
                         <CheckCircle2 className="w-3.5 h-3.5" />
@@ -1060,7 +1062,7 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
                           if (!showDocNoteInput) {
                             setShowDocNoteInput(true);
                           } else {
-                            handleStatusChange('Additional Document Required', 'Additional documentation requested.', missingDocNote);
+                            handleStatusChange('Additional Document Required', DEFAULT_STATUS_REASONS.docRequested, missingDocNote);
                           }
                         }}
                         className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center gap-1 shadow-xs"
@@ -1071,7 +1073,7 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
 
                       <button
                         type="button"
-                        onClick={() => handleStatusChange('Rejected', reviewReason || 'Underwriting criteria not met.')}
+                        onClick={() => handleStatusChange('Rejected', reviewReason || DEFAULT_STATUS_REASONS.rejected)}
                         className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs flex items-center gap-1 shadow-xs"
                       >
                         <XCircle className="w-3.5 h-3.5" />

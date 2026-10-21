@@ -80,3 +80,33 @@ export function docTypeLabel(lang: Language, code: string | undefined | null): s
   if (titleKey && TRANSLATIONS.en[titleKey]) return t(lang, titleKey);
   return TRANSLATIONS.en[`doc.${code}`] ? t(lang, `doc.${code}`) : code;
 }
+
+/**
+ * Reasons the app itself writes into the status history (the backend writes the same English
+ * text in server.js). They stay stored in English and are shown translated. Any other reason
+ * was typed by staff and is shown as typed.
+ */
+export const DEFAULT_STATUS_REASONS = {
+  approved: 'Loan criteria satisfied and credit risk approved.',
+  docRequested: 'Additional documentation requested.',
+  rejected: 'Underwriting criteria not met.',
+  submitted: 'Application submitted with signed consents and uploaded documentation.',
+  docUploaded: 'Borrower uploaded the requested document.',
+} as const;
+
+const STATUS_UPDATED_TO = /^Status updated to (.+)$/;
+const DOC_UPLOADED_FILE = /^Borrower uploaded additional document: (.+)$/;
+
+/** Display text for a status-history reason: system defaults are translated, staff notes stay as typed. */
+export function statusReasonLabel(lang: Language, reason: string | undefined | null): string {
+  if (!reason) return '';
+  const text = reason.trim();
+  for (const [code, english] of Object.entries(DEFAULT_STATUS_REASONS)) {
+    if (text === english) return t(lang, `reason.${code}`);
+  }
+  let m = STATUS_UPDATED_TO.exec(text);
+  if (m) return t(lang, 'reason.statusUpdatedTo', { status: statusLabel(lang, m[1]) });
+  m = DOC_UPLOADED_FILE.exec(text);
+  if (m) return t(lang, 'reason.docUploadedFile', { file: m[1] });
+  return reason;
+}

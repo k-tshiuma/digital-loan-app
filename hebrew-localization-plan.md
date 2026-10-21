@@ -19,7 +19,8 @@ Goal: a user can switch between **English** and **Hebrew** at any point in the a
 | 3 Hard-coded text | ✅ Done 2026-10-21. See notes below. |
 | 4 Right-to-left layout | ✅ Done 2026-10-21. See notes below. |
 | 5 Numbers, currency and dates | ✅ Done 2026-10-21. See notes below. |
-| 6–7 | Not started |
+| 6 Backend messages | ✅ Done 2026-10-21. See notes below. |
+| 6b, 7 | Not started |
 
 Phase 1 notes (where the build differs from the plan text):
 - The localStorage key is `quickloan_language` (matches the other `quickloan_*` keys).
@@ -59,6 +60,18 @@ Phase 5 notes:
 - The slider labels under the Step 6 loan amount now come from `DEFAULT_APP_CONFIG` instead of hard-coded `₪500`/`₪10,000`.
 - Tests: `format.test.ts` (T5.1, including the `useI18n()` formatters), `no-bare-tolocale.test.ts` (T5.2, which also catches hand-written `₪{` prefixes), and a Step 11 render test checking that Hebrew amounts read `5,000 ₪`.
 - Not covered by the T5.2 guard: the `₪` symbol beside the Step 5 salary input (an input adornment, not a formatted amount), and file sizes in KB.
+
+Phase 6 notes:
+- Backend texts sent to borrowers live in `backend/services/messages.js` (`en` + `he`): status SMS/notification bodies (`STATUS_MESSAGES`), status names, notification titles, the submission confirmation, the OTP SMS and the password-reset SMS and email. `msg(lang, key, params)` falls back to English.
+- Language choice (`resolveMessageLanguage`): status notifications use the user's `preferredLanguage`, then the application's `language`. The OTP and password-reset codes use the language on screen (the frontend now sends `language` with `request-otp` and `forgot-password`), then the account's. Anything other than `en`/`he` falls back to English. The notification row stores the language actually used.
+- Branding: the OTP, reset and status texts said "LendGlobal". They now say QuickLoan.
+- SMS: the mock log shows the encoding (GSM-7 or UCS-2), length and segment count. Every Hebrew status body fits in one UCS-2 segment (70 characters). With the title and request number added, the full Hebrew SMS is 1 segment for Received, Approved and Rejected, and 2 for Under Review, Additional Document Required and Forwarded. English status SMS are all 1 segment.
+- Email: `sendEmail(to, subject, html, { lang })` wraps the body in a full HTML document with `lang` and `dir`, so Hebrew emails are right-to-left.
+- Staff-typed text (missing-document notes, typed rejection reasons, manual notifications) is sent as typed.
+- Status history reasons written by the app ("Loan criteria satisfied…", "Underwriting criteria not met.", "Application submitted with…", "Borrower uploaded…", "Status updated to …") stay stored in English. `statusReasonLabel()` in `i18n/options.ts` shows them translated in the back office and on the status timeline, including rows already in the database. The texts are shared constants (`DEFAULT_STATUS_REASONS`), and a test checks the fixed reasons in `server.js` are in that list.
+- The offline notification fallback in `storage.ts` follows the same language rule, translates status names in titles and translates the default rejection reason.
+- Not translated: a notification already sent stays in the language it was sent in. The reasons in the seeded demo applications (`storage.ts`) and the document reuse reasons (`evaluateReusableDocuments`, not shown anywhere in the UI) are still English. The simulated `qualityIssues` text in Step 8 is also never displayed.
+- Tests: `backend/test_i18n.js` T6.1–T6.4, plus language fallback, SMS segment counting, RTL email wrapping and the OTP SMS language. Frontend: `statusMessages.test.ts` (reason labels, the backend sync check, the offline notification fallback).
 
 ## 1. Where things stand (audit, 2026-10-21)
 

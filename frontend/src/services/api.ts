@@ -132,8 +132,9 @@ export const apiService = {
     return request('/users/lookup', { method: 'POST', body: { phoneNumber }, auth: false });
   },
 
-  async requestOtp(phoneNumber: string): Promise<{ demoCode?: string; expiresInSeconds: number }> {
-    return request('/users/request-otp', { method: 'POST', body: { phoneNumber }, auth: false });
+  /** `language` is the language on screen; the SMS is sent in it. */
+  async requestOtp(phoneNumber: string, language?: Language): Promise<{ demoCode?: string; expiresInSeconds: number }> {
+    return request('/users/request-otp', { method: 'POST', body: { phoneNumber, language }, auth: false });
   },
 
   async verifyOTP(phoneNumber: string, code: string, preferredLanguage?: Language): Promise<User> {
@@ -153,8 +154,8 @@ export const apiService = {
     return storeAuth(await request('/users/google-demo', { method: 'POST', body: { ...profile, preferredLanguage }, auth: false }));
   },
 
-  async forgotPassword(identifier: string): Promise<{ message: string; demoCode?: string }> {
-    return request('/users/forgot-password', { method: 'POST', body: { identifier }, auth: false });
+  async forgotPassword(identifier: string, language?: Language): Promise<{ message: string; demoCode?: string }> {
+    return request('/users/forgot-password', { method: 'POST', body: { identifier, language }, auth: false });
   },
 
   async resetPassword(identifier: string, code: string, newPassword: string): Promise<User> {

@@ -19,7 +19,7 @@ import {
 import { Language, LoanApplication, CanonicalStatus, UploadedFile, NotificationItem } from '../types';
 import { STATUS_BADGE_CONFIG } from '../config/appConfig';
 import { t } from '../i18n/translations';
-import { optionLabel, statusLabel } from '../i18n/options';
+import { optionLabel, statusLabel, statusReasonLabel } from '../i18n/options';
 import { localizeError } from '../i18n/apiErrors';
 import { formatCurrency, formatDate, formatTime } from '../i18n/format';
 import { storageService } from '../services/storage';
@@ -400,7 +400,7 @@ export const Step11StatusTimeline: React.FC<Step11StatusTimelineProps> = ({
                       </span>
                     </div>
                     {item.reason && (
-                      <p className="text-xs text-slate-600">{item.reason}</p>
+                      <p className="text-xs text-slate-600">{statusReasonLabel(language, item.reason)}</p>
                     )}
                     <div className="text-[10px] text-slate-400 font-medium">
                       {t(language, 'status.by', { name: item.changedByName || item.changedByType || '' })}

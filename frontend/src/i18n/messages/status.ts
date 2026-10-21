@@ -72,6 +72,13 @@ export const status: MessageModule = {
     'myApps.estMonthly': 'Est. monthly:',
     'myApps.view': 'View',
     'myApps.footer': 'Foreign worker digital lending portal',
+    'reason.approved': 'Loan criteria satisfied and credit risk approved.',
+    'reason.docRequested': 'Additional documentation requested.',
+    'reason.rejected': 'Underwriting criteria not met.',
+    'reason.submitted': 'Application submitted with signed consents and uploaded documentation.',
+    'reason.docUploaded': 'Borrower uploaded the requested document.',
+    'reason.docUploadedFile': 'Borrower uploaded an additional document: {file}',
+    'reason.statusUpdatedTo': 'Status updated to {status}',
     // @en-end
   },
   he: {
@@ -145,6 +152,13 @@ export const status: MessageModule = {
     'myApps.estMonthly': 'החזר חודשי משוער:',
     'myApps.view': 'צפייה',
     'myApps.footer': 'פורטל הלוואות דיגיטלי לעובדים זרים',
+    'reason.approved': 'קריטריוני ההלוואה מתקיימים וסיכון האשראי אושר.',
+    'reason.docRequested': 'התבקשו מסמכים נוספים.',
+    'reason.rejected': 'הבקשה אינה עומדת בקריטריוני החיתום.',
+    'reason.submitted': 'הבקשה הוגשה עם הסכמות חתומות ומסמכים שהועלו.',
+    'reason.docUploaded': 'הלווה העלה את המסמך המבוקש.',
+    'reason.docUploadedFile': 'הלווה העלה מסמך נוסף: {file}',
+    'reason.statusUpdatedTo': 'הסטטוס עודכן: {status}',
     // @he-end
   },
 };
