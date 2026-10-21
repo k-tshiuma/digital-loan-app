@@ -767,6 +767,63 @@ class StorageService {
     return this.memoryUsers.get(uid) || null;
   }
 
+  /**
+   * Make a user returned by the backend the session user, keeping the backend's id.
+   *
+   * The local login helpers (verifyOTP, loginWithPassword, ...) create their own local user with a
+   * different id. Any such local copy with the same phone number or email is merged into this user:
+   * its drafts and notifications move to the backend id, and its offline password is kept.
+   * Without this, a reload restored the local id and every API call for it returned 403.
+   */
+  public adoptUser(serverUser: User): User {
+    const samePerson = (u: User) =>
+      u.id !== serverUser.id &&
+      ((!!serverUser.phoneNumber && !serverUser.phoneNumber.startsWith('google:') && !!u.phoneNumber &&
+        u.phoneNumber.replace(/[\s()-]/g, '') === serverUser.phoneNumber.replace(/[\s()-]/g, '')) ||
+        (!!serverUser.email && !!u.email && u.email.toLowerCase() === serverUser.email.toLowerCase()));
+    const twins = Array.from(this.memoryUsers.values()).filter(samePerson);
+    const existing = this.memoryUsers.get(serverUser.id);
+
+    const merged: User = {
+      ...twins[0],
+      ...existing,
+      ...serverUser,
+      password: serverUser.password ?? existing?.password ?? twins.find((t) => t.password)?.password,
+    };
+
+    if (twins.length > 0) {
+      const twinIds = new Set(twins.map((t) => t.id));
+      this.memoryApps.forEach((app) => {
+        if (app.userId && twinIds.has(app.userId)) app.userId = merged.id;
+      });
+      this.memoryNotifications.forEach((n) => {
+        if (n.userId && twinIds.has(n.userId)) n.userId = merged.id;
+      });
+      twins.forEach((t) => this.memoryUsers.delete(t.id));
+      this.saveApps();
+      this.saveNotifications();
+    }
+
+    this.memoryUsers.set(merged.id, merged);
+    this.saveUsers();
+    localStorage.setItem(STORAGE_KEYS.CURRENT_USER_ID, merged.id);
+    return merged;
+  }
+
+  /**
+   * The session user on start-up. `tokenSubject` is the user id in the saved backend token, if any.
+   * Browsers that saved a local user id before adoptUser existed are repaired here, before any request.
+   */
+  public restoreSession(tokenSubject: string | null): User | null {
+    const current = this.getCurrentUser();
+    if (!tokenSubject || current?.id === tokenSubject) return current;
+    const known = this.memoryUsers.get(tokenSubject);
+    if (known) return this.adoptUser(known);
+    // Only the local copy is known: give it the backend id (details are refreshed from the API later).
+    if (current) return this.adoptUser({ ...current, id: tokenSubject });
+    return null;
+  }
+
   /** Update the saved user's preferred language in the local copy. */
   public updateUserLanguage(userId: string, language: Language): User | null {
     const user = this.memoryUsers.get(userId);

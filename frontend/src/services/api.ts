@@ -32,13 +32,17 @@ export const isNetworkError = (err: unknown) => !(err instanceof ApiError);
 // ---------------------------------------------------------------------------
 // Token storage (JWT in localStorage, per plan step 1.6)
 // ---------------------------------------------------------------------------
-function tokenExpiry(token: string): number | null {
+function tokenPayload(token: string): Record<string, unknown> | null {
   try {
-    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-    return typeof payload.exp === 'number' ? payload.exp * 1000 : null;
+    return JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
   } catch {
     return null;
   }
+}
+
+function tokenExpiry(token: string): number | null {
+  const exp = tokenPayload(token)?.exp;
+  return typeof exp === 'number' ? exp * 1000 : null;
 }
 
 const isTokenValid = (token: string | null): token is string => {
@@ -57,6 +61,12 @@ export const authTokens = {
   },
   clear() {
     localStorage.removeItem(TOKEN_KEY);
+  },
+  /** The backend user id in the saved borrower token, if it is still valid. */
+  subject(): string | null {
+    const t = this.get();
+    const sub = t ? tokenPayload(t)?.sub : null;
+    return typeof sub === 'string' ? sub : null;
   },
   getStaff(role?: StaffRole): string | null {
     try {
@@ -121,6 +131,12 @@ export const apiService = {
   // --- Auth (Phase 1) ------------------------------------------------------
   isAuthenticated(): boolean {
     return !!authTokens.get();
+  },
+
+  /** The signed-in borrower, as the backend knows them. */
+  async getMe(): Promise<User> {
+    const res = await request<{ success: true; user: User }>('/users/me');
+    return res.user;
   },
 
   async updatePreferredLanguage(language: Language): Promise<User> {

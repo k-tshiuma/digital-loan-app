@@ -35,13 +35,14 @@ import { NotificationDrawer } from './components/NotificationDrawer';
 import { MyApplications } from './components/MyApplications';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { storageService } from './services/storage';
-import { apiService } from './services/api';
+import { apiService, authTokens } from './services/api';
 import { useI18n } from './i18n/LanguageContext';
 import { ENABLED_LANGUAGES, isEnabledLanguage, t } from './i18n/translations';
 
 export default function App() {
   const { language: currentLanguage, setLanguage, hasSavedChoice } = useI18n();
-  const [currentUser, setCurrentUser] = useState<User | null>(() => storageService.getCurrentUser());
+  // The session user carries the backend's id (the one in the saved token), so API calls for it are allowed.
+  const [currentUser, setCurrentUser] = useState<User | null>(() => storageService.restoreSession(authTokens.subject()));
   const [application, setApplication] = useState<LoanApplication | null>(null);
   const [currentStep, setCurrentStep] = useState<number>(() => (storageService.getCurrentUser() ? 3 : 2));
   const [isBackOfficeOpen, setIsBackOfficeOpen] = useState<boolean>(false);
@@ -74,6 +75,20 @@ export default function App() {
       });
     }
   };
+
+  // Signed in on the backend but no local copy of the user (e.g. after a password reset): fetch it.
+  useEffect(() => {
+    if (currentUser || !authTokens.subject()) return;
+    apiService
+      .getMe()
+      .then((user) => {
+        setCurrentUser(storageService.adoptUser(user));
+        setCurrentStep(3);
+      })
+      .catch(() => {});
+    // Only on start-up.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Load or initialize active application when user is logged in
   useEffect(() => {
@@ -159,7 +174,9 @@ export default function App() {
   };
 
   // Step 2: Authentication
-  const handleAuthenticated = (user: User) => {
+  const handleAuthenticated = (authUser: User) => {
+    // Keep the backend's user id for the session and merge the local copy the login helpers made.
+    const user = storageService.adoptUser(authUser);
     setCurrentUser(user);
     const app = storageService.getOrCreateActiveApplication(user, currentLanguage);
     setApplication(app);
@@ -304,6 +321,7 @@ export default function App() {
 
   const handleSignOut = () => {
     storageService.logout();
+    apiService.logout(); // drop the borrower token too, or a reload would sign the user back in
     setCurrentUser(null);
     setApplication(null);
     setCurrentStep(2);
