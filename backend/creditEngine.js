@@ -100,4 +100,8 @@ function runCreditScreening(application, config) {
   return { score, riskLevel, flags };
 }
 
-module.exports = { runCreditScreening, DEFAULT_CREDIT_RULES, normalizeRules };
+// Every code that runCreditScreening can put at the start of a risk flag ("CODE: text").
+// The back office translates flags by code, so add new codes here and in the frontend translations.
+const RISK_FLAG_CODES = ['SALARY_RATIO_FAIL', 'SALARY_RATIO_WARN', 'DATA_MISSING', 'VISA_EXPIRY_RISK', 'TENURE_FAIL', 'TENURE_WARN'];
+
+module.exports = { runCreditScreening, DEFAULT_CREDIT_RULES, normalizeRules, RISK_FLAG_CODES };

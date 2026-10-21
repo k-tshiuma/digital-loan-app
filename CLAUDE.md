@@ -20,6 +20,7 @@ Backend (from `backend/`, port 5000 by default):
   - `node test_verification.js`
   - `node test_guarantors_and_scoring.js`
   - `node test_returning_user_prefill.js`
+  - `node test_i18n.js` (port 5005; also starts a child server on 5006 with `DEMO_MODE=false`)
   - `npm test` is a placeholder and does nothing.
 - Tests use the real `database.sqlite`. There is no separate test DB.
 
@@ -27,6 +28,7 @@ Frontend (from `frontend/`, port 3000):
 - `npm run dev`: Vite dev server
 - `npm run build`
 - `npm run lint`: type-check only (`tsc --noEmit`). There is no ESLint.
+- `npm test`: Vitest + React Testing Library (jsdom). `npm run test:watch` for watch mode, `npx vitest run <path>` for one file. Tests live in `__tests__/` folders next to the code; setup is `src/test/setup.ts`.
 
 ## Backend architecture
 
@@ -39,7 +41,7 @@ Frontend (from `frontend/`, port 3000):
   - `services/eligibilityScoring.js`: the indicative eligibility score. **It is mirrored in `frontend/src/services/eligibilityScoring.ts`.** Keep both in sync when you change factors or weights.
 - Uploads: multer writes to `backend/uploads/` (gitignored), metadata goes in the `uploaded_files` table, and files are served via `GET /api/uploads/:filename`.
 - Real-time: `GET /api/applications/:id/events` is SSE. Status changes in `PUT /api/applications/:id` broadcast to subscribers, and `Step11StatusTimeline` listens with `EventSource`.
-- `services/smsService.js` (Twilio) and `services/emailService.js` (SMTP) log mock output to the console when their env vars (`TWILIO_SID`/`TWILIO_TOKEN`, `SMTP_USER`/`SMTP_PASS`) are unset. `pdfService.js` streams an application summary PDF with pdfkit.
+- `services/smsService.js` (Twilio) and `services/emailService.js` (SMTP) log mock output to the console when their env vars (`TWILIO_SID`/`TWILIO_TOKEN`, `SMTP_USER`/`SMTP_PASS`) are unset. Borrower-facing backend text (status SMS/notifications, OTP, password reset) lives in `services/messages.js` (en + he, falls back to English); add new texts there, not inline in `server.js`. `pdfService.js` streams an application summary PDF with pdfkit, in English or Hebrew (`?lang=`). PDF labels are in `pdfLabels.js` (stored-value labels must match the frontend; a frontend test checks this). Hebrew text must go through `pdfRtl.js` (bidi reordering for pdfkit), and Heebo fonts are in `backend/assets/fonts/`.
 
 ## Frontend architecture
 
@@ -47,7 +49,19 @@ Frontend (from `frontend/`, port 3000):
 - Two data layers:
   - `services/api.ts`: the backend client. Base URL is `VITE_API_URL` or `http://localhost:5000/api`. It stores separate borrower and staff JWTs in localStorage and exports `ApiError` and `isNetworkError`.
   - `services/storage.ts`: a large `StorageService` that keeps a localStorage/in-memory model of users, applications, notifications, audit events and config, with seeded demo applications. It handles draft persistence and offline backup. Components often call both layers, so check which one a change belongs in.
+  - Session user: after any backend login, `App.handleAuthenticated` passes the user through `storageService.adoptUser()`, so the session keeps the backend id (the `sub` in the JWT) and the local copy made by the `storageService` login helpers is merged into it. On start-up the user comes from `storageService.restoreSession(authTokens.subject())`. Never put a locally generated user id into the session while a backend token exists, or API calls for the user return 403.
 - Shared types: `types.ts`. Business limits (loan amounts, repayment periods, fees, min age, visa validity): `config/appConfig.ts`.
-- i18n: `i18n/translations.ts` with `en`, `he`, `th`, `zh` and a `t()` helper. Hebrew is RTL. New UI strings need entries in all four languages.
+- i18n: `i18n/translations.ts` holds the dictionaries and a `t(lang, key)` helper. `i18n/LanguageContext.tsx` (`LanguageProvider` in `main.tsx`, `useI18n()` hook) owns the current language, saves it in localStorage (`quickloan_language`), and sets `<html lang dir>`. Hebrew is RTL.
+  - Only English and Hebrew are enabled (`enabled` flag in `SUPPORTED_LANGUAGES`, `ENABLED_LANGUAGES`). Thai, Chinese and Filipino are on hold: hidden from pickers, dictionaries kept. New UI strings need `en` and `he` entries only. `translations.test.ts` enforces en/he key parity.
+  - New UI strings go in `i18n/messages/*.ts` (grouped by area, en + he), not in the base dictionary. Never hard-code visible text: tests scan components for English JSX text and check every `t()` key exists. Use `{/* i18n-ignore */}` only for brand names or demo data.
+  - Stored values (dropdown options, statuses, roles, risk flags, document codes) stay English. Show them with the helpers in `i18n/options.ts` (`optionLabel`, `statusLabel`, …). Show errors with `localizeError()` from `i18n/apiErrors.ts`.
+  - Date fields use `<DateInput>` (`components/DateInput.tsx`, value is an ISO date), never `<input type="date">`, which shows the browser's format instead of the app's. `dateInput.test.tsx` enforces this.
+  - Request numbers and phone numbers inside free text (notification messages) go through `<LtrText>` (`i18n/LtrText.tsx`) so they stay left-to-right in Hebrew.
+  - The Hebrew review sheet for the native speaker is `docs/hebrew-review.csv` (generated from the dictionaries; regenerate it after big text changes).
+  - Numbers, amounts and dates: use `formatCurrency`/`formatNumber`/`formatDate`/`formatDateTime`/`formatTime` from `i18n/format.ts` (or the bound versions on `useI18n()`). Never use bare `toLocale*()` or hand-write `₪{…}`; `no-bare-tolocale.test.ts` enforces this. Translation strings take the already-formatted amount (`{amount}`) without their own `₪`.
+  - Eligibility factor descriptions carry `descriptionKey`/`descriptionParams` in both scoring mirrors; keep the keys in sync too.
+  - RTL: use logical Tailwind classes (`ms-/me-/ps-/pe-/start-/end-/text-start/text-end/border-s/e/rounded-s/e`), never `ml-/pr-/left-/text-right` etc. Directional icons need `rtl:rotate-180`. Phone numbers, codes, IDs and emails get `dir="ltr"` (inputs) or `<bdi dir="ltr">` (display). `no-physical-direction.test.ts` enforces the class and icon rules.
+  - Language changes go through `handleLanguageSelect` in `App.tsx`, which also saves the choice to the user's account (`PUT /api/users/me/language`, accepts `en`/`he`).
+  - Ongoing Hebrew work is tracked in `hebrew-localization-plan.md`.
 - The `@` import alias resolves to `frontend/` (not `src/`).
 - The `.py` scripts in `frontend/` (`clean.py`, `fix_case.py`, `recover.py`) are one-off maintenance helpers, not part of the build. `scratch/` is gitignored.

@@ -17,15 +17,19 @@ export type UserRole =
 
 export type MaritalStatus = 'Single' | 'Married' | 'Divorced' | 'Other';
 
-export type SalaryPaymentMethod = 'Bank transfer' | 'Cash' | 'Check' | 'Other';
+export type SalaryPaymentMethod = 'Bank Transfer' | 'Bank transfer' | 'Cash' | 'Check' | 'Other';
 
-export type LoanPurpose = 'Cash flow' | 'Equipment' | 'Investment' | 'Other';
+export type LoanPurpose = 'Cash Flow' | 'Cash flow' | 'Equipment' | 'Investment' | 'Other';
 
 export type RepaymentSource =
+  | 'Bank Transfer'
   | 'Bank transfer'
+  | 'Salary Deduction'
   | 'Salary deduction'
   | 'Cash'
+  | 'Digital Wallet'
   | 'Digital wallet'
+  | 'Credit Card'
   | 'Credit card';
 
 export type GuarantorRelationship =
@@ -119,6 +123,7 @@ export interface ResidencyDetails {
 export interface EmploymentDetails {
   employerName: string;
   staffingAgencyName?: string;
+  employmentStartDate?: string; // YYYY-MM-DD
   jobTenureMonths: number;
   monthlySalaryNis: number;
   salaryPaymentMethod: SalaryPaymentMethod;
@@ -161,7 +166,11 @@ export interface GuarantorItem {
 export interface EligibilityFactorDetail {
   awarded: number;
   max: number;
+  /** English description (kept for staff views and older saved breakdowns). */
   description: string;
+  /** Translation key and values for `description`. */
+  descriptionKey?: string;
+  descriptionParams?: Record<string, string | number>;
 }
 
 export interface EligibilityScoreBreakdown {

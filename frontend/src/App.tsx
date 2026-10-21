@@ -9,6 +9,7 @@ import {
   EmploymentDetails,
   LoanRequest,
   GuarantorDetails,
+  GuarantorItem,
   UploadedFile,
   ConsentRecord,
   DigitalSignature,
@@ -32,12 +33,16 @@ import { Step11StatusTimeline } from './components/Step11StatusTimeline';
 import { BackOffice } from './components/BackOffice';
 import { NotificationDrawer } from './components/NotificationDrawer';
 import { MyApplications } from './components/MyApplications';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { storageService } from './services/storage';
-import { apiService } from './services/api';
+import { apiService, authTokens } from './services/api';
+import { useI18n } from './i18n/LanguageContext';
+import { ENABLED_LANGUAGES, isEnabledLanguage, t } from './i18n/translations';
 
 export default function App() {
-  const [currentLanguage, setCurrentLanguage] = useState<Language>('en');
-  const [currentUser, setCurrentUser] = useState<User | null>(() => storageService.getCurrentUser());
+  const { language: currentLanguage, setLanguage, hasSavedChoice } = useI18n();
+  // The session user carries the backend's id (the one in the saved token), so API calls for it are allowed.
+  const [currentUser, setCurrentUser] = useState<User | null>(() => storageService.restoreSession(authTokens.subject()));
   const [application, setApplication] = useState<LoanApplication | null>(null);
   const [currentStep, setCurrentStep] = useState<number>(() => (storageService.getCurrentUser() ? 3 : 2));
   const [isBackOfficeOpen, setIsBackOfficeOpen] = useState<boolean>(false);
@@ -61,19 +66,50 @@ export default function App() {
     };
   }, []);
 
-  // Update HTML dir and lang attributes when language changes
+  // Save a language choice to the user's account (local copy + backend).
+  const syncUserLanguage = (user: User, lang: Language) => {
+    storageService.updateUserLanguage(user.id, lang);
+    if (apiService.isAuthenticated()) {
+      apiService.updatePreferredLanguage(lang).catch((err) => {
+        console.log('[API] Could not save language preference:', err.message);
+      });
+    }
+  };
+
+  // Signed in on the backend but no local copy of the user (e.g. after a password reset): fetch it.
   useEffect(() => {
-    document.documentElement.lang = currentLanguage;
-    document.documentElement.dir = currentLanguage === 'he' ? 'rtl' : 'ltr';
-  }, [currentLanguage]);
+    if (currentUser || !authTokens.subject()) return;
+    apiService
+      .getMe()
+      .then((user) => {
+        setCurrentUser(storageService.adoptUser(user));
+        setCurrentStep(3);
+      })
+      .catch(() => {});
+    // Only on start-up.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Load or initialize active application when user is logged in
   useEffect(() => {
     if (currentUser) {
       // 1. Immediately load local draft so UI renders instantaneously
-      const localApp = storageService.getOrCreateActiveApplication(currentUser, currentLanguage);
+      // Language: a choice made on this device wins and is saved to the account.
+      // Otherwise use the account's saved language (e.g. when signing in on a new device).
+      let lang = currentLanguage;
+      if (hasSavedChoice) {
+        if (currentUser.preferredLanguage !== currentLanguage) syncUserLanguage(currentUser, currentLanguage);
+      } else if (isEnabledLanguage(currentUser.preferredLanguage)) {
+        lang = currentUser.preferredLanguage;
+        if (lang !== currentLanguage) setLanguage(lang);
+      }
+
+      const localApp = storageService.getOrCreateActiveApplication(currentUser, lang);
+      if (!localApp.isSubmitted && localApp.language !== lang) {
+        localApp.language = lang;
+        storageService.saveApplication(localApp);
+      }
       setApplication(localApp);
-      setCurrentLanguage(localApp.language || currentUser.preferredLanguage || 'en');
 
       if (localApp.isSubmitted) {
         setCurrentStep(11); // Show status dashboard directly if already submitted
@@ -120,11 +156,12 @@ export default function App() {
 
   // Step 1: Language selection
   const handleLanguageSelect = (lang: Language) => {
-    setCurrentLanguage(lang);
-    if (application) {
+    setLanguage(lang);
+    if (application && !application.isSubmitted) {
       application.language = lang;
       autoSaveDraft(application);
     }
+    if (currentUser) syncUserLanguage(currentUser, lang);
   };
 
   const handleStep1Next = () => {
@@ -137,7 +174,9 @@ export default function App() {
   };
 
   // Step 2: Authentication
-  const handleAuthenticated = (user: User) => {
+  const handleAuthenticated = (authUser: User) => {
+    // Keep the backend's user id for the session and merge the local copy the login helpers made.
+    const user = storageService.adoptUser(authUser);
     setCurrentUser(user);
     const app = storageService.getOrCreateActiveApplication(user, currentLanguage);
     setApplication(app);
@@ -282,6 +321,7 @@ export default function App() {
 
   const handleSignOut = () => {
     storageService.logout();
+    apiService.logout(); // drop the borrower token too, or a reload would sign the user back in
     setCurrentUser(null);
     setApplication(null);
     setCurrentStep(2);
@@ -289,7 +329,11 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col font-sans text-slate-900 antialiased selection:bg-blue-900 selection:text-white">
+    <div className="min-h-screen bg-[#f4f7fb] relative overflow-x-hidden flex flex-col font-sans text-slate-900 antialiased selection:bg-blue-600 selection:text-white">
+      {/* FinBest ambient background accents */}
+      <div className="fixed top-0 end-0 w-[500px] h-[500px] bg-gradient-to-bl from-orange-400/12 via-orange-300/5 to-transparent rounded-full blur-3xl pointer-events-none -me-32 -mt-32 z-0" />
+      <div className="fixed bottom-0 start-0 w-[500px] h-[500px] bg-gradient-to-tr from-sky-400/12 via-indigo-400/5 to-transparent rounded-full blur-3xl pointer-events-none -ms-32 -mb-32 z-0" />
+
       {/* Top Application Header */}
       <Header
         currentLanguage={currentLanguage}
@@ -319,9 +363,10 @@ export default function App() {
         />
       ) : (
         /* Borrower Mobile-First Flow Container */
-        <main className="flex-1 flex flex-col items-center justify-start p-3 sm:p-5 w-full">
-          <div className="w-full max-w-md bg-white rounded-3xl shadow-sm border border-slate-200/80 p-5 sm:p-6 flex flex-col min-h-[580px] transition-all">
-            {/* Step Progress indicator (shown for Loan Wizard Steps 3 through 9) */}
+        <main className="flex-1 flex flex-col items-center justify-start p-3 sm:p-5 w-full relative z-10">
+          <div className="w-full max-w-md bg-white rounded-3xl shadow-[0_8px_30px_rgb(11,26,45,0.06)] border border-slate-200/80 p-5 sm:p-6 flex flex-col min-h-[580px] transition-all">
+            <ErrorBoundary language={currentLanguage} fallbackTitle={t(currentLanguage, 'errorBoundary.loanAppTitle')}>
+              {/* Step Progress indicator (shown for Loan Wizard Steps 3 through 9) */}
             {currentStep >= 3 && currentStep <= 9 && (
               <WizardProgress
                 currentStep={currentStep}
@@ -449,15 +494,16 @@ export default function App() {
                 onStartNewApplication={handleStartNewApplication}
               />
             )}
+            </ErrorBoundary>
           </div>
 
           {/* Secure Trust Footer Note */}
           <div className="mt-4 text-center text-xs text-slate-600 flex items-center justify-center gap-1.5">
-            <span className="font-semibold">LendGlobal Israel</span>
+            <span className="font-semibold">QuickLoan</span>
             <span>•</span>
-            <span>Encrypted via TLS 1.3</span>
+            <span>{t(currentLanguage, 'footer.encrypted')}</span>
             <span>•</span>
-            <span className="text-blue-900 font-bold">5 Languages Supported</span>
+            <span className="text-blue-900 font-bold">{t(currentLanguage, 'footer.languages', { n: ENABLED_LANGUAGES.length })}</span>
           </div>
         </main>
       )}

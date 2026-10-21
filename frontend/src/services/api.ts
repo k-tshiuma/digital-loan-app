@@ -32,13 +32,17 @@ export const isNetworkError = (err: unknown) => !(err instanceof ApiError);
 // ---------------------------------------------------------------------------
 // Token storage (JWT in localStorage, per plan step 1.6)
 // ---------------------------------------------------------------------------
-function tokenExpiry(token: string): number | null {
+function tokenPayload(token: string): Record<string, unknown> | null {
   try {
-    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-    return typeof payload.exp === 'number' ? payload.exp * 1000 : null;
+    return JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
   } catch {
     return null;
   }
+}
+
+function tokenExpiry(token: string): number | null {
+  const exp = tokenPayload(token)?.exp;
+  return typeof exp === 'number' ? exp * 1000 : null;
 }
 
 const isTokenValid = (token: string | null): token is string => {
@@ -57,6 +61,12 @@ export const authTokens = {
   },
   clear() {
     localStorage.removeItem(TOKEN_KEY);
+  },
+  /** The backend user id in the saved borrower token, if it is still valid. */
+  subject(): string | null {
+    const t = this.get();
+    const sub = t ? tokenPayload(t)?.sub : null;
+    return typeof sub === 'string' ? sub : null;
   },
   getStaff(role?: StaffRole): string | null {
     try {
@@ -123,12 +133,24 @@ export const apiService = {
     return !!authTokens.get();
   },
 
+  /** The signed-in borrower, as the backend knows them. */
+  async getMe(): Promise<User> {
+    const res = await request<{ success: true; user: User }>('/users/me');
+    return res.user;
+  },
+
+  async updatePreferredLanguage(language: Language): Promise<User> {
+    const res = await request<{ success: true; user: User }>('/users/me/language', { method: 'PUT', body: { language } });
+    return res.user;
+  },
+
   async lookupPhone(phoneNumber: string): Promise<{ exists: boolean; hasPassword: boolean }> {
     return request('/users/lookup', { method: 'POST', body: { phoneNumber }, auth: false });
   },
 
-  async requestOtp(phoneNumber: string): Promise<{ demoCode?: string; expiresInSeconds: number }> {
-    return request('/users/request-otp', { method: 'POST', body: { phoneNumber }, auth: false });
+  /** `language` is the language on screen; the SMS is sent in it. */
+  async requestOtp(phoneNumber: string, language?: Language): Promise<{ demoCode?: string; expiresInSeconds: number }> {
+    return request('/users/request-otp', { method: 'POST', body: { phoneNumber, language }, auth: false });
   },
 
   async verifyOTP(phoneNumber: string, code: string, preferredLanguage?: Language): Promise<User> {
@@ -148,8 +170,8 @@ export const apiService = {
     return storeAuth(await request('/users/google-demo', { method: 'POST', body: { ...profile, preferredLanguage }, auth: false }));
   },
 
-  async forgotPassword(identifier: string): Promise<{ message: string; demoCode?: string }> {
-    return request('/users/forgot-password', { method: 'POST', body: { identifier }, auth: false });
+  async forgotPassword(identifier: string, language?: Language): Promise<{ message: string; demoCode?: string }> {
+    return request('/users/forgot-password', { method: 'POST', body: { identifier, language }, auth: false });
   },
 
   async resetPassword(identifier: string, code: string, newPassword: string): Promise<User> {
@@ -219,8 +241,10 @@ export const apiService = {
   },
 
   // --- Notifications (Phase 5) ---------------------------------------------
-  async getNotifications(userId: string): Promise<{ notifications: NotificationItem[]; unreadCount: number }> {
-    return request(`/notifications/${userId}`);
+  /** The user's notifications, newest first. The backend's `read` flag is exposed as `isRead`, like local ones. */
+  async getNotifications(userId: string): Promise<NotificationItem[]> {
+    const res = await request<{ notifications: NotificationItem[] }>(`/notifications/${userId}`);
+    return (res.notifications || []).map((n) => ({ ...n, isRead: n.isRead ?? !!n.read }));
   },
 
   async markNotificationRead(id: string): Promise<void> {
@@ -232,12 +256,18 @@ export const apiService = {
   },
 
   // --- PDF (Phase 7) -------------------------------------------------------
-  async downloadApplicationPdf(app: LoanApplication | Pick<LoanApplication, 'id' | 'requestNumber'>, scope: ApiScope = 'borrower'): Promise<void> {
+  /** `language` picks the PDF language (the language on screen); without it the backend uses the application's. */
+  async downloadApplicationPdf(
+    app: LoanApplication | Pick<LoanApplication, 'id' | 'requestNumber'>,
+    scope: ApiScope = 'borrower',
+    language?: Language
+  ): Promise<void> {
     const token = scope === 'staff' ? authTokens.getStaff() : authTokens.get();
+    const pdfUrl = `${API_BASE_URL}/applications/${app.id}/pdf${language ? `?lang=${encodeURIComponent(language)}` : ''}`;
     let res: Response | null = null;
 
     try {
-      res = await fetch(`${API_BASE_URL}/applications/${app.id}/pdf`, {
+      res = await fetch(pdfUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -251,7 +281,7 @@ export const apiService = {
 
     if (!res || !res.ok) {
       try {
-        res = await fetch(`${API_BASE_URL}/applications/${app.id}/pdf`, {
+        res = await fetch(pdfUrl, {
           method: 'GET',
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });

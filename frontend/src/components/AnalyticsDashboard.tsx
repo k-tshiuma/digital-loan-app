@@ -27,12 +27,16 @@ import {
   Cell,
   Legend,
 } from 'recharts';
-import { AnalyticsSummary, LoanApplication, CanonicalStatus, RiskLevel } from '../types';
+import { AnalyticsSummary, LoanApplication, CanonicalStatus, RiskLevel, Language } from '../types';
+import { t } from '../i18n/translations';
+import { optionLabel, riskLevelLabel, statusLabel } from '../i18n/options';
+import { formatCurrency } from '../i18n/format';
 import { apiService, isNetworkError } from '../services/api';
 import { storageService } from '../services/storage';
 
 interface AnalyticsDashboardProps {
   applications: LoanApplication[];
+  language?: Language;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -52,7 +56,7 @@ const RISK_COLORS: Record<RiskLevel, string> = {
 
 const PIE_PALETTE = ['#3b82f6', '#8b5cf6', '#06b6d4', '#ec4899', '#f97316', '#14b8a6'];
 
-export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ applications }) => {
+export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ applications, language = 'en' }) => {
   const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -145,19 +149,19 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ applicat
   const currentSummary = summary || computeLocalSummary();
 
   const statusChartData = currentSummary.byStatus.map((item) => ({
-    name: item.status,
+    name: statusLabel(language, item.status),
     count: item.count,
     fill: STATUS_COLORS[item.status] || '#64748b',
   }));
 
   const purposeChartData = currentSummary.byPurpose.map((item, idx) => ({
-    name: item.purpose,
+    name: item.purpose === 'Unspecified' ? t(language, 'an.unspecified') : optionLabel(language, 'loanPurpose', item.purpose),
     value: item.count,
     fill: PIE_PALETTE[idx % PIE_PALETTE.length],
   }));
 
   const riskChartData = currentSummary.byRisk.map((item) => ({
-    name: `${item.level} Risk`,
+    name: t(language, 'an.riskName', { level: riskLevelLabel(language, item.level) }),
     count: item.count,
     fill: RISK_COLORS[item.level] || '#64748b',
   }));
@@ -169,10 +173,10 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ applicat
         <div>
           <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-purple-700" />
-            Executive Lending & Risk Analytics
+            {t(language, 'an.title')}
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Real-time portfolio metrics, underwriting speed, and pre-screening distribution.
+            {t(language, 'an.subtitle')}
           </p>
         </div>
 
@@ -183,7 +187,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ applicat
           className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 flex items-center gap-1.5 shadow-2xs transition-colors"
         >
           <RefreshCw className={`w-3.5 h-3.5 text-purple-600 ${isLoading ? 'animate-spin' : ''}`} />
-          <span>Refresh</span>
+          <span>{t(language, 'an.refresh')}</span>
         </button>
       </div>
 
@@ -192,7 +196,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ applicat
         {/* Total Applications */}
         <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-semibold">Total Applications</span>
+            <span className="text-xs font-semibold">{t(language, 'an.totalApps')}</span>
             <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center">
               <Users className="w-4 h-4" />
             </div>
@@ -202,7 +206,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ applicat
               {currentSummary.totalApplications}
             </div>
             <div className="text-[11px] text-slate-400 mt-0.5">
-              {currentSummary.openApplications} currently active
+              {t(language, 'an.currentlyActive', { n: currentSummary.openApplications })}
             </div>
           </div>
         </div>
@@ -210,7 +214,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ applicat
         {/* Approval Rate */}
         <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-semibold">Approval Rate</span>
+            <span className="text-xs font-semibold">{t(language, 'an.approvalRate')}</span>
             <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
               <CheckCircle2 className="w-4 h-4" />
             </div>
@@ -220,7 +224,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ applicat
               {currentSummary.approvalRate !== null ? `${currentSummary.approvalRate}%` : 'N/A'}
             </div>
             <div className="text-[11px] text-slate-400 mt-0.5">
-              Decided applications
+              {t(language, 'an.decided')}
             </div>
           </div>
         </div>
@@ -228,17 +232,17 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ applicat
         {/* Average Loan Amount */}
         <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-semibold">Avg. Loan Amount</span>
+            <span className="text-xs font-semibold">{t(language, 'an.avgLoan')}</span>
             <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center">
               <Coins className="w-4 h-4" />
             </div>
           </div>
           <div>
             <div className="text-2xl font-black font-mono text-blue-950">
-              ₪{currentSummary.avgLoanAmountNis ? currentSummary.avgLoanAmountNis.toLocaleString() : '0'}
+              {formatCurrency(currentSummary.avgLoanAmountNis || 0, language)}
             </div>
             <div className="text-[11px] text-slate-400 mt-0.5">
-              Total ₪{currentSummary.totalRequestedNis.toLocaleString()}
+              {t(language, 'an.total', { amount: formatCurrency(currentSummary.totalRequestedNis, language) })}
             </div>
           </div>
         </div>
@@ -246,17 +250,17 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ applicat
         {/* Processing Duration */}
         <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-semibold">Avg. Processing Days</span>
+            <span className="text-xs font-semibold">{t(language, 'an.avgDays')}</span>
             <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
               <Clock className="w-4 h-4" />
             </div>
           </div>
           <div>
             <div className="text-2xl font-black font-mono text-amber-800">
-              {currentSummary.avgProcessingDays !== null ? `${currentSummary.avgProcessingDays}d` : '1.8d'}
+              {t(language, 'an.daysValue', { n: currentSummary.avgProcessingDays ?? 1.8 })}
             </div>
             <div className="text-[11px] text-slate-400 mt-0.5">
-              Intake to decision
+              {t(language, 'an.intakeToDecision')}
             </div>
           </div>
         </div>
@@ -270,10 +274,10 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ applicat
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-blue-700" />
               <h3 className="text-xs font-bold text-slate-800">
-                Application Intake Velocity (Last 30 Days)
+                {t(language, 'an.velocity')}
               </h3>
             </div>
-            <span className="text-[10px] text-slate-400 font-mono">Daily Volume</span>
+            <span className="text-[10px] text-slate-400 font-mono">{t(language, 'an.dailyVolume')}</span>
           </div>
 
           <div className="h-56 w-full">
@@ -288,6 +292,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ applicat
                 <Line
                   type="monotone"
                   dataKey="count"
+                  name={t(language, 'an.seriesApplications')}
                   stroke="#3b82f6"
                   strokeWidth={2.5}
                   dot={{ r: 3, fill: '#3b82f6' }}
@@ -304,10 +309,10 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ applicat
             <div className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4 text-purple-700" />
               <h3 className="text-xs font-bold text-slate-800">
-                Pipeline Volume by Canonical Status
+                {t(language, 'an.pipeline')}
               </h3>
             </div>
-            <span className="text-[10px] text-slate-400 font-mono">Active Queue</span>
+            <span className="text-[10px] text-slate-400 font-mono">{t(language, 'an.activeQueue')}</span>
           </div>
 
           <div className="h-56 w-full">
@@ -319,7 +324,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ applicat
                 <Tooltip
                   contentStyle={{ backgroundColor: '#0f172a', borderRadius: '12px', border: 'none', color: '#fff', fontSize: '11px' }}
                 />
-                <Bar dataKey="count" radius={[0, 8, 8, 0]}>
+                <Bar dataKey="count" name={t(language, 'an.seriesApplications')} radius={[0, 8, 8, 0]}>
                   {statusChartData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.fill} />
                   ))}
@@ -338,7 +343,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ applicat
             <div className="flex items-center gap-2">
               <PieIcon className="w-4 h-4 text-blue-700" />
               <h3 className="text-xs font-bold text-slate-800">
-                Borrower Loan Purpose Breakdown
+                {t(language, 'an.purpose')}
               </h3>
             </div>
           </div>
@@ -372,7 +377,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ applicat
               </ResponsiveContainer>
             ) : (
               <div className="h-full flex items-center justify-center text-xs text-slate-400">
-                No purpose breakdown available yet.
+                {t(language, 'an.noPurpose')}
               </div>
             )}
           </div>
@@ -384,11 +389,11 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ applicat
             <div className="flex items-center gap-2">
               <ShieldAlert className="w-4 h-4 text-emerald-700" />
               <h3 className="text-xs font-bold text-slate-800">
-                Automated Credit Risk Pre-Screening Distribution
+                {t(language, 'an.riskDistribution')}
               </h3>
             </div>
             <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded font-mono text-slate-600">
-              Phase 8 Engine
+              {t(language, 'an.engine')}
             </span>
           </div>
 
@@ -401,7 +406,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ applicat
                 <Tooltip
                   contentStyle={{ backgroundColor: '#0f172a', borderRadius: '12px', border: 'none', color: '#fff', fontSize: '11px' }}
                 />
-                <Bar dataKey="count" radius={[8, 8, 0, 0]}>
+                <Bar dataKey="count" name={t(language, 'an.seriesApplications')} radius={[8, 8, 0, 0]}>
                   {riskChartData.map((entry, index) => (
                     <Cell key={`risk-${index}`} fill={entry.fill} />
                   ))}

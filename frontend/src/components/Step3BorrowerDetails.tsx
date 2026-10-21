@@ -3,7 +3,9 @@ import { User, Calendar, MapPin, Flag, AlertTriangle, ArrowRight, ArrowLeft, Shi
 import { Language, BorrowerDetails } from '../types';
 import { ORIGIN_COUNTRIES, MARITAL_STATUSES, calculateAge } from '../config/appConfig';
 import { t } from '../i18n/translations';
+import { optionLabel } from '../i18n/options';
 import { storageService } from '../services/storage';
+import { DateInput } from './DateInput';
 
 interface Step3BorrowerDetailsProps {
   language: Language;
@@ -111,11 +113,11 @@ export const Step3BorrowerDetails: React.FC<Step3BorrowerDetailsProps> = ({
     }
 
     if (formData.maritalStatus === 'Other' && (!formData.otherMaritalStatusDetails || !formData.otherMaritalStatusDetails.trim())) {
-      errs.otherMaritalStatusDetails = 'Please provide details for marital status';
+      errs.otherMaritalStatusDetails = t(language, 'wizard.err.maritalDetails');
     }
 
     if (formData.countryOfOrigin === 'Other' && (!(formData as any).otherCountryOfOriginDetails || !(formData as any).otherCountryOfOriginDetails.trim())) {
-      errs.otherCountryOfOriginDetails = 'Please specify your country of origin';
+      errs.otherCountryOfOriginDetails = t(language, 'wizard.err.countryDetails');
     }
 
     setErrors(errs);
@@ -154,12 +156,12 @@ export const Step3BorrowerDetails: React.FC<Step3BorrowerDetailsProps> = ({
           <div className="flex items-center gap-2.5">
             <ShieldCheck className="w-4 h-4 text-blue-700 shrink-0" />
             <div>
-              <span className="font-bold text-blue-950 block">Personal details on file</span>
-              <span className="text-[11px] text-blue-800">Pre-filled from your profile. You can edit any field below if your details changed.</span>
+              <span className="font-bold text-blue-950 block">{t(language, 'wizard.personalOnFile')}</span>
+              <span className="text-[11px] text-blue-800">{t(language, 'wizard.personalOnFileHint')}</span>
             </div>
           </div>
           <span className="text-[10px] font-bold text-blue-800 bg-blue-100 px-2 py-0.5 rounded-full shrink-0">
-            On File
+            {t(language, 'wizard.onFile')}
           </span>
         </div>
       )}
@@ -175,7 +177,7 @@ export const Step3BorrowerDetails: React.FC<Step3BorrowerDetailsProps> = ({
               id="full-name-input"
               type="text"
               required
-              placeholder="e.g. Somchai Prasert / Maria Santos"
+              placeholder={t(language, 'wizard.fullNamePlaceholder')}
               value={formData.fullName}
               onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
               className={`w-full px-4 py-3 rounded-xl border bg-white text-slate-900 text-sm font-medium focus:outline-none focus:ring-2 transition-all ${
@@ -195,9 +197,10 @@ export const Step3BorrowerDetails: React.FC<Step3BorrowerDetailsProps> = ({
           </label>
           <input
             id="passport-number-input"
+            dir="ltr"
             type="text"
             required
-            placeholder="e.g. AA9845123 / P1234567B"
+            placeholder={t(language, 'wizard.passportPlaceholder')}
             value={formData.passportNumber}
             onChange={(e) => setFormData({ ...formData, passportNumber: e.target.value.toUpperCase() })}
             className={`w-full px-4 py-3 rounded-xl border bg-white font-mono uppercase text-slate-900 text-sm font-bold tracking-wider focus:outline-none focus:ring-2 transition-all ${
@@ -222,7 +225,7 @@ export const Step3BorrowerDetails: React.FC<Step3BorrowerDetailsProps> = ({
           >
             {ORIGIN_COUNTRIES.map((c) => (
               <option key={c} value={c}>
-                {c}
+                {optionLabel(language, 'country', c)}
               </option>
             ))}
           </select>
@@ -269,18 +272,18 @@ export const Step3BorrowerDetails: React.FC<Step3BorrowerDetailsProps> = ({
               </span>
             )}
           </div>
-          <input
+          <DateInput
             id="dob-input"
-            type="date"
+            language={language}
             required
             max={new Date().toISOString().split('T')[0]}
             value={formData.dateOfBirth}
-            onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-            className={`w-full px-4 py-3 rounded-xl border bg-white text-slate-900 text-sm font-medium focus:outline-none focus:ring-2 transition-all ${
+            onChange={(iso) => setFormData({ ...formData, dateOfBirth: iso })}
+            className={
               errors.dateOfBirth
                 ? 'border-red-400 focus:ring-red-200'
                 : 'border-slate-300 focus:border-blue-900 focus:ring-blue-900/20'
-            }`}
+            }
           />
           {errors.dateOfBirth && <p className="text-xs text-red-600">{errors.dateOfBirth}</p>}
         </div>
@@ -298,7 +301,7 @@ export const Step3BorrowerDetails: React.FC<Step3BorrowerDetailsProps> = ({
           >
             {MARITAL_STATUSES.map((m) => (
               <option key={m} value={m}>
-                {m}
+                {optionLabel(language, 'marital', m)}
               </option>
             ))}
           </select>
@@ -372,7 +375,7 @@ export const Step3BorrowerDetails: React.FC<Step3BorrowerDetailsProps> = ({
           className="w-2/3 py-3.5 px-6 rounded-xl bg-blue-900 hover:bg-blue-800 text-white font-semibold text-base shadow-sm hover:shadow transition-all flex items-center justify-center gap-2 group"
         >
           <span>{t(language, 'continue')}</span>
-          <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1 rtl:rotate-180" />
+          <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1 rtl:group-hover:-translate-x-1 rtl:rotate-180" />
         </button>
       </div>
     </form>

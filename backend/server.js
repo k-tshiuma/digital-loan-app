@@ -14,6 +14,7 @@ const { runCreditScreening, DEFAULT_CREDIT_RULES, normalizeRules } = require('./
 const { calculateEligibilityScore } = require('./services/eligibilityScoring');
 const { sendSms } = require('./services/smsService');
 const { sendEmail } = require('./services/emailService');
+const { resolveMessageLanguage, msg, statusName, statusMessage } = require('./services/messages');
 const { streamApplicationPdf } = require('./services/pdfService');
 
 const app = express();
@@ -343,30 +344,25 @@ async function createNotification({ userId, applicationId, notificationType, tit
   return parseNotification(await dbGet('SELECT * FROM notifications WHERE id = ?', [id]));
 }
 
-const STATUS_MESSAGES = {
-  'Received': 'Your application has been received and is queued for review.',
-  'Under Review': 'A credit officer is now reviewing your application.',
-  'Additional Document Required': 'We need an additional document to continue. Please open the app to upload it.',
-  'Approved': 'Congratulations! Your loan has been approved.',
-  'Rejected': 'Unfortunately your application was not approved at this time.',
-  'Forwarded to Funding Entity': 'Your approved loan has been sent to our funding partner for disbursement.',
-};
-
+// Status texts live in services/messages.js (English and Hebrew).
 async function notifyStatusChange(a, previousStatus) {
-  const user = await dbGet('SELECT phoneNumber FROM users WHERE id = ?', [a.userId]);
+  const user = await dbGet('SELECT phoneNumber, preferredLanguage FROM users WHERE id = ?', [a.userId]);
   const phoneNumber = (a.borrowerDetails && a.borrowerDetails.mobilePhoneNumber) || (user && user.phoneNumber);
+  // The user's current choice wins over the language the application was filled in.
+  const lang = resolveMessageLanguage(user && user.preferredLanguage, a.language);
   const isSubmission = !previousStatus;
-  let message = STATUS_MESSAGES[a.status] || `Status updated to ${a.status}.`;
+  let message = statusMessage(lang, a.status);
+  // Notes typed by staff are sent as typed.
   if (a.status === 'Additional Document Required' && a.missingDocumentNotes) message = a.missingDocumentNotes;
-  if (isSubmission) message = `Your request number is ${a.requestNumber}. Keep it for reference.`;
+  if (isSubmission) message = msg(lang, 'notif.submitted', { requestNumber: a.requestNumber });
 
   const notification = await createNotification({
     userId: a.userId,
     applicationId: a.id,
     notificationType: isSubmission ? 'SUBMISSION_CONFIRMATION' : `STATUS_${a.status}`,
-    title: isSubmission ? 'Application submitted' : `LendGlobal: ${a.status}`,
+    title: isSubmission ? msg(lang, 'notif.submittedTitle') : msg(lang, 'notif.statusTitle', { status: statusName(lang, a.status) }),
     message: `[${a.requestNumber}] ${message}`,
-    language: a.language,
+    language: lang,
     phoneNumber,
   });
 
@@ -433,7 +429,10 @@ app.post('/api/users/request-otp', async (req, res) => {
   // Demo helper: numbers ending in 4567 get 123456, other test numbers get a generated code
   const code = DEMO_MODE && phone.endsWith('4567') ? '123456' : generateCode();
   otpStore.set(phone, { code, codeHash: hashCode(code), expiresAt: Date.now() + OTP_TTL_MS, attempts: 0 });
-  await sendSms(phone, `Your LendGlobal verification code is ${code}. It expires in 5 minutes.`);
+  // The code is sent in the language on screen; for a known number without one, the account's language.
+  const existing = req.body.language ? null : await dbGet('SELECT preferredLanguage FROM users WHERE phoneNumber = ?', [phone]);
+  const lang = resolveMessageLanguage(req.body.language, existing && existing.preferredLanguage);
+  await sendSms(phone, msg(lang, 'sms.otp', { code }));
   res.json({ success: true, expiresInSeconds: OTP_TTL_MS / 1000, ...(DEMO_MODE ? { demoCode: code } : {}) });
 });
 
@@ -563,9 +562,10 @@ app.post('/api/users/forgot-password', async (req, res) => {
     [newId('pwreset'), user.id, hashCode(code), new Date(now.getTime() + 15 * 60 * 1000).toISOString(), now.toISOString()]
   );
 
-  const text = `Your LendGlobal password reset code is ${code}. It expires in 15 minutes.`;
+  const lang = resolveMessageLanguage(req.body.language, user.preferredLanguage);
+  const text = msg(lang, 'sms.passwordReset', { code });
   if (user.phoneNumber && !user.phoneNumber.startsWith('google:')) await sendSms(user.phoneNumber, text);
-  if (user.email) await sendEmail(user.email, 'Reset your LendGlobal password', `<p>${text}</p>`);
+  if (user.email) await sendEmail(user.email, msg(lang, 'email.passwordResetSubject'), `<p>${text}</p>`, { lang });
 
   res.json({ ...genericResponse, ...(DEMO_MODE ? { demoCode: code } : {}) });
 });
@@ -622,6 +622,21 @@ app.get('/api/users/me', async (req, res) => {
   if (isStaff(req)) return res.json({ success: true, staff: { role: req.auth.role } });
   const user = await dbGet('SELECT * FROM users WHERE id = ?', [req.auth.sub]);
   if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+  res.json({ success: true, user: sanitizeUser(user) });
+});
+
+// Languages a user can currently pick. th/zh/tl are on hold (see hebrew-localization-plan.md).
+const ENABLED_LANGUAGES = ['en', 'he'];
+
+app.put('/api/users/me/language', async (req, res) => {
+  if (isStaff(req)) return res.status(403).json({ success: false, error: 'Staff accounts have no language preference' });
+  const { language } = req.body || {};
+  if (!ENABLED_LANGUAGES.includes(language)) {
+    return res.status(400).json({ success: false, error: `language must be one of: ${ENABLED_LANGUAGES.join(', ')}` });
+  }
+  const result = await dbRun('UPDATE users SET preferredLanguage = ? WHERE id = ?', [language, req.auth.sub]);
+  if (!result || result.changes === 0) return res.status(404).json({ success: false, error: 'User not found' });
+  const user = await dbGet('SELECT * FROM users WHERE id = ?', [req.auth.sub]);
   res.json({ success: true, user: sanitizeUser(user) });
 });
 
@@ -987,6 +1002,8 @@ app.put('/api/applications/:id', async (req, res) => {
       // Only allowed borrower status transition: re-submitting after uploading a requested document.
       const resubmitting = prev.status === 'Additional Document Required' && incoming.status === 'Under Review';
       if (resubmitting) {
+        // Fixed reason texts below are stored in English and translated for display by the frontend
+        // (DEFAULT_STATUS_REASONS in frontend/src/i18n/options.ts; a test keeps the two in sync).
         const latest = (incoming.statusHistory || [])[0];
         const entry = {
           id: (latest && latest.id) || newId('sh'),
@@ -1129,7 +1146,8 @@ app.all('/api/applications/:id/pdf', async (req, res) => {
   if (!canAccessUser(req, a.userId)) return res.status(403).json({ success: false, error: 'Forbidden' });
 
   try {
-    streamApplicationPdf(a, res, { includeRisk: isStaff(req) });
+    // ?lang=he|en picks the PDF language (staff send their UI language); default: the application's language.
+    streamApplicationPdf(a, res, { includeRisk: isStaff(req), lang: req.query.lang });
   } catch (err) {
     console.error('Error generating PDF:', err);
     if (!res.headersSent) {

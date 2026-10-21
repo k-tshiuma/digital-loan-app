@@ -3,6 +3,9 @@ import { X, CheckCheck, Bell, MessageSquare, Smartphone, Clock } from 'lucide-re
 import { Language, NotificationItem } from '../types';
 import { apiService } from '../services/api';
 import { storageService } from '../services/storage';
+import { t } from '../i18n/translations';
+import { formatDateTime } from '../i18n/format';
+import { LtrText } from '../i18n/LtrText';
 
 interface NotificationDrawerProps {
   isOpen: boolean;
@@ -94,9 +97,13 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
               <Bell className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-slate-900">Notifications</h2>
+              <h2 className="text-sm font-bold text-slate-900">{t(language, 'notifications')}</h2>
               <span className="text-[11px] text-slate-500">
-                {unreadCount > 0 ? `${unreadCount} unread update(s)` : 'All caught up'}
+                {unreadCount > 1
+                  ? t(language, 'notif.unreadMany', { n: unreadCount })
+                  : unreadCount === 1
+                    ? t(language, 'notif.unreadOne')
+                    : t(language, 'notif.allCaughtUp')}
               </span>
             </div>
           </div>
@@ -107,17 +114,17 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
                 type="button"
                 onClick={handleMarkAllRead}
                 className="text-[11px] font-semibold text-blue-900 hover:text-blue-700 flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors"
-                title="Mark all as read"
+                title={t(language, 'notif.markAllRead')}
               >
                 <CheckCheck className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Mark all read</span>
+                <span className="hidden sm:inline">{t(language, 'notif.markAllRead')}</span>
               </button>
             )}
             <button
               type="button"
               onClick={onClose}
               className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition-colors"
-              aria-label="Close notifications"
+              aria-label={t(language, 'notif.close')}
             >
               <X className="w-5 h-5" />
             </button>
@@ -131,9 +138,9 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
               <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mb-3">
                 <Bell className="w-6 h-6" />
               </div>
-              <h4 className="text-sm font-bold text-slate-700">No Notifications Yet</h4>
+              <h4 className="text-sm font-bold text-slate-700">{t(language, 'notif.emptyTitle')}</h4>
               <p className="text-xs text-slate-500 max-w-xs mt-1 leading-relaxed">
-                As your loan application progresses, you will receive real-time notifications here and via SMS in your preferred language.
+                {t(language, 'notif.emptyText')}
               </p>
             </div>
           ) : (
@@ -148,7 +155,7 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
                 }`}
               >
                 {!item.isRead && (
-                  <span className="absolute top-3.5 right-3.5 w-2 h-2 rounded-full bg-blue-600" />
+                  <span className="absolute top-3.5 end-3.5 w-2 h-2 rounded-full bg-blue-600" />
                 )}
 
                 <div className="flex items-start gap-2.5">
@@ -170,15 +177,15 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
                     )}
                   </div>
 
-                  <div className="flex-1 pr-3">
+                  <div className="flex-1 pe-3">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-slate-900 leading-snug">
-                        {item.title}
+                        <LtrText text={item.title} />
                       </span>
                     </div>
 
                     <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                      {item.message}
+                      <LtrText text={item.message} />
                     </p>
 
                     <div className="flex items-center gap-2 mt-2 pt-1 border-t border-slate-100 text-[10px] text-slate-400">
@@ -188,11 +195,7 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
                       <span>•</span>
                       <span className="flex items-center gap-1 font-mono">
                         <Clock className="w-3 h-3" />
-                        {new Date(item.createdAt).toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}{' '}
-                        {new Date(item.createdAt).toLocaleDateString()}
+                        {formatDateTime(item.createdAt, language)}
                       </span>
                     </div>
                   </div>
@@ -204,7 +207,7 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
 
         {/* Footer info */}
         <div className="p-3 bg-slate-50 border-t border-slate-200 text-center text-[11px] text-slate-500">
-          SMS notifications are automatically dispatched in your chosen language.
+          {t(language, 'notif.footer')}
         </div>
       </div>
     </div>

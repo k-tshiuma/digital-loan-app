@@ -12,7 +12,8 @@ import {
   StatusHistoryItem,
 } from '../types';
 import { DEFAULT_APP_CONFIG } from '../config/appConfig';
-import { t } from '../i18n/translations';
+import { t, isEnabledLanguage } from '../i18n/translations';
+import { DEFAULT_STATUS_REASONS, statusLabel, statusReasonLabel } from '../i18n/options';
 import { calculateIndicativeEligibility } from './eligibilityScoring';
 
 const STORAGE_KEYS = {
@@ -766,6 +767,73 @@ class StorageService {
     return this.memoryUsers.get(uid) || null;
   }
 
+  /**
+   * Make a user returned by the backend the session user, keeping the backend's id.
+   *
+   * The local login helpers (verifyOTP, loginWithPassword, ...) create their own local user with a
+   * different id. Any such local copy with the same phone number or email is merged into this user:
+   * its drafts and notifications move to the backend id, and its offline password is kept.
+   * Without this, a reload restored the local id and every API call for it returned 403.
+   */
+  public adoptUser(serverUser: User): User {
+    const samePerson = (u: User) =>
+      u.id !== serverUser.id &&
+      ((!!serverUser.phoneNumber && !serverUser.phoneNumber.startsWith('google:') && !!u.phoneNumber &&
+        u.phoneNumber.replace(/[\s()-]/g, '') === serverUser.phoneNumber.replace(/[\s()-]/g, '')) ||
+        (!!serverUser.email && !!u.email && u.email.toLowerCase() === serverUser.email.toLowerCase()));
+    const twins = Array.from(this.memoryUsers.values()).filter(samePerson);
+    const existing = this.memoryUsers.get(serverUser.id);
+
+    const merged: User = {
+      ...twins[0],
+      ...existing,
+      ...serverUser,
+      password: serverUser.password ?? existing?.password ?? twins.find((t) => t.password)?.password,
+    };
+
+    if (twins.length > 0) {
+      const twinIds = new Set(twins.map((t) => t.id));
+      this.memoryApps.forEach((app) => {
+        if (app.userId && twinIds.has(app.userId)) app.userId = merged.id;
+      });
+      this.memoryNotifications.forEach((n) => {
+        if (n.userId && twinIds.has(n.userId)) n.userId = merged.id;
+      });
+      twins.forEach((t) => this.memoryUsers.delete(t.id));
+      this.saveApps();
+      this.saveNotifications();
+    }
+
+    this.memoryUsers.set(merged.id, merged);
+    this.saveUsers();
+    localStorage.setItem(STORAGE_KEYS.CURRENT_USER_ID, merged.id);
+    return merged;
+  }
+
+  /**
+   * The session user on start-up. `tokenSubject` is the user id in the saved backend token, if any.
+   * Browsers that saved a local user id before adoptUser existed are repaired here, before any request.
+   */
+  public restoreSession(tokenSubject: string | null): User | null {
+    const current = this.getCurrentUser();
+    if (!tokenSubject || current?.id === tokenSubject) return current;
+    const known = this.memoryUsers.get(tokenSubject);
+    if (known) return this.adoptUser(known);
+    // Only the local copy is known: give it the backend id (details are refreshed from the API later).
+    if (current) return this.adoptUser({ ...current, id: tokenSubject });
+    return null;
+  }
+
+  /** Update the saved user's preferred language in the local copy. */
+  public updateUserLanguage(userId: string, language: Language): User | null {
+    const user = this.memoryUsers.get(userId);
+    if (!user) return null;
+    user.preferredLanguage = language;
+    user.updatedAt = new Date().toISOString();
+    this.saveUsers();
+    return user;
+  }
+
   public logout() {
     localStorage.removeItem(STORAGE_KEYS.CURRENT_USER_ID);
     localStorage.removeItem(STORAGE_KEYS.ACTIVE_APPLICATION_ID);
@@ -1065,7 +1133,7 @@ class StorageService {
       toStatus: 'Received',
       changedByType: 'borrower',
       changedByName: app.borrowerDetails?.fullName || 'Borrower',
-      reason: 'Application submitted with signed consents and uploaded documentation.',
+      reason: DEFAULT_STATUS_REASONS.submitted,
       createdAt: new Date().toISOString(),
     };
 
@@ -1088,14 +1156,15 @@ class StorageService {
     });
 
     // Send instant SMS & Push notification in user language
+    const lang = this.notificationLanguage(app);
     this.createNotification({
       userId: app.userId,
       applicationId: app.id,
       channel: 'sms',
       notificationType: 'SUBMISSION_CONFIRMATION',
-      language: app.language,
-      title: t(app.language, 'applicationSubmittedTitle'),
-      message: `${t(app.language, 'yourRequestNumber')}: ${app.requestNumber}. ${t(app.language, 'keepRequestNumberNotice')}`,
+      language: lang,
+      title: t(lang, 'applicationSubmittedTitle'),
+      message: `${t(lang, 'yourRequestNumber')}: ${app.requestNumber}. ${t(lang, 'keepRequestNumberNotice')}`,
       deliveryStatus: 'delivered',
     });
 
@@ -1143,21 +1212,23 @@ class StorageService {
       metadata: { previousStatus, newStatus, reason },
     });
 
-    // Dispatch translated notification
+    // Dispatch translated notification (staff-typed notes are sent as typed)
+    const lang = this.notificationLanguage(app);
     let statusDesc = '';
-    if (newStatus === 'Under Review') statusDesc = t(app.language, 'statusUnderReviewDesc');
-    else if (newStatus === 'Additional Document Required') statusDesc = missingDocNotes || t(app.language, 'statusAdditionalDocDesc');
-    else if (newStatus === 'Approved') statusDesc = t(app.language, 'statusApprovedDesc');
-    else if (newStatus === 'Rejected') statusDesc = reason || t(app.language, 'statusRejectedDesc');
-    else if (newStatus === 'Forwarded to Funding Entity') statusDesc = t(app.language, 'statusForwardedDesc');
+    if (newStatus === 'Received') statusDesc = t(lang, 'statusReceivedDesc');
+    else if (newStatus === 'Under Review') statusDesc = t(lang, 'statusUnderReviewDesc');
+    else if (newStatus === 'Additional Document Required') statusDesc = missingDocNotes || t(lang, 'statusAdditionalDocDesc');
+    else if (newStatus === 'Approved') statusDesc = t(lang, 'statusApprovedDesc');
+    else if (newStatus === 'Rejected') statusDesc = reason ? statusReasonLabel(lang, reason) : t(lang, 'statusRejectedDesc');
+    else if (newStatus === 'Forwarded to Funding Entity') statusDesc = t(lang, 'statusForwardedDesc');
 
     this.createNotification({
       userId: app.userId,
       applicationId: app.id,
       channel: 'sms',
       notificationType: `STATUS_${newStatus}`,
-      language: app.language,
-      title: `${t(app.language, 'appName')}: ${newStatus}`,
+      language: lang,
+      title: `QuickLoan: ${statusLabel(lang, newStatus)}`,
       message: `[${app.requestNumber}] ${statusDesc}`,
       deliveryStatus: 'delivered',
     });
@@ -1183,6 +1254,13 @@ class StorageService {
   }
 
   // --- Notifications ---
+  /** Same rule as the backend: the user's current language, then the application's, then English. */
+  private notificationLanguage(app: LoanApplication): Language {
+    const user = app.userId ? this.memoryUsers.get(app.userId) : undefined;
+    const lang = user?.preferredLanguage || app.language;
+    return isEnabledLanguage(lang) ? lang : 'en';
+  }
+
   public createNotification(notif: Omit<NotificationItem, 'id' | 'createdAt'>): NotificationItem {
     const item: NotificationItem = {
       ...notif,

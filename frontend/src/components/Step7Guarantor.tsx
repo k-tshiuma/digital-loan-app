@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Users,
   UserPlus,
@@ -23,6 +23,8 @@ import {
 } from '../types';
 import { GUARANTOR_RELATIONSHIPS } from '../config/appConfig';
 import { t } from '../i18n/translations';
+import { optionLabel } from '../i18n/options';
+import { localizeError } from '../i18n/apiErrors';
 import { apiService } from '../services/api';
 import { calculateIndicativeEligibility } from '../services/eligibilityScoring';
 import { EligibilityScoreBar } from './EligibilityScoreBar';
@@ -190,7 +192,7 @@ export const Step7Guarantor: React.FC<Step7GuarantorProps> = ({
     if (file.size > 10 * 1024 * 1024) {
       setUploadErrorForId({
         id: targetId,
-        error: 'File size exceeds the 10MB limit. Please choose a smaller file.',
+        error: t(language, 'err.fileTooLarge'),
       });
       if (fileInputRef.current) fileInputRef.current.value = '';
       if (cameraInputRef.current) cameraInputRef.current.value = '';
@@ -203,7 +205,7 @@ export const Step7Guarantor: React.FC<Step7GuarantorProps> = ({
     if (!allowedMimes.includes(file.type.toLowerCase()) && !hasValidExt) {
       setUploadErrorForId({
         id: targetId,
-        error: 'Invalid file format. Only PDF, PNG, and JPEG/JPG files are accepted.',
+        error: t(language, 'err.invalidFileType'),
       });
       if (fileInputRef.current) fileInputRef.current.value = '';
       if (cameraInputRef.current) cameraInputRef.current.value = '';
@@ -227,7 +229,7 @@ export const Step7Guarantor: React.FC<Step7GuarantorProps> = ({
         errMsg.includes('disguised') ||
         errMsg.includes('Invalid file type')
       ) {
-        setUploadErrorForId({ id: targetId, error: errMsg });
+        setUploadErrorForId({ id: targetId, error: localizeError(errMsg, language, 'err.fileRejected') });
         setUploadingForId(null);
         if (fileInputRef.current) fileInputRef.current.value = '';
         if (cameraInputRef.current) cameraInputRef.current.value = '';
@@ -285,19 +287,19 @@ export const Step7Guarantor: React.FC<Step7GuarantorProps> = ({
       const prefix = `${g.id}_`;
 
       if (!g.fullName?.trim()) {
-        errs[`${prefix}fullName`] = `Guarantor ${gNum} full name is required`;
+        errs[`${prefix}fullName`] = t(language, 'wizard.err.guarantorName', { n: gNum });
       }
       if (!g.passportOrIdNumber?.trim()) {
-        errs[`${prefix}passportOrIdNumber`] = `Guarantor ${gNum} passport or Israeli ID number is required`;
+        errs[`${prefix}passportOrIdNumber`] = t(language, 'wizard.err.guarantorId', { n: gNum });
       }
       if (!g.mobilePhoneNumber?.trim()) {
-        errs[`${prefix}mobilePhoneNumber`] = `Guarantor ${gNum} mobile phone number is required`;
+        errs[`${prefix}mobilePhoneNumber`] = t(language, 'wizard.err.guarantorPhone', { n: gNum });
       }
       if (g.relationship === 'Other' && (!g.otherRelationshipDetails || !g.otherRelationshipDetails.trim())) {
-        errs[`${prefix}otherRelationshipDetails`] = 'Please specify the relationship details';
+        errs[`${prefix}otherRelationshipDetails`] = t(language, 'wizard.err.relationshipDetails');
       }
       if (!g.idDocument) {
-        errs[`${prefix}idDocument`] = `Guarantor ${gNum} identity document (Passport or ID) must be uploaded`;
+        errs[`${prefix}idDocument`] = t(language, 'wizard.err.guarantorDoc', { n: gNum });
       }
     });
 
@@ -354,7 +356,7 @@ export const Step7Guarantor: React.FC<Step7GuarantorProps> = ({
           {t(language, 'guarantorTitle')}
         </h1>
         <p className="text-sm text-slate-500 leading-relaxed">
-          At least one guarantor is required. You may add up to three guarantors to strengthen your loan eligibility.
+          {t(language, 'wizard.guarantorIntro')}
         </p>
       </div>
 
@@ -364,12 +366,12 @@ export const Step7Guarantor: React.FC<Step7GuarantorProps> = ({
           <div className="flex items-center gap-2.5">
             <ShieldCheck className="w-4 h-4 text-blue-700 shrink-0" />
             <div>
-              <span className="font-bold text-blue-950 block">Guarantor details on file</span>
-              <span className="text-[11px] text-blue-800">Pre-filled from your profile. You can update any detail or replace ID documents below.</span>
+              <span className="font-bold text-blue-950 block">{t(language, 'wizard.guarantorOnFile')}</span>
+              <span className="text-[11px] text-blue-800">{t(language, 'wizard.guarantorOnFileHint')}</span>
             </div>
           </div>
           <span className="text-[10px] font-bold text-blue-800 bg-blue-100 px-2 py-0.5 rounded-full shrink-0">
-            On File
+            {t(language, 'onFile')}
           </span>
         </div>
       )}
@@ -414,16 +416,16 @@ export const Step7Guarantor: React.FC<Step7GuarantorProps> = ({
                   </div>
                   <div>
                     <span className="text-xs font-bold text-slate-900">
-                      Guarantor {gNum}
+                      {t(language, 'wizard.guarantorN', { n: gNum })}
                     </span>
                     <span
-                      className={`ml-2 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                      className={`ms-2 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
                         isRequired
                           ? 'bg-blue-50 text-blue-900 border border-blue-200'
                           : 'bg-slate-100 text-slate-600 border border-slate-200'
                       }`}
                     >
-                      {isRequired ? 'Required' : 'Optional'}
+                      {isRequired ? t(language, 'required') : t(language, 'optional')}
                     </span>
                   </div>
                 </div>
@@ -435,7 +437,7 @@ export const Step7Guarantor: React.FC<Step7GuarantorProps> = ({
                     className="text-xs text-red-600 hover:text-red-700 font-semibold flex items-center gap-1 p-1 hover:bg-red-50 rounded-lg transition-colors"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
-                    <span>Remove</span>
+                    <span>{t(language, 'remove')}</span>
                   </button>
                 )}
               </div>
@@ -451,7 +453,7 @@ export const Step7Guarantor: React.FC<Step7GuarantorProps> = ({
                   <input
                     type="text"
                     required
-                    placeholder="Full legal name"
+                    placeholder={t(language, 'wizard.guarantorNamePlaceholder')}
                     value={g.fullName || ''}
                     onChange={(e) => handleUpdateGuarantor(g.id, { fullName: e.target.value })}
                     className={`w-full px-3.5 py-2.5 rounded-xl border bg-white text-slate-900 text-sm focus:outline-none transition-all ${
@@ -474,7 +476,8 @@ export const Step7Guarantor: React.FC<Step7GuarantorProps> = ({
                   <input
                     type="text"
                     required
-                    placeholder="Passport or Israeli ID number"
+                    dir="ltr"
+                    placeholder={t(language, 'wizard.guarantorIdPlaceholder')}
                     value={g.passportOrIdNumber || ''}
                     onChange={(e) =>
                       handleUpdateGuarantor(g.id, { passportOrIdNumber: e.target.value.toUpperCase() })
@@ -500,8 +503,9 @@ export const Step7Guarantor: React.FC<Step7GuarantorProps> = ({
                   </label>
                   <input
                     type="tel"
+                    dir="ltr"
                     required
-                    placeholder="+972-5X-XXXXXXX"
+                    placeholder="+972-5X-XXXXXXX" // i18n-ignore: phone format
                     value={g.mobilePhoneNumber || ''}
                     onChange={(e) =>
                       handleUpdateGuarantor(g.id, { mobilePhoneNumber: e.target.value })
@@ -533,7 +537,7 @@ export const Step7Guarantor: React.FC<Step7GuarantorProps> = ({
                   >
                     {GUARANTOR_RELATIONSHIPS.map((r) => (
                       <option key={r} value={r}>
-                        {r}
+                        {optionLabel(language, 'relationship', r)}
                       </option>
                     ))}
                   </select>
@@ -548,7 +552,7 @@ export const Step7Guarantor: React.FC<Step7GuarantorProps> = ({
                     <input
                       type="text"
                       required
-                      placeholder="Specify relationship"
+                      placeholder={t(language, 'wizard.relationshipPlaceholder')}
                       value={g.otherRelationshipDetails || ''}
                       onChange={(e) =>
                         handleUpdateGuarantor(g.id, { otherRelationshipDetails: e.target.value })
@@ -571,10 +575,10 @@ export const Step7Guarantor: React.FC<Step7GuarantorProps> = ({
                 <div className="pt-2 border-t border-slate-100">
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="block text-xs font-bold text-slate-800">
-                      Guarantor ID / Passport Document <span className="text-red-500">*</span>
+                      {t(language, 'wizard.guarantorIdDoc')} <span className="text-red-500">*</span>
                     </label>
                     <span className="text-[10px] text-slate-400 font-medium">
-                      PDF, JPG, PNG · Max 10MB
+                      {t(language, 'fileTypesHint')}
                     </span>
                   </div>
 
@@ -598,7 +602,7 @@ export const Step7Guarantor: React.FC<Step7GuarantorProps> = ({
                             {g.idDocument.originalFilename}
                           </div>
                           <div className="text-[10px] text-slate-500">
-                            {(g.idDocument.fileSizeBytes / 1024).toFixed(0)} KB · Ready
+                            {t(language, 'wizard.fileReady', { kb: (g.idDocument.fileSizeBytes / 1024).toFixed(0) })}
                           </div>
                         </div>
                       </div>
@@ -608,7 +612,7 @@ export const Step7Guarantor: React.FC<Step7GuarantorProps> = ({
                           type="button"
                           onClick={() => handleRemoveDocument(g.id)}
                           className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
-                          title="Remove document"
+                          title={t(language, 'wizard.removeDocument')}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -665,7 +669,7 @@ export const Step7Guarantor: React.FC<Step7GuarantorProps> = ({
             className="w-full py-3 px-4 rounded-2xl border-2 border-dashed border-blue-900/30 hover:border-blue-900/60 bg-blue-50/40 hover:bg-blue-50/80 text-blue-900 font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-2xs group"
           >
             <UserPlus className="w-4 h-4 text-blue-900 transition-transform group-hover:scale-110" />
-            <span>Add Guarantor {guarantors.length + 1} (Optional)</span>
+            <span>{t(language, 'wizard.addGuarantorN', { n: guarantors.length + 1 })}</span>
           </button>
         )}
 
@@ -673,10 +677,10 @@ export const Step7Guarantor: React.FC<Step7GuarantorProps> = ({
         <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs text-slate-600 space-y-1">
           <div className="font-bold text-slate-800 flex items-center gap-1.5">
             <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>Eligibility Tip</span>
+            <span>{t(language, 'wizard.eligibilityTip')}</span>
           </div>
           <p className="text-[11px] leading-relaxed text-slate-500">
-            Adding 2 or more verified guarantors with ID documents awards the full 10% guarantor factor for your indicative eligibility score.
+            {t(language, 'wizard.eligibilityTipText')}
           </p>
         </div>
       </div>
@@ -698,7 +702,7 @@ export const Step7Guarantor: React.FC<Step7GuarantorProps> = ({
           className="w-2/3 py-3.5 px-6 rounded-xl bg-blue-900 hover:bg-blue-800 text-white font-semibold text-base shadow-sm hover:shadow transition-all flex items-center justify-center gap-2 group"
         >
           <span>{t(language, 'continue')}</span>
-          <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1 rtl:rotate-180" />
+          <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1 rtl:group-hover:-translate-x-1 rtl:rotate-180" />
         </button>
       </div>
     </form>

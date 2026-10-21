@@ -1,7 +1,7 @@
 import React from 'react';
 import { Globe, Check, ArrowRight } from 'lucide-react';
 import { Language } from '../types';
-import { SUPPORTED_LANGUAGES, t } from '../i18n/translations';
+import { ENABLED_LANGUAGES, t } from '../i18n/translations';
 
 interface Step1LanguageProps {
   selectedLanguage: Language;
@@ -35,7 +35,7 @@ export const Step1Language: React.FC<Step1LanguageProps> = ({
 
       {/* Language cards */}
       <div className="space-y-3 mb-8">
-        {SUPPORTED_LANGUAGES.map((lang) => {
+        {ENABLED_LANGUAGES.map((lang) => {
           const isSelected = selectedLanguage === lang.code;
           return (
             <button
@@ -43,7 +43,7 @@ export const Step1Language: React.FC<Step1LanguageProps> = ({
               type="button"
               id={`lang-select-${lang.code}`}
               onClick={() => onSelectLanguage(lang.code)}
-              className={`w-full p-4 rounded-2xl border text-left flex items-center justify-between transition-all duration-200 ${
+              className={`w-full p-4 rounded-2xl border text-start flex items-center justify-between transition-all duration-200 ${
                 isSelected
                   ? 'border-blue-900 bg-white ring-2 ring-blue-900/10 shadow-sm'
                   : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/70'
@@ -90,7 +90,7 @@ export const Step1Language: React.FC<Step1LanguageProps> = ({
           className="w-full py-3.5 px-6 rounded-xl bg-blue-900 hover:bg-blue-800 text-white font-semibold text-base shadow-sm hover:shadow transition-all flex items-center justify-center gap-2 group"
         >
           <span>{t(selectedLanguage, 'continue')}</span>
-          <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1 rtl:rotate-180" />
+          <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1 rtl:group-hover:-translate-x-1 rtl:rotate-180" />
         </button>
       </div>
     </div>

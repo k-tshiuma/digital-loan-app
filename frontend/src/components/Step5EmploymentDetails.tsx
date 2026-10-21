@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, Briefcase, DollarSign, ArrowRight, ArrowLeft, ShieldCheck } from 'lucide-react';
+import { Building2, Briefcase, DollarSign, ArrowRight, ArrowLeft, ShieldCheck, Calendar } from 'lucide-react';
 import { Language, EmploymentDetails } from '../types';
-import { SALARY_PAYMENT_METHODS } from '../config/appConfig';
+import { SALARY_PAYMENT_METHODS, calculateJobTenureMonths } from '../config/appConfig';
 import { t } from '../i18n/translations';
+import { optionLabel } from '../i18n/options';
+import { DateInput } from './DateInput';
 
 interface Step5EmploymentDetailsProps {
   language: Language;
@@ -17,10 +19,28 @@ export const Step5EmploymentDetails: React.FC<Step5EmploymentDetailsProps> = ({
   onSaveAndNext,
   onBack,
 }) => {
+  // Helper to derive approximate start date if tenure is present from seed/profile
+  const getInitialStartDate = (): string => {
+    if (initialData?.employmentStartDate) return initialData.employmentStartDate;
+    if (initialData?.jobTenureMonths && initialData.jobTenureMonths > 0) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - initialData.jobTenureMonths);
+      return d.toISOString().split('T')[0];
+    }
+    // Default to ~18 months ago as initial sensible placeholder date if nothing provided
+    const defaultDate = new Date();
+    defaultDate.setMonth(defaultDate.getMonth() - 18);
+    return defaultDate.toISOString().split('T')[0];
+  };
+
+  const initialStartDate = getInitialStartDate();
+  const initialTenure = initialData?.jobTenureMonths ?? calculateJobTenureMonths(initialStartDate);
+
   const [formData, setFormData] = useState<EmploymentDetails>({
     employerName: initialData?.employerName || '',
     staffingAgencyName: initialData?.staffingAgencyName || '',
-    jobTenureMonths: initialData?.jobTenureMonths || 18,
+    employmentStartDate: initialStartDate,
+    jobTenureMonths: initialTenure,
     monthlySalaryNis: initialData?.monthlySalaryNis || 7500,
     salaryPaymentMethod: initialData?.salaryPaymentMethod || 'Bank Transfer',
   });
@@ -28,16 +48,38 @@ export const Step5EmploymentDetails: React.FC<Step5EmploymentDetailsProps> = ({
   // Sync formData whenever initialData updates
   useEffect(() => {
     if (initialData) {
-      setFormData((prev) => ({
-        ...prev,
-        employerName: initialData.employerName ?? prev.employerName,
-        staffingAgencyName: initialData.staffingAgencyName ?? prev.staffingAgencyName,
-        jobTenureMonths: initialData.jobTenureMonths ?? prev.jobTenureMonths,
-        monthlySalaryNis: initialData.monthlySalaryNis ?? prev.monthlySalaryNis,
-        salaryPaymentMethod: initialData.salaryPaymentMethod ?? prev.salaryPaymentMethod,
-      }));
+      setFormData((prev) => {
+        const start = initialData.employmentStartDate ?? prev.employmentStartDate;
+        const tenure = initialData.jobTenureMonths ?? (start ? calculateJobTenureMonths(start) : prev.jobTenureMonths);
+        return {
+          ...prev,
+          employerName: initialData.employerName ?? prev.employerName,
+          staffingAgencyName: initialData.staffingAgencyName ?? prev.staffingAgencyName,
+          employmentStartDate: start,
+          jobTenureMonths: tenure,
+          monthlySalaryNis: initialData.monthlySalaryNis ?? prev.monthlySalaryNis,
+          salaryPaymentMethod: initialData.salaryPaymentMethod ?? prev.salaryPaymentMethod,
+        };
+      });
     }
   }, [initialData]);
+
+  const handleStartDateChange = (dateVal: string) => {
+    const calculatedMonths = calculateJobTenureMonths(dateVal);
+    setFormData((prev) => ({
+      ...prev,
+      employmentStartDate: dateVal,
+      jobTenureMonths: calculatedMonths,
+    }));
+    if (errors.employmentStartDate || errors.jobTenureMonths) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next.employmentStartDate;
+        delete next.jobTenureMonths;
+        return next;
+      });
+    }
+  };
 
   const isPreFilled = Boolean(initialData && initialData.employerName);
 
@@ -50,16 +92,22 @@ export const Step5EmploymentDetails: React.FC<Step5EmploymentDetailsProps> = ({
       errs.employerName = t(language, 'requiredField');
     }
 
-    if (!formData.jobTenureMonths || formData.jobTenureMonths <= 0) {
+    if (!formData.employmentStartDate) {
+      errs.employmentStartDate = t(language, 'requiredField');
+    } else if (new Date(formData.employmentStartDate) > new Date()) {
+      errs.employmentStartDate = t(language, 'wizard.err.startInFuture');
+    }
+
+    if (formData.jobTenureMonths === undefined || formData.jobTenureMonths < 0) {
       errs.jobTenureMonths = t(language, 'requiredField');
     }
 
     if (!formData.monthlySalaryNis || formData.monthlySalaryNis < 1000) {
-      errs.monthlySalaryNis = 'Please enter a valid monthly salary in NIS (minimum ₪1,000)';
+      errs.monthlySalaryNis = t(language, 'wizard.err.minSalary');
     }
 
     if (formData.salaryPaymentMethod === 'Other' && (!formData.otherSalaryPaymentMethodDetails || !formData.otherSalaryPaymentMethodDetails.trim())) {
-      errs.otherSalaryPaymentMethodDetails = 'Please provide details for the other payment method';
+      errs.otherSalaryPaymentMethodDetails = t(language, 'wizard.err.otherPaymentDetails');
     }
 
     setErrors(errs);
@@ -91,12 +139,12 @@ export const Step5EmploymentDetails: React.FC<Step5EmploymentDetailsProps> = ({
           <div className="flex items-center gap-2.5">
             <ShieldCheck className="w-4 h-4 text-blue-700 shrink-0" />
             <div>
-              <span className="font-bold text-blue-950 block">Employment details on file</span>
-              <span className="text-[11px] text-blue-800">Pre-filled from your profile. You can update employer, tenure, or monthly salary below.</span>
+              <span className="font-bold text-blue-950 block">{t(language, 'wizard.employmentOnFile')}</span>
+              <span className="text-[11px] text-blue-800">{t(language, 'wizard.employmentOnFileHint')}</span>
             </div>
           </div>
           <span className="text-[10px] font-bold text-blue-800 bg-blue-100 px-2 py-0.5 rounded-full shrink-0">
-            On File
+            {t(language, 'wizard.onFile')}
           </span>
         </div>
       )}
@@ -111,7 +159,7 @@ export const Step5EmploymentDetails: React.FC<Step5EmploymentDetailsProps> = ({
             id="employer-name-input"
             type="text"
             required
-            placeholder="e.g. Moshav Farm / Care Service / Construction Ltd."
+            placeholder={t(language, 'wizard.employerPlaceholder')}
             value={formData.employerName}
             onChange={(e) => setFormData({ ...formData, employerName: e.target.value })}
             className={`w-full px-4 py-3 rounded-xl border bg-white text-slate-900 text-sm font-medium focus:outline-none focus:ring-2 transition-all ${
@@ -131,34 +179,62 @@ export const Step5EmploymentDetails: React.FC<Step5EmploymentDetailsProps> = ({
           <input
             id="agency-name-input"
             type="text"
-            placeholder="e.g. Manpower Israel / Matan Care (Optional)"
+            placeholder={t(language, 'wizard.agencyPlaceholder')}
             value={formData.staffingAgencyName}
             onChange={(e) => setFormData({ ...formData, staffingAgencyName: e.target.value })}
             className="w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm font-medium focus:border-blue-900 focus:ring-2 focus:ring-blue-900/20 focus:outline-none transition-all"
           />
         </div>
 
-        {/* Job Tenure */}
+        {/* Employment Start Date */}
         <div className="space-y-1.5">
-          <label htmlFor="tenure-input" className="block text-xs font-bold text-slate-700 ">
-            {t(language, 'jobTenureMonthsLabel')} <span className="text-red-500">*</span>
+          <label htmlFor="start-date-input" className="block text-xs font-bold text-slate-700 ">
+            {t(language, 'employmentStartDateLabel')} <span className="text-red-500">*</span>
           </label>
-          <div className="relative">
-            <input
-              id="tenure-input"
-              type="number"
-              min={1}
-              max={240}
-              required
-              value={formData.jobTenureMonths}
-              onChange={(e) => setFormData({ ...formData, jobTenureMonths: parseInt(e.target.value) || 0 })}
-              className="w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm font-semibold focus:border-blue-900 focus:ring-2 focus:ring-blue-900/20 focus:outline-none transition-all"
-            />
-            <span className="absolute right-4 top-3 text-xs text-slate-400 font-semibold uppercase">
-              months
-            </span>
+          <DateInput
+            id="start-date-input"
+            language={language}
+            required
+            max={new Date().toISOString().split('T')[0]}
+            value={formData.employmentStartDate || ''}
+            onChange={handleStartDateChange}
+            className={
+              errors.employmentStartDate
+                ? 'border-red-400 focus:ring-red-200'
+                : 'border-slate-300 focus:border-blue-900 focus:ring-blue-900/20'
+            }
+          />
+          {errors.employmentStartDate && <p className="text-xs text-red-600">{errors.employmentStartDate}</p>}
+        </div>
+
+        {/* Derived Job Tenure display card */}
+        <div className="p-4 rounded-2xl bg-blue-50/70 border border-blue-100 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-900">
+              <Calendar className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-blue-900">
+                {t(language, 'jobTenureMonthsLabel')}
+              </div>
+              <div className="text-xs text-slate-500">
+                {t(language, 'wizard.calcFromStart')}
+              </div>
+            </div>
           </div>
-          {errors.jobTenureMonths && <p className="text-xs text-red-600">{errors.jobTenureMonths}</p>}
+          <div className="text-end">
+            <span className="text-2xl font-extrabold text-blue-950 font-mono">
+              {formData.jobTenureMonths}
+            </span>
+            <span className="text-xs text-blue-700 font-semibold ms-1">
+              {t(language, 'jobTenureMonthsSuffix')}
+            </span>
+            {formData.jobTenureMonths >= 12 && (
+              <div className="text-[10px] text-slate-500 font-medium">
+                ({Math.floor(formData.jobTenureMonths / 12)}y {formData.jobTenureMonths % 12}m)
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Monthly Salary in NIS ₪ */}
@@ -167,7 +243,7 @@ export const Step5EmploymentDetails: React.FC<Step5EmploymentDetailsProps> = ({
             {t(language, 'monthlySalaryLabel')} <span className="text-red-500">*</span>
           </label>
           <div className="relative">
-            <div className="absolute left-4 top-3 text-base font-bold text-blue-900 pointer-events-none">
+            <div className="absolute start-4 top-3 text-base font-bold text-blue-900 pointer-events-none">
               ₪
             </div>
             <input
@@ -179,13 +255,13 @@ export const Step5EmploymentDetails: React.FC<Step5EmploymentDetailsProps> = ({
               required
               value={formData.monthlySalaryNis}
               onChange={(e) => setFormData({ ...formData, monthlySalaryNis: parseInt(e.target.value) || 0 })}
-              className={`w-full pl-9 pr-12 py-3 rounded-xl border bg-white text-slate-900 text-base font-bold font-mono focus:outline-none focus:ring-2 transition-all ${
+              className={`w-full ps-9 pe-12 py-3 rounded-xl border bg-white text-slate-900 text-base font-bold font-mono focus:outline-none focus:ring-2 transition-all ${
                 errors.monthlySalaryNis
                   ? 'border-red-400 focus:ring-red-200'
                   : 'border-slate-300 focus:border-blue-900 focus:ring-blue-900/20'
               }`}
             />
-            <span className="absolute right-4 top-3.5 text-xs text-slate-400 font-bold uppercase">
+            <span className="absolute end-4 top-3.5 text-xs text-slate-400 font-bold uppercase">
               NIS
             </span>
           </div>
@@ -205,7 +281,7 @@ export const Step5EmploymentDetails: React.FC<Step5EmploymentDetailsProps> = ({
           >
             {SALARY_PAYMENT_METHODS.map((m) => (
               <option key={m} value={m}>
-                {m}
+                {optionLabel(language, 'salaryMethod', m)}
               </option>
             ))}
           </select>
@@ -252,7 +328,7 @@ export const Step5EmploymentDetails: React.FC<Step5EmploymentDetailsProps> = ({
           className="w-2/3 py-3.5 px-6 rounded-xl bg-blue-900 hover:bg-blue-800 text-white font-semibold text-base shadow-sm hover:shadow transition-all flex items-center justify-center gap-2 group"
         >
           <span>{t(language, 'continue')}</span>
-          <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1 rtl:rotate-180" />
+          <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1 rtl:group-hover:-translate-x-1 rtl:rotate-180" />
         </button>
       </div>
     </form>

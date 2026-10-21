@@ -272,32 +272,56 @@ export function calculateYearsOfResidency(entryDateString: string): number {
 export function isVisaValidForLoan(
   visaExpiryDateString: string,
   minMonthsRemaining = 6
-): { valid: boolean; reason?: string; monthsRemaining?: number } {
+): {
+  valid: boolean;
+  reason?: string;
+  /** Translation key for `reason`, with `reasonParams` placeholders. */
+  reasonKey?: string;
+  reasonParams?: Record<string, string | number>;
+  monthsRemaining?: number;
+} {
   if (!visaExpiryDateString) {
-    return { valid: false, reason: 'Visa expiry date is required.' };
+    return { valid: false, reason: 'Visa expiry date is required.', reasonKey: 'visa.err.required' };
   }
 
   const expiry = new Date(visaExpiryDateString);
   const now = new Date();
 
   if (isNaN(expiry.getTime())) {
-    return { valid: false, reason: 'Invalid date format' };
+    return { valid: false, reason: 'Invalid date format', reasonKey: 'visa.err.invalidDate' };
   }
 
   const diffDays = (expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
   const monthsRemaining = Math.round((diffDays / 30.44) * 10) / 10;
 
   if (diffDays <= 0) {
-    return { valid: false, reason: 'Visa has already expired.', monthsRemaining: 0 };
+    return { valid: false, reason: 'Visa has already expired.', reasonKey: 'visa.err.expired', monthsRemaining: 0 };
   }
 
   if (monthsRemaining < minMonthsRemaining) {
     return {
       valid: false,
       reason: `Visa must have at least ${minMonthsRemaining} months of validity remaining (currently ${monthsRemaining.toFixed(1)} months).`,
+      reasonKey: 'visa.err.tooShort',
+      reasonParams: { min: minMonthsRemaining, current: monthsRemaining.toFixed(1) },
       monthsRemaining,
     };
   }
 
   return { valid: true, monthsRemaining };
+}
+
+/**
+ * Calculates tenure in months from an employment start date (YYYY-MM-DD)
+ */
+export function calculateJobTenureMonths(startDateString: string): number {
+  if (!startDateString) return 0;
+  const start = new Date(startDateString);
+  const now = new Date();
+  if (isNaN(start.getTime())) return 0;
+  let months = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+  if (now.getDate() < start.getDate()) {
+    months--;
+  }
+  return Math.max(0, months);
 }

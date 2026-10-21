@@ -3,6 +3,8 @@ import { ShieldAlert, CheckCircle2, ArrowRight, ArrowLeft, Calendar, Info, Shiel
 import { Language, ResidencyDetails } from '../types';
 import { VISA_TYPES, calculateYearsOfResidency, isVisaValidForLoan } from '../config/appConfig';
 import { t } from '../i18n/translations';
+import { optionLabel } from '../i18n/options';
+import { DateInput } from './DateInput';
 
 interface Step4ResidencyDetailsProps {
   language: Language;
@@ -30,7 +32,7 @@ export const Step4ResidencyDetails: React.FC<Step4ResidencyDetailsProps> = ({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [calculatedYears, setCalculatedYears] = useState<number>(3.4);
-  const [visaValidation, setVisaValidation] = useState<{ valid: boolean; reason?: string }>({ valid: true });
+  const [visaValidation, setVisaValidation] = useState<ReturnType<typeof isVisaValidForLoan>>({ valid: true });
 
   // Sync formData whenever initialData updates
   useEffect(() => {
@@ -72,7 +74,7 @@ export const Step4ResidencyDetails: React.FC<Step4ResidencyDetailsProps> = ({
     } else {
       const res = isVisaValidForLoan(formData.visaExpiryDate, 6);
       if (!res.valid) {
-        errs.visaExpiryDate = res.reason || t(language, 'visaExpiringSoonWarning');
+        errs.visaExpiryDate = res.reasonKey ? t(language, res.reasonKey, res.reasonParams) : t(language, 'visaExpiringSoonWarning');
       }
     }
 
@@ -112,12 +114,12 @@ export const Step4ResidencyDetails: React.FC<Step4ResidencyDetailsProps> = ({
           <div className="flex items-center gap-2.5">
             <ShieldCheck className="w-4 h-4 text-blue-700 shrink-0" />
             <div>
-              <span className="font-bold text-blue-950 block">Visa & residency details on file</span>
-              <span className="text-[11px] text-blue-800">Pre-filled from your profile. You can update your visa expiry date if renewed.</span>
+              <span className="font-bold text-blue-950 block">{t(language, 'wizard.residencyOnFile')}</span>
+              <span className="text-[11px] text-blue-800">{t(language, 'wizard.residencyOnFileHint')}</span>
             </div>
           </div>
           <span className="text-[10px] font-bold text-blue-800 bg-blue-100 px-2 py-0.5 rounded-full shrink-0">
-            On File
+            {t(language, 'wizard.onFile')}
           </span>
         </div>
       )}
@@ -136,12 +138,12 @@ export const Step4ResidencyDetails: React.FC<Step4ResidencyDetailsProps> = ({
           >
             {VISA_TYPES.map((v) => (
               <option key={v.code} value={v.code}>
-                {v.label}
+                {optionLabel(language, 'visa', v.code)}
               </option>
             ))}
           </select>
           <p className="text-[11px] text-slate-400">
-            Official visa code from Population and Immigration Authority (PIBA).
+            {t(language, 'wizard.visaCodeHint')}
           </p>
         </div>
 
@@ -153,31 +155,35 @@ export const Step4ResidencyDetails: React.FC<Step4ResidencyDetailsProps> = ({
             </label>
             {visaValidation.valid ? (
               <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3" /> Valid for Loan
+                <CheckCircle2 className="w-3 h-3" /> {t(language, 'wizard.validForLoan')}
               </span>
             ) : (
               <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded flex items-center gap-1">
-                <ShieldAlert className="w-3 h-3" /> Expiry Warning
+                <ShieldAlert className="w-3 h-3" /> {t(language, 'wizard.expiryWarning')}
               </span>
             )}
           </div>
-          <input
+          <DateInput
             id="visa-expiry-input"
-            type="date"
+            language={language}
             required
             value={formData.visaExpiryDate}
-            onChange={(e) => setFormData({ ...formData, visaExpiryDate: e.target.value })}
-            className={`w-full px-4 py-3 rounded-xl border bg-white text-slate-900 text-sm font-medium focus:outline-none focus:ring-2 transition-all ${
+            onChange={(iso) => setFormData({ ...formData, visaExpiryDate: iso })}
+            className={
               errors.visaExpiryDate || !visaValidation.valid
                 ? 'border-amber-400 focus:ring-amber-200'
                 : 'border-slate-300 focus:border-blue-900 focus:ring-blue-900/20'
-            }`}
+            }
           />
           {errors.visaExpiryDate && <p className="text-xs text-red-600">{errors.visaExpiryDate}</p>}
           {!visaValidation.valid && (
             <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-start gap-2">
               <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5 text-amber-700" />
-              <span>{visaValidation.reason || t(language, 'visaExpiringSoonWarning')}</span>
+              <span>
+                {visaValidation.reasonKey
+                  ? t(language, visaValidation.reasonKey, visaValidation.reasonParams)
+                  : t(language, 'visaExpiringSoonWarning')}
+              </span>
             </div>
           )}
         </div>
@@ -187,14 +193,14 @@ export const Step4ResidencyDetails: React.FC<Step4ResidencyDetailsProps> = ({
           <label htmlFor="entry-date-input" className="block text-xs font-bold text-slate-700 ">
             {t(language, 'dateOfEntryLabel')} <span className="text-red-500">*</span>
           </label>
-          <input
+          <DateInput
             id="entry-date-input"
-            type="date"
+            language={language}
             required
             max={new Date().toISOString().split('T')[0]}
             value={formData.dateOfEntry}
-            onChange={(e) => setFormData({ ...formData, dateOfEntry: e.target.value })}
-            className="w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-900 text-sm font-medium focus:border-blue-900 focus:ring-2 focus:ring-blue-900/20 focus:outline-none transition-all"
+            onChange={(iso) => setFormData({ ...formData, dateOfEntry: iso })}
+            className="border-slate-300 focus:border-blue-900 focus:ring-blue-900/20"
           />
         </div>
 
@@ -209,15 +215,15 @@ export const Step4ResidencyDetails: React.FC<Step4ResidencyDetailsProps> = ({
                 {t(language, 'yearsOfResidencyLabel')}
               </div>
               <div className="text-xs text-slate-500">
-                Automatically calculated from entry date
+                {t(language, 'wizard.calcFromEntry')}
               </div>
             </div>
           </div>
-          <div className="text-right">
+          <div className="text-end">
             <span className="text-2xl font-extrabold text-blue-950 font-mono">
               {calculatedYears}
             </span>
-            <span className="text-xs text-blue-700 font-semibold ml-1">years</span>
+            <span className="text-xs text-blue-700 font-semibold ms-1">{t(language, 'wizard.years')}</span>
           </div>
         </div>
       </div>
@@ -239,7 +245,7 @@ export const Step4ResidencyDetails: React.FC<Step4ResidencyDetailsProps> = ({
           className="w-2/3 py-3.5 px-6 rounded-xl bg-blue-900 hover:bg-blue-800 text-white font-semibold text-base shadow-sm hover:shadow transition-all flex items-center justify-center gap-2 group"
         >
           <span>{t(language, 'continue')}</span>
-          <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1 rtl:rotate-180" />
+          <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1 rtl:group-hover:-translate-x-1 rtl:rotate-180" />
         </button>
       </div>
     </form>

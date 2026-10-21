@@ -14,6 +14,9 @@ import {
 import { Language, LoanApplication, User } from '../types';
 import { STATUS_BADGE_CONFIG } from '../config/appConfig';
 import { t } from '../i18n/translations';
+import { statusLabel } from '../i18n/options';
+import { localizeError } from '../i18n/apiErrors';
+import { formatCurrency, formatDate } from '../i18n/format';
 import { apiService } from '../services/api';
 import { storageService } from '../services/storage';
 
@@ -66,10 +69,10 @@ export const MyApplications: React.FC<MyApplicationsProps> = ({
     e.stopPropagation();
     setDownloadingId(app.id);
     try {
-      await apiService.downloadApplicationPdf(app);
+      await apiService.downloadApplicationPdf(app, 'borrower', language);
     } catch (err) {
       console.error('Download failed:', err);
-      alert('Could not download PDF summary.');
+      alert(localizeError(err, language, 'pdf.downloadFailed'));
     } finally {
       setDownloadingId(null);
     }
@@ -95,9 +98,9 @@ export const MyApplications: React.FC<MyApplicationsProps> = ({
               <FileText className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-extrabold text-slate-900">My Loan Applications</h2>
+              <h2 className="text-base font-extrabold text-slate-900">{t(language, 'myLoanApplications')}</h2>
               <p className="text-xs text-slate-500">
-                Manage your past requests, track reviews, and download summaries
+                {t(language, 'myApps.subtitle')}
               </p>
             </div>
           </div>
@@ -115,7 +118,7 @@ export const MyApplications: React.FC<MyApplicationsProps> = ({
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           <div className="flex items-center justify-between pb-1">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Submitted Applications ({applications.length})
+              {t(language, 'myApps.submittedCount', { n: applications.length })}
             </span>
 
             <button
@@ -124,7 +127,7 @@ export const MyApplications: React.FC<MyApplicationsProps> = ({
               onClick={() => {
                 if (hasActiveUnderReview) {
                   const proceed = window.confirm(
-                    'You already have an active loan application under review. Would you like to start a new application draft anyway?'
+                    t(language, 'myApps.confirmNew')
                   );
                   if (!proceed) return;
                 }
@@ -134,21 +137,21 @@ export const MyApplications: React.FC<MyApplicationsProps> = ({
               className="py-1.5 px-3 rounded-xl bg-blue-900 hover:bg-blue-800 text-white font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-colors"
             >
               <PlusCircle className="w-4 h-4" />
-              <span>Apply for Another Loan</span>
+              <span>{t(language, 'myApps.applyAnother')}</span>
             </button>
           </div>
 
           {loading ? (
             <div className="py-12 flex flex-col items-center justify-center text-slate-400 gap-2">
               <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-              <span className="text-xs">Loading application history...</span>
+              <span className="text-xs">{t(language, 'myApps.loading')}</span>
             </div>
           ) : applications.length === 0 ? (
             <div className="py-12 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 p-6">
               <Clock className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-              <div className="text-sm font-bold text-slate-700">No applications on record</div>
+              <div className="text-sm font-bold text-slate-700">{t(language, 'myApps.emptyTitle')}</div>
               <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
-                You have not submitted any loan applications yet. Start a new quick application in minutes!
+                {t(language, 'myApps.emptyText')}
               </p>
             </div>
           ) : (
@@ -169,40 +172,40 @@ export const MyApplications: React.FC<MyApplicationsProps> = ({
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2.5 mb-2.5">
                       <div className="flex items-center gap-2">
                         <span className="font-mono font-bold text-sm text-slate-900 group-hover:text-blue-900 transition-colors">
-                          {app.requestNumber}
+                          <bdi dir="ltr">{app.requestNumber}</bdi>
                         </span>
                         <span
                           className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border shadow-2xs ${statusBadge.badgeColor}`}
                         >
-                          {app.status}
+                          {statusLabel(language, app.status)}
                         </span>
                       </div>
 
                       <div className="text-[11px] text-slate-400 flex items-center gap-1 font-mono">
                         <Calendar className="w-3.5 h-3.5" />
-                        <span>{new Date(app.createdAt).toLocaleDateString()}</span>
+                        <span>{formatDate(app.createdAt, language)}</span>
                       </div>
                     </div>
 
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-slate-600">
                       <div>
-                        <span className="text-slate-400 text-[10px] block">Amount Requested:</span>
+                        <span className="text-slate-400 text-[10px] block">{t(language, 'myApps.amountRequested')}</span>
                         <span className="font-bold text-slate-900 font-mono">
-                          ₪{app.loanRequest?.requestedAmountNis?.toLocaleString() || 'N/A'}
+                          {formatCurrency(app.loanRequest?.requestedAmountNis, language)}
                         </span>
                       </div>
 
                       <div>
-                        <span className="text-slate-400 text-[10px] block">Term:</span>
+                        <span className="text-slate-400 text-[10px] block">{t(language, 'status.term')}</span>
                         <span className="font-medium text-slate-800">
-                          {app.loanRequest?.repaymentPeriodMonths} Months
+                          {t(language, 'status.monthsN', { n: app.loanRequest?.repaymentPeriodMonths ?? 0 })}
                         </span>
                       </div>
 
                       <div>
-                        <span className="text-slate-400 text-[10px] block">Est. Monthly:</span>
+                        <span className="text-slate-400 text-[10px] block">{t(language, 'myApps.estMonthly')}</span>
                         <span className="font-medium text-slate-800">
-                          ₪{app.loanRequest?.estimatedMonthlyPaymentNis || '—'}
+                          {formatCurrency(app.loanRequest?.estimatedMonthlyPaymentNis, language)}
                         </span>
                       </div>
 
@@ -212,7 +215,7 @@ export const MyApplications: React.FC<MyApplicationsProps> = ({
                           onClick={(e) => handleDownloadPdf(e, app)}
                           disabled={downloadingId === app.id}
                           className="p-2 rounded-xl bg-slate-50 hover:bg-blue-50 text-slate-600 hover:text-blue-900 border border-slate-200 transition-colors"
-                          title="Download PDF"
+                          title={t(language, 'pdf.downloadShort')}
                         >
                           {downloadingId === app.id ? (
                             <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
@@ -221,9 +224,9 @@ export const MyApplications: React.FC<MyApplicationsProps> = ({
                           )}
                         </button>
 
-                        <span className="inline-flex items-center gap-1 text-xs font-bold text-blue-900 group-hover:translate-x-0.5 transition-transform">
-                          <span>View</span>
-                          <ChevronRight className="w-4 h-4" />
+                        <span className="inline-flex items-center gap-1 text-xs font-bold text-blue-900 group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5 transition-transform">
+                          <span>{t(language, 'myApps.view')}</span>
+                          <ChevronRight className="w-4 h-4 rtl:rotate-180" />
                         </span>
                       </div>
                     </div>
@@ -236,13 +239,13 @@ export const MyApplications: React.FC<MyApplicationsProps> = ({
 
         {/* Footer */}
         <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
-          <span>Foreign Worker Digital Lending Portal</span>
+          <span>{t(language, 'myApps.footer')}</span>
           <button
             type="button"
             onClick={onClose}
             className="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 font-bold text-slate-800 transition-colors"
           >
-            Close
+            {t(language, 'close')}
           </button>
         </div>
       </div>
