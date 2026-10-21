@@ -53,7 +53,7 @@ export const EligibilityScoreBar: React.FC<EligibilityScoreBarProps> = ({
         </div>
 
         {/* Score Badge */}
-        <div className="text-right">
+        <div className="text-end">
           <div className="flex items-baseline justify-end gap-1">
             <span className="text-xl font-extrabold text-blue-950 font-mono tracking-tight">
               {rawScore}%

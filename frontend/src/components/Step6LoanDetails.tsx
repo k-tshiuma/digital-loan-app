@@ -289,7 +289,7 @@ export const Step6LoanDetails: React.FC<Step6LoanDetailsProps> = ({
 
         {/* Live Calculation / Transparent Repayment Breakdown Card - FinBest Theme */}
         <div className="p-4.5 rounded-2xl bg-gradient-to-br from-[#0b1a2d] via-[#0d2038] to-[#122846] text-white shadow-xl border border-sky-500/30 space-y-3 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-sky-500/10 rounded-full blur-xl pointer-events-none" />
+          <div className="absolute top-0 end-0 w-32 h-32 bg-sky-500/10 rounded-full blur-xl pointer-events-none" />
           <div className="flex items-center justify-between border-b border-slate-700/60 pb-2.5 relative z-10">
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-sky-400" />
@@ -312,7 +312,7 @@ export const Step6LoanDetails: React.FC<Step6LoanDetailsProps> = ({
               </div>
             </div>
 
-            <div className="text-right">
+            <div className="text-end">
               <div className="text-[11px] text-slate-300 font-medium">
                 {t(language, 'totalRepayment')}
               </div>
@@ -386,6 +386,7 @@ export const Step6LoanDetails: React.FC<Step6LoanDetailsProps> = ({
                 type="text"
                 maxLength={4}
                 value={branchNumber}
+                dir="ltr"
                 onChange={(e) => {
                   setBranchNumber(e.target.value.replace(/\D/g, ''));
                   if (bankErrors.branchNumber) {
@@ -411,6 +412,7 @@ export const Step6LoanDetails: React.FC<Step6LoanDetailsProps> = ({
                 type="text"
                 maxLength={12}
                 value={accountNumber}
+                dir="ltr"
                 onChange={(e) => {
                   setAccountNumber(e.target.value.replace(/\D/g, ''));
                   if (bankErrors.accountNumber) {
@@ -483,7 +485,7 @@ export const Step6LoanDetails: React.FC<Step6LoanDetailsProps> = ({
           className="w-2/3 py-3.5 px-6 rounded-xl bg-blue-900 hover:bg-blue-800 text-white font-semibold text-base shadow-sm hover:shadow transition-all flex items-center justify-center gap-2 group"
         >
           <span>{t(language, 'continue')}</span>
-          <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1 rtl:rotate-180" />
+          <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1 rtl:group-hover:-translate-x-1 rtl:rotate-180" />
         </button>
       </div>
     </form>

@@ -340,7 +340,7 @@ export const Step8DocumentUpload: React.FC<Step8DocumentUploadProps> = ({
             {ocrPromptDoc.ocrExtractedData.passportNumber && (
               <div>
                 <span className="text-slate-400 font-sans text-[11px] block">{t(language, 'wizard.ocrPassportNumber')}</span>
-                <span className="font-bold text-sm text-blue-900">{ocrPromptDoc.ocrExtractedData.passportNumber}</span>
+                <span className="font-bold text-sm text-blue-900"><bdi dir="ltr">{ocrPromptDoc.ocrExtractedData.passportNumber}</bdi></span>
               </div>
             )}
             {ocrPromptDoc.ocrExtractedData.visaExpiryDate && (
@@ -677,7 +677,7 @@ export const Step8DocumentUpload: React.FC<Step8DocumentUploadProps> = ({
             {t(language, 'wizard.bankConfirmTitle')} <span className="text-red-500">*</span>
           </span>
         </label>
-        <p className="text-[11px] text-slate-500 ml-8">
+        <p className="text-[11px] text-slate-500 ms-8">
           {t(language, 'wizard.bankConfirmText')}
         </p>
       </div>
@@ -700,7 +700,7 @@ export const Step8DocumentUpload: React.FC<Step8DocumentUploadProps> = ({
           className="w-2/3 py-3.5 px-6 rounded-xl bg-blue-900 hover:bg-blue-800 text-white font-semibold text-base shadow-sm hover:shadow transition-all flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <span>{t(language, 'continue')}</span>
-          <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1 rtl:rotate-180" />
+          <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1 rtl:group-hover:-translate-x-1 rtl:rotate-180" />
         </button>
       </div>
     </form>

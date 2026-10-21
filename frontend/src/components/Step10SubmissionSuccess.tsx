@@ -76,7 +76,7 @@ export const Step10SubmissionSuccess: React.FC<Step10SubmissionSuccessProps> = (
         </span>
         <div className="flex items-center justify-center gap-2">
           <span className="text-2xl font-black font-mono text-blue-950 tracking-wider">
-            {application.requestNumber}
+            <bdi dir="ltr">{application.requestNumber}</bdi>
           </span>
           <button
             type="button"
@@ -93,7 +93,7 @@ export const Step10SubmissionSuccess: React.FC<Step10SubmissionSuccessProps> = (
       </div>
 
       {/* Indicative Loan Eligibility Result */}
-      <div className="mb-6 text-left">
+      <div className="mb-6 text-start">
         <EligibilityScoreBar
           scoreData={
             application.eligibilityBreakdown ||
@@ -105,7 +105,7 @@ export const Step10SubmissionSuccess: React.FC<Step10SubmissionSuccessProps> = (
       </div>
 
       {/* Next Steps List */}
-      <div className="text-left space-y-3 mb-8">
+      <div className="text-start space-y-3 mb-8">
         <div className="text-xs font-bold text-slate-700 ">
           {t(language, 'nextStepsTitle')}
         </div>

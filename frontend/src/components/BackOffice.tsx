@@ -221,7 +221,7 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
     <div className="min-h-screen bg-slate-100 text-slate-800 flex flex-col animate-in fade-in">
       {/* Top Admin Navigation Bar */}
       <div className="bg-[#0b1a2d] text-white border-b border-slate-800 px-4 py-3 sticky top-0 z-30 shadow-md">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl bg-sky-600 flex items-center justify-center font-bold text-white shadow-xs">
               <Shield className="w-4 h-4" />
@@ -239,7 +239,7 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             {/* RBAC Role Selector */}
             <div className="flex items-center gap-1.5 bg-slate-800/90 px-3 py-1.5 rounded-xl border border-slate-700">
               <span className="text-xs text-slate-400 font-medium">{t(language, 'bo.role')}</span>
@@ -280,7 +280,7 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
                   : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'
               }`}
             >
-              <FileText className="w-3.5 h-3.5 inline mr-1.5 text-sky-400" />
+              <FileText className="w-3.5 h-3.5 inline me-1.5 text-sky-400" />
               {t(language, 'bo.tab.applications', { n: applications.length })}
             </button>
 
@@ -293,7 +293,7 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
                     : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'
                 }`}
               >
-                <TrendingUp className="w-3.5 h-3.5 inline mr-1.5 text-sky-400" />
+                <TrendingUp className="w-3.5 h-3.5 inline me-1.5 text-sky-400" />
                 {t(language, 'bo.tab.analytics')}
               </button>
             )}
@@ -306,7 +306,7 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
                   : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'
               }`}
             >
-              <Clock className="w-3.5 h-3.5 inline mr-1.5 text-sky-400" />
+              <Clock className="w-3.5 h-3.5 inline me-1.5 text-sky-400" />
               {t(language, 'bo.tab.audit', { n: auditEvents.length })}
             </button>
 
@@ -319,7 +319,7 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
                     : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'
                 }`}
               >
-                <Sliders className="w-3.5 h-3.5 inline mr-1.5 text-sky-400" />
+                <Sliders className="w-3.5 h-3.5 inline me-1.5 text-sky-400" />
                 {t(language, 'bo.tab.config')}
               </button>
             )}
@@ -348,13 +348,13 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
             {/* Search & Filter Bar */}
             <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
               <div className="relative flex-1 min-w-[240px]">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                <Search className="w-4 h-4 text-slate-400 absolute start-3.5 top-3" />
                 <input
                   type="text"
                   placeholder={t(language, 'bo.searchPlaceholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs focus:bg-white focus:border-purple-900 focus:outline-none"
+                  className="w-full ps-10 pe-4 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs focus:bg-white focus:border-purple-900 focus:outline-none"
                 />
               </div>
 
@@ -379,17 +379,17 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
             {/* Applications Table */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs text-slate-700">
+                <table className="w-full text-start text-xs text-slate-700">
                   <thead className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase text-slate-500 tracking-wider">
                     <tr>
                       <th className="py-3 px-4">{t(language, 'bo.col.request')}</th>
                       <th className="py-3 px-4">{t(language, 'bo.col.borrower')}</th>
                       <th className="py-3 px-4">{t(language, 'bo.col.passport')}</th>
                       <th className="py-3 px-4">{t(language, 'bo.col.visa')}</th>
-                      <th className="py-3 px-4 text-right">{t(language, 'bo.col.loan')}</th>
+                      <th className="py-3 px-4 text-end">{t(language, 'bo.col.loan')}</th>
                       <th className="py-3 px-4 text-center">{t(language, 'bo.col.risk')}</th>
                       <th className="py-3 px-4 text-center">{t(language, 'bo.col.status')}</th>
-                      <th className="py-3 px-4 text-right">{t(language, 'bo.col.action')}</th>
+                      <th className="py-3 px-4 text-end">{t(language, 'bo.col.action')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -403,16 +403,16 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
                             onClick={() => setSelectedApp(app)}
                           >
                             <td className="py-3.5 px-4 font-mono font-bold text-purple-950">
-                              {app.requestNumber}
+                              <bdi dir="ltr">{app.requestNumber}</bdi>
                             </td>
                             <td className="py-3.5 px-4 font-bold text-slate-900">
                               {app.borrowerDetails?.fullName || t(language, 'bo.anonymousDraft')}
                               <div className="text-[10px] text-slate-400 font-normal">
-                                {app.borrowerDetails?.mobilePhoneNumber}
+                                <bdi dir="ltr">{app.borrowerDetails?.mobilePhoneNumber}</bdi>
                               </div>
                             </td>
                             <td className="py-3.5 px-4">
-                              <span className="font-mono">{app.borrowerDetails?.passportNumber}</span>
+                              <span className="font-mono"><bdi dir="ltr">{app.borrowerDetails?.passportNumber}</bdi></span>
                               <span className="text-[11px] text-slate-500 block">
                                 {optionLabel(language, 'country', app.borrowerDetails?.countryOfOrigin)}
                               </span>
@@ -423,7 +423,7 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
                                 {t(language, 'bo.yrsInIsrael', { n: app.residencyDetails?.yearsOfResidency || 0 })}
                               </span>
                             </td>
-                            <td className="py-3.5 px-4 text-right">
+                            <td className="py-3.5 px-4 text-end">
                               <span className="font-mono font-extrabold text-blue-900">
                                 ₪{app.loanRequest?.requestedAmountNis?.toLocaleString()}
                               </span>
@@ -456,7 +456,7 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
                                 {statusLabel(language, app.status)}
                               </span>
                             </td>
-                            <td className="py-3.5 px-4 text-right">
+                            <td className="py-3.5 px-4 text-end">
                               <button
                                 type="button"
                                 onClick={(e) => {
@@ -502,7 +502,7 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
               <span className="text-xs text-slate-400 font-mono">{t(language, 'bo.totalRecords', { n: auditEvents.length })}</span>
             </div>
 
-            <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
+            <div className="space-y-2 max-h-[600px] overflow-y-auto pe-1">
               {auditEvents.map((evt) => (
                 <div key={evt.id} className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs flex items-start justify-between">
                   <div className="space-y-1">
@@ -523,7 +523,7 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
                       </pre>
                     )}
                   </div>
-                  <div className="text-right text-[10px] text-slate-400 font-mono shrink-0">
+                  <div className="text-end text-[10px] text-slate-400 font-mono shrink-0">
                     {new Date(evt.createdAt).toLocaleString()}
                   </div>
                 </div>
@@ -714,7 +714,7 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
               <div>
                 <div className="flex items-center gap-2">
                   <span className="font-mono font-bold text-base text-purple-300">
-                    {selectedApp.requestNumber}
+                    <bdi dir="ltr">{selectedApp.requestNumber}</bdi>
                   </span>
                   <span
                     className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
@@ -779,7 +779,7 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
                   <div><span className="text-slate-400">{t(language, 'bo.fullName')}</span> <span className="font-bold text-slate-900">{selectedApp.borrowerDetails?.fullName}</span></div>
                   <div><span className="text-slate-400">{t(language, 'bo.passport')}</span> <span className="font-mono font-bold">{selectedApp.borrowerDetails?.passportNumber}</span></div>
                   <div><span className="text-slate-400">{t(language, 'bo.originDob')}</span> {optionLabel(language, 'country', selectedApp.borrowerDetails?.countryOfOrigin)} ({selectedApp.borrowerDetails?.dateOfBirth})</div>
-                  <div><span className="text-slate-400">{t(language, 'bo.phone')}</span> {selectedApp.borrowerDetails?.mobilePhoneNumber}</div>
+                  <div><span className="text-slate-400">{t(language, 'bo.phone')}</span> <bdi dir="ltr">{selectedApp.borrowerDetails?.mobilePhoneNumber}</bdi></div>
                   <div><span className="text-slate-400">{t(language, 'bo.address')}</span> {selectedApp.borrowerDetails?.addressFull}</div>
                 </div>
 
@@ -843,8 +843,8 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
                               <span className="text-[10px] font-normal text-slate-500">{optionLabel(language, 'relationship', g.relationship)}</span>
                             </div>
                             <div className="grid grid-cols-2 gap-1 text-[11px] text-slate-600">
-                              <div>{t(language, 'bo.id')} <span className="font-mono font-semibold">{g.passportOrIdNumber}</span></div>
-                              <div>{t(language, 'bo.tel')} {g.mobilePhoneNumber}</div>
+                              <div>{t(language, 'bo.id')} <span className="font-mono font-semibold"><bdi dir="ltr">{g.passportOrIdNumber}</bdi></span></div>
+                              <div>{t(language, 'bo.tel')} <bdi dir="ltr">{g.mobilePhoneNumber}</bdi></div>
                             </div>
                           </div>
                         ))}

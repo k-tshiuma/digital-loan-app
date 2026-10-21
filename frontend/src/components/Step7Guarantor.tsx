@@ -419,7 +419,7 @@ export const Step7Guarantor: React.FC<Step7GuarantorProps> = ({
                       {t(language, 'wizard.guarantorN', { n: gNum })}
                     </span>
                     <span
-                      className={`ml-2 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                      className={`ms-2 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
                         isRequired
                           ? 'bg-blue-50 text-blue-900 border border-blue-200'
                           : 'bg-slate-100 text-slate-600 border border-slate-200'
@@ -476,6 +476,7 @@ export const Step7Guarantor: React.FC<Step7GuarantorProps> = ({
                   <input
                     type="text"
                     required
+                    dir="ltr"
                     placeholder={t(language, 'wizard.guarantorIdPlaceholder')}
                     value={g.passportOrIdNumber || ''}
                     onChange={(e) =>
@@ -502,6 +503,7 @@ export const Step7Guarantor: React.FC<Step7GuarantorProps> = ({
                   </label>
                   <input
                     type="tel"
+                    dir="ltr"
                     required
                     placeholder="+972-5X-XXXXXXX" // i18n-ignore: phone format
                     value={g.mobilePhoneNumber || ''}
@@ -700,7 +702,7 @@ export const Step7Guarantor: React.FC<Step7GuarantorProps> = ({
           className="w-2/3 py-3.5 px-6 rounded-xl bg-blue-900 hover:bg-blue-800 text-white font-semibold text-base shadow-sm hover:shadow transition-all flex items-center justify-center gap-2 group"
         >
           <span>{t(language, 'continue')}</span>
-          <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1 rtl:rotate-180" />
+          <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1 rtl:group-hover:-translate-x-1 rtl:rotate-180" />
         </button>
       </div>
     </form>

@@ -301,6 +301,7 @@ export const ReturningUserConfirmModal: React.FC<ReturningUserConfirmModalProps>
                     type="text"
                     required
                     maxLength={4}
+                    dir="ltr"
                     value={branchNumber}
                     onChange={(e) => setBranchNumber(e.target.value.replace(/\D/g, ''))}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:border-blue-900 focus:outline-none"
@@ -315,6 +316,7 @@ export const ReturningUserConfirmModal: React.FC<ReturningUserConfirmModalProps>
                     type="text"
                     required
                     maxLength={10}
+                    dir="ltr"
                     value={accountNumber}
                     onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, ''))}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:border-blue-900 focus:outline-none"
@@ -352,7 +354,7 @@ export const ReturningUserConfirmModal: React.FC<ReturningUserConfirmModalProps>
               className="w-full py-3.5 px-4 rounded-xl bg-blue-900 hover:bg-blue-800 text-white font-bold text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 group"
             >
               <span>{t(language, 'everythingIsCorrect')}</span>
-              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1 rtl:rotate-180" />
+              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1 rtl:group-hover:-translate-x-1 rtl:rotate-180" />
             </button>
 
             <button

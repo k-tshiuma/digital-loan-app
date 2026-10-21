@@ -221,11 +221,11 @@ export const Step5EmploymentDetails: React.FC<Step5EmploymentDetailsProps> = ({
               </div>
             </div>
           </div>
-          <div className="text-right">
+          <div className="text-end">
             <span className="text-2xl font-extrabold text-blue-950 font-mono">
               {formData.jobTenureMonths}
             </span>
-            <span className="text-xs text-blue-700 font-semibold ml-1">
+            <span className="text-xs text-blue-700 font-semibold ms-1">
               {t(language, 'jobTenureMonthsSuffix')}
             </span>
             {formData.jobTenureMonths >= 12 && (
@@ -242,7 +242,7 @@ export const Step5EmploymentDetails: React.FC<Step5EmploymentDetailsProps> = ({
             {t(language, 'monthlySalaryLabel')} <span className="text-red-500">*</span>
           </label>
           <div className="relative">
-            <div className="absolute left-4 top-3 text-base font-bold text-blue-900 pointer-events-none">
+            <div className="absolute start-4 top-3 text-base font-bold text-blue-900 pointer-events-none">
               ₪
             </div>
             <input
@@ -254,13 +254,13 @@ export const Step5EmploymentDetails: React.FC<Step5EmploymentDetailsProps> = ({
               required
               value={formData.monthlySalaryNis}
               onChange={(e) => setFormData({ ...formData, monthlySalaryNis: parseInt(e.target.value) || 0 })}
-              className={`w-full pl-9 pr-12 py-3 rounded-xl border bg-white text-slate-900 text-base font-bold font-mono focus:outline-none focus:ring-2 transition-all ${
+              className={`w-full ps-9 pe-12 py-3 rounded-xl border bg-white text-slate-900 text-base font-bold font-mono focus:outline-none focus:ring-2 transition-all ${
                 errors.monthlySalaryNis
                   ? 'border-red-400 focus:ring-red-200'
                   : 'border-slate-300 focus:border-blue-900 focus:ring-blue-900/20'
               }`}
             />
-            <span className="absolute right-4 top-3.5 text-xs text-slate-400 font-bold uppercase">
+            <span className="absolute end-4 top-3.5 text-xs text-slate-400 font-bold uppercase">
               NIS
             </span>
           </div>
@@ -327,7 +327,7 @@ export const Step5EmploymentDetails: React.FC<Step5EmploymentDetailsProps> = ({
           className="w-2/3 py-3.5 px-6 rounded-xl bg-blue-900 hover:bg-blue-800 text-white font-semibold text-base shadow-sm hover:shadow transition-all flex items-center justify-center gap-2 group"
         >
           <span>{t(language, 'continue')}</span>
-          <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1 rtl:rotate-180" />
+          <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1 rtl:group-hover:-translate-x-1 rtl:rotate-180" />
         </button>
       </div>
     </form>

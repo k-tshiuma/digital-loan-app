@@ -196,6 +196,7 @@ export const Step3BorrowerDetails: React.FC<Step3BorrowerDetailsProps> = ({
           </label>
           <input
             id="passport-number-input"
+            dir="ltr"
             type="text"
             required
             placeholder={t(language, 'wizard.passportPlaceholder')}
@@ -373,7 +374,7 @@ export const Step3BorrowerDetails: React.FC<Step3BorrowerDetailsProps> = ({
           className="w-2/3 py-3.5 px-6 rounded-xl bg-blue-900 hover:bg-blue-800 text-white font-semibold text-base shadow-sm hover:shadow transition-all flex items-center justify-center gap-2 group"
         >
           <span>{t(language, 'continue')}</span>
-          <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1 rtl:rotate-180" />
+          <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1 rtl:group-hover:-translate-x-1 rtl:rotate-180" />
         </button>
       </div>
     </form>

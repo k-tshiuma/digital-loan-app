@@ -21,7 +21,6 @@ import { t } from '../i18n/translations';
 import { storageService } from '../services/storage';
 import { apiService, isNetworkError } from '../services/api';
 import { localizeError } from '../i18n/apiErrors';
-import { optionLabel } from '../i18n/options';
 
 interface Step2AuthProps {
   language: Language;
@@ -556,19 +555,19 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
                 <label className="block text-xs font-bold text-slate-800 ">
                   {t(language, 'auth.mobilePhoneNumber')}
                 </label>
-                <div className="flex rounded-xl border border-slate-300 bg-white overflow-hidden focus-within:ring-2 focus-within:ring-blue-600/20 focus-within:border-blue-600 transition-all shadow-2xs">
+                <div dir="ltr" className="flex rounded-xl border border-slate-300 bg-white overflow-hidden focus-within:ring-2 focus-within:ring-blue-600/20 focus-within:border-blue-600 transition-all shadow-2xs">
                   {/* Country Selector */}
-                  <div className="relative border-r border-slate-200 bg-slate-50/80 px-3 py-2.5 flex items-center shrink-0">
+                  <div className="relative border-e border-slate-200 bg-slate-50/80 px-3 py-2.5 flex items-center shrink-0">
                     <select
                       id="signin-country-code-select"
                       aria-label={t(language, 'countryCode')}
                       value={signInCountryCode}
                       onChange={(e) => setSignInCountryCode(e.target.value)}
-                      className="bg-transparent text-sm font-semibold text-slate-800 focus:outline-none cursor-pointer pr-3"
+                      className="bg-transparent text-sm font-semibold text-slate-800 focus:outline-none cursor-pointer pe-3"
                     >
                       {COUNTRY_PHONE_CODES.map((item) => (
                         <option key={item.code} value={item.code}>
-                          {item.flag} {item.code} ({optionLabel(language, 'country', item.country)})
+                          {item.flag} {item.code}
                         </option>
                       ))}
                     </select>
@@ -668,7 +667,7 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
               <button
                 type="button"
                 onClick={() => setAuthMode('signin')}
-                className="p-1.5 -ml-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                className="p-1.5 -ms-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
               >
                 <ArrowLeft className="w-5 h-5 rtl:rotate-180" />
               </button>
@@ -682,7 +681,7 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
                 {t(language, 'auth.enterYourPassword')}
               </h1>
               <p className="text-sm text-slate-500">
-                {t(language, 'auth.signingInFor')} <span className="font-semibold text-slate-800">{fullSignInPhone}</span>
+                {t(language, 'auth.signingInFor')} <span className="font-semibold text-slate-800"><bdi dir="ltr">{fullSignInPhone}</bdi></span>
               </p>
             </div>
 
@@ -698,12 +697,12 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
                     value={signInPassword}
                     onChange={(e) => setSignInPassword(e.target.value)}
                     autoFocus
-                    className="w-full px-3.5 py-3 pr-10 text-sm font-semibold rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 focus:outline-none"
+                    className="w-full px-3.5 py-3 pe-10 text-sm font-semibold rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 focus:outline-none"
                   />
                   <button
                     type="button"
                     onClick={() => setShowSignInPassword(!showSignInPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    className="absolute end-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                   >
                     {showSignInPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -769,7 +768,7 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
               <button
                 type="button"
                 onClick={() => setAuthMode('signin_pwd')}
-                className="p-1.5 -ml-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                className="p-1.5 -ms-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
               >
                 <ArrowLeft className="w-5 h-5 rtl:rotate-180" />
               </button>
@@ -794,6 +793,7 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
                 </label>
                 <input
                   type="text"
+                  dir="ltr"
                   placeholder={t(language, 'auth.phoneOrEmailPlaceholder')}
                   value={forgotIdentifier}
                   onChange={(e) => setForgotIdentifier(e.target.value)}
@@ -841,7 +841,7 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
               <button
                 type="button"
                 onClick={() => setAuthMode('forgot_password')}
-                className="p-1.5 -ml-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                className="p-1.5 -ms-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
               >
                 <ArrowLeft className="w-5 h-5 rtl:rotate-180" />
               </button>
@@ -855,7 +855,7 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
                 {t(language, 'auth.enterResetCode')}
               </h1>
               <p className="text-sm text-slate-500">
-                {t(language, 'auth.codeSentTo')} <span className="font-semibold text-slate-800">{forgotIdentifier}</span>
+                {t(language, 'auth.codeSentTo')} <span className="font-semibold text-slate-800"><bdi dir="ltr">{forgotIdentifier}</bdi></span>
               </p>
             </div>
 
@@ -874,6 +874,7 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
                 <input
                   type="text"
                   maxLength={6}
+                  dir="ltr"
                   placeholder="123456"
                   value={resetCode}
                   onChange={(e) => setResetCode(e.target.value.replace(/\D/g, ''))}
@@ -892,12 +893,12 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
                     placeholder={t(language, 'auth.newPasswordPlaceholder')}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full px-3.5 py-3 pr-10 text-sm font-semibold rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 focus:outline-none"
+                    className="w-full px-3.5 py-3 pe-10 text-sm font-semibold rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 focus:outline-none"
                   />
                   <button
                     type="button"
                     onClick={() => setShowNewPassword(!showNewPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    className="absolute end-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                   >
                     {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -914,12 +915,12 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
                     placeholder={t(language, 'auth.reenterNewPassword')}
                     value={confirmNewPassword}
                     onChange={(e) => setConfirmNewPassword(e.target.value)}
-                    className="w-full px-3.5 py-3 pr-10 text-sm font-semibold rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 focus:outline-none"
+                    className="w-full px-3.5 py-3 pe-10 text-sm font-semibold rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 focus:outline-none"
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    className="absolute end-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                   >
                     {showConfirmNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -955,7 +956,7 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
               <button
                 type="button"
                 onClick={() => setAuthMode('signin')}
-                className="p-1.5 -ml-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                className="p-1.5 -ms-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
               >
                 <ArrowLeft className="w-5 h-5 rtl:rotate-180" />
               </button>
@@ -970,7 +971,7 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
               </h1>
               <p className="text-sm text-slate-500">
                 {t(language, 'auth.weSentCodeTo')}{' '}
-                <span className="font-semibold text-slate-800 dir-ltr inline-block">
+                <span dir="ltr" className="font-semibold text-slate-800 inline-block">
                   {fullSignInPhone}
                 </span>
               </p>
@@ -978,7 +979,7 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
 
             {/* 6 Digit Inputs */}
             <div className="space-y-3">
-              <div className="flex items-center justify-between gap-2 dir-ltr">
+              <div dir="ltr" className="flex items-center justify-between gap-2">
                 {otpDigits.map((digit, idx) => (
                   <input
                     key={idx}
@@ -991,7 +992,7 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
                     value={digit}
                     onChange={(e) => handleOtpDigitChange(idx, e.target.value)}
                     onKeyDown={(e) => handleOtpKeyDown(idx, e)}
-                    className="w-12 h-14 text-center text-xl font-bold text-slate-900 bg-white border-2 border-slate-200 rounded-xl focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 focus:outline-none transition-all shadow-2xs"
+                    className="flex-1 min-w-0 max-w-12 h-14 text-center text-xl font-bold text-slate-900 bg-white border-2 border-slate-200 rounded-xl focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 focus:outline-none transition-all shadow-2xs"
                   />
                 ))}
               </div>
@@ -1043,7 +1044,7 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
               <button
                 type="button"
                 onClick={() => setAuthMode('signin')}
-                className="p-1.5 -ml-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors flex items-center gap-1 text-sm font-medium"
+                className="p-1.5 -ms-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors flex items-center gap-1 text-sm font-medium"
               >
                 <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
                 <span>{t(language, 'back')}</span>
@@ -1095,7 +1096,7 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
               <button
                 type="button"
                 onClick={() => setAuthMode('reg_location')}
-                className="p-1.5 -ml-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors flex items-center gap-1 text-sm font-medium"
+                className="p-1.5 -ms-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors flex items-center gap-1 text-sm font-medium"
               >
                 <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
                 <span>{t(language, 'back')}</span>
@@ -1164,7 +1165,7 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
                 type="button"
                 id="reg-step1-back-btn"
                 onClick={() => setAuthMode('reg_disclaimer')}
-                className="p-1.5 -ml-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors flex items-center gap-1 text-sm font-medium"
+                className="p-1.5 -ms-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors flex items-center gap-1 text-sm font-medium"
               >
                 <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
                 <span>{t(language, 'auth.createAccount')}</span>
@@ -1216,6 +1217,7 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
                 </label>
                 <input
                   id="reg-email-input"
+                  dir="ltr"
                   type="email"
                   placeholder="you@example.com" // i18n-ignore
                   value={regEmail}
@@ -1229,14 +1231,14 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
                 <label className="block text-xs font-bold text-slate-800">
                   {t(language, 'auth.mobileNumber')}
                 </label>
-                <div className="flex rounded-xl border border-slate-300 bg-white overflow-hidden focus-within:ring-2 focus-within:ring-blue-600/20 focus-within:border-blue-600 transition-all shadow-2xs">
-                  <div className="relative border-r border-slate-200 bg-slate-50/80 px-3 py-2.5 flex items-center shrink-0">
+                <div dir="ltr" className="flex rounded-xl border border-slate-300 bg-white overflow-hidden focus-within:ring-2 focus-within:ring-blue-600/20 focus-within:border-blue-600 transition-all shadow-2xs">
+                  <div className="relative border-e border-slate-200 bg-slate-50/80 px-3 py-2.5 flex items-center shrink-0">
                     <select
                       id="reg-country-code-select"
                       aria-label={t(language, 'countryCode')}
                       value={regCountryCode}
                       onChange={(e) => setRegCountryCode(e.target.value)}
-                      className="bg-transparent text-sm font-semibold text-slate-800 focus:outline-none cursor-pointer pr-3"
+                      className="bg-transparent text-sm font-semibold text-slate-800 focus:outline-none cursor-pointer pe-3"
                     >
                       {COUNTRY_PHONE_CODES.map((item) => (
                         <option key={item.code} value={item.code}>
@@ -1316,7 +1318,7 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
                 type="button"
                 id="reg-step2-back-btn"
                 onClick={() => setAuthMode('reg_step1')}
-                className="p-1.5 -ml-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors flex items-center gap-1 text-sm font-medium"
+                className="p-1.5 -ms-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors flex items-center gap-1 text-sm font-medium"
               >
                 <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
                 <span>{t(language, 'auth.registration')}</span>
@@ -1343,14 +1345,14 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
               <p className="text-sm text-slate-500">
                 {t(language, 'auth.weSentCodeTo')}
               </p>
-              <p className="text-base font-bold text-slate-900 dir-ltr inline-block">
+              <p dir="ltr" className="text-base font-bold text-slate-900 inline-block">
                 {fullRegPhone}
               </p>
             </div>
 
             {/* 6-Digit OTP Boxes */}
             <div className="space-y-3">
-              <div className="flex items-center justify-between gap-2 dir-ltr">
+              <div dir="ltr" className="flex items-center justify-between gap-2">
                 {otpDigits.map((digit, idx) => (
                   <input
                     key={idx}
@@ -1364,7 +1366,7 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
                     value={digit}
                     onChange={(e) => handleOtpDigitChange(idx, e.target.value)}
                     onKeyDown={(e) => handleOtpKeyDown(idx, e)}
-                    className="w-12 h-14 text-center text-xl font-bold text-slate-900 bg-white border-2 border-slate-200 rounded-xl focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 focus:outline-none transition-all shadow-2xs"
+                    className="flex-1 min-w-0 max-w-12 h-14 text-center text-xl font-bold text-slate-900 bg-white border-2 border-slate-200 rounded-xl focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 focus:outline-none transition-all shadow-2xs"
                   />
                 ))}
               </div>
@@ -1465,7 +1467,7 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
                 type="button"
                 id="reg-step3-back-btn"
                 onClick={() => setAuthMode('reg_step2_otp')}
-                className="p-1.5 -ml-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors flex items-center gap-1 text-sm font-medium"
+                className="p-1.5 -ms-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors flex items-center gap-1 text-sm font-medium"
               >
                 <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
                 <span>{t(language, 'auth.registration')}</span>
@@ -1508,12 +1510,12 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
                     placeholder={t(language, 'auth.newPasswordPlaceholder')}
                     value={regPassword}
                     onChange={(e) => setRegPassword(e.target.value)}
-                    className="w-full px-3.5 py-3 pr-10 text-sm font-medium text-slate-900 placeholder:text-slate-400 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 focus:outline-none transition-all"
+                    className="w-full px-3.5 py-3 pe-10 text-sm font-medium text-slate-900 placeholder:text-slate-400 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 focus:outline-none transition-all"
                   />
                   <button
                     type="button"
                     onClick={() => setShowRegPassword(!showRegPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    className="absolute end-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                   >
                     {showRegPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -1532,12 +1534,12 @@ export const Step2Auth: React.FC<Step2AuthProps> = ({
                     placeholder={t(language, 'auth.reenterPassword')}
                     value={regConfirmPassword}
                     onChange={(e) => setRegConfirmPassword(e.target.value)}
-                    className="w-full px-3.5 py-3 pr-10 text-sm font-medium text-slate-900 placeholder:text-slate-400 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 focus:outline-none transition-all"
+                    className="w-full px-3.5 py-3 pe-10 text-sm font-medium text-slate-900 placeholder:text-slate-400 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 focus:outline-none transition-all"
                   />
                   <button
                     type="button"
                     onClick={() => setShowRegConfirmPassword(!showRegConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    className="absolute end-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                   >
                     {showRegConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>

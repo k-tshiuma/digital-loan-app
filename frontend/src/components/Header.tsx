@@ -173,7 +173,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Center: Brand Logo with FinBest-style connected node mark */}
         <div
-          className="flex items-center gap-2.5 cursor-pointer select-none"
+          className="flex items-center gap-2 sm:gap-2.5 cursor-pointer select-none"
           onClick={() =>
             !isBackOfficeOpen && window.scrollTo({ top: 0, behavior: 'smooth' })
           }
@@ -195,8 +195,9 @@ export const Header: React.FC<HeaderProps> = ({
               <line x1="15.5" y1="6.2" x2="8.5" y2="10.8" stroke="#0284c7" />
             </svg>
           </div>
-          <div className="flex flex-col items-start">
-            <span className="text-xl font-extrabold tracking-tight text-slate-900 leading-none">
+          {/* Wordmark is hidden on very narrow phones so the header fits; the icon stays. */}
+          <div className="hidden min-[400px]:flex flex-col items-start">
+            <span className="text-lg sm:text-xl font-extrabold tracking-tight text-slate-900 leading-none">
               {/* i18n-ignore-next-line: brand name */}
               Quick<span className="text-blue-600">Loan</span>
             </span>
@@ -257,7 +258,7 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
 
             {isUserMenuOpen && (
-              <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-200 py-2 z-50 animate-in fade-in zoom-in-95">
+              <div className="absolute end-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-200 py-2 z-50 animate-in fade-in zoom-in-95">
                 {currentUser ? (
                   <>
                     <div className="px-4 py-2 border-b border-slate-100">
@@ -265,11 +266,11 @@ export const Header: React.FC<HeaderProps> = ({
                         {currentUser.fullName || t(currentLanguage, 'registeredBorrower')}
                       </div>
                       <div className="text-xs text-slate-500 font-mono">
-                        {currentUser.phoneNumber}
+                        <bdi dir="ltr">{currentUser.phoneNumber}</bdi>
                       </div>
                       {currentUser.email && (
                         <div className="text-xs text-slate-400 truncate">
-                          {currentUser.email}
+                          <bdi dir="ltr">{currentUser.email}</bdi>
                         </div>
                       )}
                     </div>
@@ -282,7 +283,7 @@ export const Header: React.FC<HeaderProps> = ({
                           setIsUserMenuOpen(false);
                           onOpenMyApplications?.();
                         }}
-                        className="w-full px-4 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                        className="w-full px-4 py-2 text-start text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                       >
                         <FileText className="w-4 h-4 text-blue-600" />
                         <span>{t(currentLanguage, 'myLoanApplications')}</span>
@@ -294,7 +295,7 @@ export const Header: React.FC<HeaderProps> = ({
                           setIsUserMenuOpen(false);
                           onOpenNotifications?.();
                         }}
-                        className="w-full px-4 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                        className="w-full px-4 py-2 text-start text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                       >
                         <Bell className="w-4 h-4 text-blue-600" />
                         <span>{t(currentLanguage, 'notifications')}</span>
@@ -306,7 +307,7 @@ export const Header: React.FC<HeaderProps> = ({
                           setIsUserMenuOpen(false);
                           onToggleBackOffice();
                         }}
-                        className="w-full px-4 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                        className="w-full px-4 py-2 text-start text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                       >
                         <Briefcase className="w-4 h-4 text-purple-600" />
                         <span>{t(currentLanguage, 'openBackOffice')}</span>
@@ -319,7 +320,7 @@ export const Header: React.FC<HeaderProps> = ({
                           setIsUserMenuOpen(false);
                           onSignOut();
                         }}
-                        className="w-full px-4 py-2 text-left text-xs font-medium text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-slate-100"
+                        className="w-full px-4 py-2 text-start text-xs font-medium text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-slate-100"
                       >
                         <LogOut className="w-4 h-4" />
                         <span>{t(currentLanguage, 'signOut')}</span>

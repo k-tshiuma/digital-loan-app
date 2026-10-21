@@ -435,11 +435,11 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
                       </div>
                       <div>
                         <span className="text-slate-400 block text-[11px]">{t(language, 'review.idPassport')}</span>
-                        <span className="font-mono font-bold text-slate-800">{guar.passportOrIdNumber}</span>
+                        <span className="font-mono font-bold text-slate-800"><bdi dir="ltr">{guar.passportOrIdNumber}</bdi></span>
                       </div>
                       <div>
                         <span className="text-slate-400 block text-[11px]">{t(language, 'review.phone')}</span>
-                        <span className="text-slate-700">{guar.mobilePhoneNumber}</span>
+                        <span className="text-slate-700"><bdi dir="ltr">{guar.mobilePhoneNumber}</bdi></span>
                       </div>
                       <div>
                         <span className="text-slate-400 block text-[11px]">{t(language, 'review.relationship')}</span>
@@ -523,7 +523,7 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
                   : 'text-slate-600'
               }`}
             >
-              <PenTool className="w-3 h-3 inline mr-1" />
+              <PenTool className="w-3 h-3 inline me-1" />
               {t(language, 'drawSignature')}
             </button>
             <button
@@ -535,7 +535,7 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
                   : 'text-slate-600'
               }`}
             >
-              <Type className="w-3 h-3 inline mr-1" />
+              <Type className="w-3 h-3 inline me-1" />
               {t(language, 'typeSignature')}
             </button>
           </div>
@@ -622,7 +622,7 @@ export const Step9ReviewConfirm: React.FC<Step9ReviewConfirmProps> = ({
           ) : (
             <>
               <span>{t(language, 'submitApplication')}</span>
-              <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1 rtl:rotate-180" />
+              <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1 rtl:group-hover:-translate-x-1 rtl:rotate-180" />
             </>
           )}
         </button>

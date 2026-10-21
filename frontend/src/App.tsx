@@ -313,8 +313,8 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#f4f7fb] relative overflow-x-hidden flex flex-col font-sans text-slate-900 antialiased selection:bg-blue-600 selection:text-white">
       {/* FinBest ambient background accents */}
-      <div className="fixed top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-orange-400/12 via-orange-300/5 to-transparent rounded-full blur-3xl pointer-events-none -mr-32 -mt-32 z-0" />
-      <div className="fixed bottom-0 left-0 w-[500px] h-[500px] bg-gradient-to-tr from-sky-400/12 via-indigo-400/5 to-transparent rounded-full blur-3xl pointer-events-none -ml-32 -mb-32 z-0" />
+      <div className="fixed top-0 end-0 w-[500px] h-[500px] bg-gradient-to-bl from-orange-400/12 via-orange-300/5 to-transparent rounded-full blur-3xl pointer-events-none -me-32 -mt-32 z-0" />
+      <div className="fixed bottom-0 start-0 w-[500px] h-[500px] bg-gradient-to-tr from-sky-400/12 via-indigo-400/5 to-transparent rounded-full blur-3xl pointer-events-none -ms-32 -mb-32 z-0" />
 
       {/* Top Application Header */}
       <Header

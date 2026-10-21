@@ -55,6 +55,7 @@ Frontend (from `frontend/`, port 3000):
   - New UI strings go in `i18n/messages/*.ts` (grouped by area, en + he), not in the base dictionary. Never hard-code visible text: tests scan components for English JSX text and check every `t()` key exists. Use `{/* i18n-ignore */}` only for brand names or demo data.
   - Stored values (dropdown options, statuses, roles, risk flags, document codes) stay English. Show them with the helpers in `i18n/options.ts` (`optionLabel`, `statusLabel`, …). Show errors with `localizeError()` from `i18n/apiErrors.ts`.
   - Eligibility factor descriptions carry `descriptionKey`/`descriptionParams` in both scoring mirrors; keep the keys in sync too.
+  - RTL: use logical Tailwind classes (`ms-/me-/ps-/pe-/start-/end-/text-start/text-end/border-s/e/rounded-s/e`), never `ml-/pr-/left-/text-right` etc. Directional icons need `rtl:rotate-180`. Phone numbers, codes, IDs and emails get `dir="ltr"` (inputs) or `<bdi dir="ltr">` (display). `no-physical-direction.test.ts` enforces the class and icon rules.
   - Language changes go through `handleLanguageSelect` in `App.tsx`, which also saves the choice to the user's account (`PUT /api/users/me/language`, accepts `en`/`he`).
   - Ongoing Hebrew work is tracked in `hebrew-localization-plan.md`.
 - The `@` import alias resolves to `frontend/` (not `src/`).

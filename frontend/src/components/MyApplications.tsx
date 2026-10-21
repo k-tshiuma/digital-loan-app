@@ -171,7 +171,7 @@ export const MyApplications: React.FC<MyApplicationsProps> = ({
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2.5 mb-2.5">
                       <div className="flex items-center gap-2">
                         <span className="font-mono font-bold text-sm text-slate-900 group-hover:text-blue-900 transition-colors">
-                          {app.requestNumber}
+                          <bdi dir="ltr">{app.requestNumber}</bdi>
                         </span>
                         <span
                           className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border shadow-2xs ${statusBadge.badgeColor}`}
@@ -223,9 +223,9 @@ export const MyApplications: React.FC<MyApplicationsProps> = ({
                           )}
                         </button>
 
-                        <span className="inline-flex items-center gap-1 text-xs font-bold text-blue-900 group-hover:translate-x-0.5 transition-transform">
+                        <span className="inline-flex items-center gap-1 text-xs font-bold text-blue-900 group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5 transition-transform">
                           <span>{t(language, 'myApps.view')}</span>
-                          <ChevronRight className="w-4 h-4" />
+                          <ChevronRight className="w-4 h-4 rtl:rotate-180" />
                         </span>
                       </div>
                     </div>

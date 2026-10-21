@@ -43,7 +43,7 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
         <span className="text-blue-700 font-medium truncate max-w-[200px]">
           {title}
         </span>
-        <span className="text-blue-900 font-bold ml-1">
+        <span className="text-blue-900 font-bold ms-1">
           {progressPercent}%
         </span>
       </div>
@@ -51,7 +51,7 @@ export const WizardProgress: React.FC<WizardProgressProps> = ({
       {/* Progress track */}
       <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden p-0.5 border border-slate-200/60">
         <div
-          className="h-full bg-gradient-to-r from-blue-600 via-sky-500 to-sky-400 rounded-full transition-all duration-300 ease-out shadow-xs"
+          className="h-full bg-gradient-to-r rtl:bg-gradient-to-l from-blue-600 via-sky-500 to-sky-400 rounded-full transition-all duration-300 ease-out shadow-xs"
           style={{ width: `${progressPercent}%` }}
         />
       </div>

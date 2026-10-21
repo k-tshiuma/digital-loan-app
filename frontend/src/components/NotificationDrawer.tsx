@@ -153,7 +153,7 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
                 }`}
               >
                 {!item.isRead && (
-                  <span className="absolute top-3.5 right-3.5 w-2 h-2 rounded-full bg-blue-600" />
+                  <span className="absolute top-3.5 end-3.5 w-2 h-2 rounded-full bg-blue-600" />
                 )}
 
                 <div className="flex items-start gap-2.5">
@@ -175,7 +175,7 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
                     )}
                   </div>
 
-                  <div className="flex-1 pr-3">
+                  <div className="flex-1 pe-3">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-slate-900 leading-snug">
                         {item.title}

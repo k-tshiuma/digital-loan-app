@@ -203,7 +203,7 @@ export const Step11StatusTimeline: React.FC<Step11StatusTimelineProps> = ({
             )}
           </div>
           <h1 className="text-xl font-bold font-mono text-slate-900">
-            {application.requestNumber}
+            <bdi dir="ltr">{application.requestNumber}</bdi>
           </h1>
         </div>
 
@@ -379,14 +379,14 @@ export const Step11StatusTimeline: React.FC<Step11StatusTimelineProps> = ({
       {/* Tab 1: Timeline */}
       {activeTab === 'timeline' && (
         <div className="space-y-3 mb-6">
-          <div className="relative pl-6 space-y-4 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
+          <div className="relative ps-6 space-y-4 before:absolute before:start-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
             {/* Status History Items */}
             {application.statusHistory && application.statusHistory.length > 0 ? (
               application.statusHistory.map((item, idx) => (
                 <div key={item.id || idx} className="relative group">
                   {/* Dot */}
                   <div
-                    className={`absolute -left-6 top-1 w-4 h-4 rounded-full border-2 border-white shadow-2xs ${idx === 0 ? 'bg-blue-900 ring-2 ring-blue-100' : 'bg-slate-300'
+                    className={`absolute -start-6 top-1 w-4 h-4 rounded-full border-2 border-white shadow-2xs ${idx === 0 ? 'bg-blue-900 ring-2 ring-blue-100' : 'bg-slate-300'
                       }`}
                   />
                   <div className="p-3 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-1">
@@ -454,7 +454,7 @@ export const Step11StatusTimeline: React.FC<Step11StatusTimelineProps> = ({
             <div className="font-bold text-slate-900 border-b pb-1">{t(language, 'status.borrowerInfo')}</div>
             <div className="grid grid-cols-2 gap-2 text-slate-700">
               <div><span className="text-slate-400 block">{t(language, 'status.name')}</span> {application.borrowerDetails?.fullName}</div>
-              <div><span className="text-slate-400 block">{t(language, 'status.passport')}</span> {application.borrowerDetails?.passportNumber}</div>
+              <div><span className="text-slate-400 block">{t(language, 'status.passport')}</span> <bdi dir="ltr">{application.borrowerDetails?.passportNumber}</bdi></div>
               <div><span className="text-slate-400 block">{t(language, 'status.origin')}</span> {optionLabel(language, 'country', application.borrowerDetails?.countryOfOrigin)}</div>
               <div><span className="text-slate-400 block">{t(language, 'status.salary')}</span> ₪{application.employmentDetails?.monthlySalaryNis?.toLocaleString()}</div>
             </div>
@@ -499,8 +499,8 @@ export const Step11StatusTimeline: React.FC<Step11StatusTimelineProps> = ({
                         {t(language, 'status.guarantorLine', { n: idx + 1, name: g.fullName, relationship: optionLabel(language, 'relationship', g.relationship) })}
                       </div>
                       <div className="text-slate-500 text-[11px] grid grid-cols-2 gap-1">
-                        <div>{t(language, 'status.id')} <span className="font-mono text-slate-700">{g.passportOrIdNumber}</span></div>
-                        <div>{t(language, 'status.phone')} {g.mobilePhoneNumber}</div>
+                        <div>{t(language, 'status.id')} <span className="font-mono text-slate-700"><bdi dir="ltr">{g.passportOrIdNumber}</bdi></span></div>
+                        <div>{t(language, 'status.phone')} <bdi dir="ltr">{g.mobilePhoneNumber}</bdi></div>
                       </div>
                     </div>
                   ))}

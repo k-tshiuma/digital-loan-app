@@ -17,7 +17,8 @@ Goal: a user can switch between **English** and **Hebrew** at any point in the a
 | 1 Language state and persistence | ✅ Done 2026-10-21. See notes below. |
 | 2 Complete the Hebrew dictionary | ✅ Done 2026-10-21. 28 keys added, orphan `investment` removed, glossary comment added at the top of the `he` block. |
 | 3 Hard-coded text | ✅ Done 2026-10-21. See notes below. |
-| 4–7 | Not started |
+| 4 Right-to-left layout | ✅ Done 2026-10-21. See notes below. |
+| 5–7 | Not started |
 
 Phase 1 notes (where the build differs from the plan text):
 - The localStorage key is `quickloan_language` (matches the other `quickloan_*` keys).
@@ -36,6 +37,15 @@ Phase 3 notes:
 - Guard tests: `no-hardcoded-text.test.ts` scans every component and `App.tsx` (an `i18n-ignore` comment exempts a line, for brand names and demo data). `coverage.test.ts` checks that every `t()` key used in code exists in en and he (about 700 references), and that every dropdown, status, role, risk level, document type and risk flag has a Hebrew label. `hebrewScreens.test.tsx` renders the login screen, wizard steps 3–11, back office and analytics in Hebrew and fails on any English sentence.
 - Left as data, for Phase 6: text that is stored and later displayed is still English. This covers the default status reasons the back office saves ("Loan criteria satisfied…"), notification titles and messages from the backend and from the local fallback in `storage.ts`, and document `qualityIssues`. Staff-typed notes stay as typed.
 - Needs native-speaker review (Phase 7): the service charge disclaimer, terms 1–7, consent texts and the e-signature notice.
+Phase 4 notes:
+- About 70 left/right Tailwind classes converted to logical ones (`ms/me/ps/pe/start/end/text-start/text-end/border-e`). Forward arrows nudge the other way on hover in RTL, and the My Applications chevron flips.
+- Phone fields (country code + number), OTP boxes, email, reset code, passport/ID and bank number inputs are `dir="ltr"`. Displayed phone numbers, request numbers, IDs and emails are wrapped in `<bdi dir="ltr">`.
+- Fixed: the `dir-ltr` class used on the OTP boxes and phone displays never existed, so in Hebrew the code boxes filled from the right and "+972…" showed the plus sign at the wrong end.
+- Fixed: the Heebo font never applied to Hebrew text, because the body, headings and the `font-sans` utility all set Plus Jakarta Sans. Unlayered rules at the end of `index.css` now switch `--font-sans` to Heebo in RTL and reset tight/wide letter-spacing. Heebo weights 800/900 are now loaded.
+- The wizard progress bar gradient flips in RTL. Decorative background gradients are left as they are.
+- Mobile fixes found during the visual check (they affected English too): the OTP boxes overflowed at 375px; the sign-in country code dropdown squeezed the number field (it now shows flag + code, like registration); the logged-in header overflowed (the wordmark hides below 400px, the icon stays); the back office top bar now wraps.
+- The `animate-in`/`slide-in-*` classes used across components have no CSS behind them (no animation plugin is installed), so they do nothing in either direction.
+- Tests: `no-physical-direction.test.ts` (T4.1, with a self-check of its pattern) and `rtlLayout.test.tsx` (T4.2). T4.3 visual check: screenshots of login, language menu, OTP, returning-user modal, Step 6 and the back office in EN and HE at 375px and 1280px. No horizontal page scroll and no page errors.
 - Existing backend failures, not caused by this work: `test_guarantors_and_scoring.js` fails 3 of 45 in section 7 (expected scores of 90/100), with or without these changes.
 
 ## 1. Where things stand (audit, 2026-10-21)
