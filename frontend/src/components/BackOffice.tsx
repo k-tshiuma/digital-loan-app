@@ -132,12 +132,11 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
     const q = searchQuery.toLowerCase().trim();
     if (!q) return matchesStatus;
 
-    const matchesSearch =
-      app.requestNumber.toLowerCase().includes(q) ||
-      app.borrowerDetails?.fullName.toLowerCase().includes(q) ||
-      app.borrowerDetails?.passportNumber.toLowerCase().includes(q) ||
-      app.borrowerDetails?.mobilePhoneNumber?.includes(q) ||
-      app.borrowerDetails?.countryOfOrigin.toLowerCase().includes(q);
+    // Drafts and older records can lack any of these fields, so every one is optional.
+    const b = app.borrowerDetails;
+    const matchesSearch = [app.requestNumber, b?.fullName, b?.passportNumber, b?.mobilePhoneNumber, b?.countryOfOrigin].some(
+      (field) => typeof field === 'string' && field.toLowerCase().includes(q)
+    );
 
     return matchesStatus && matchesSearch;
   });
@@ -713,10 +712,11 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in">
           <div className="bg-white w-full max-w-3xl rounded-3xl shadow-2xl border border-slate-200 max-h-[92vh] flex flex-col overflow-hidden">
             {/* Modal Header */}
-            <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono font-bold text-base text-purple-300">
+            {/* Wraps on phones: the actions move under the request number instead of being cut off. */}
+            <div className="px-4 sm:px-6 py-4 bg-slate-900 text-white flex flex-wrap items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-mono font-bold text-base text-purple-300 whitespace-nowrap">
                     <bdi dir="ltr">{selectedApp.requestNumber}</bdi>
                   </span>
                   <span
@@ -735,7 +735,7 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0 ms-auto">
                 <button
                   type="button"
                   onClick={async () => {
@@ -764,6 +764,8 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
                 <button
                   type="button"
                   onClick={() => setSelectedApp(null)}
+                  aria-label={t(language, 'bo.closeInspector')}
+                  title={t(language, 'bo.closeInspector')}
                   className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center"
                 >
                   ✕
@@ -774,7 +776,7 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
             {/* Modal Body */}
             <div className="p-6 overflow-y-auto space-y-5 text-xs text-slate-700">
               {/* Borrower & Residency Grid */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 [&>*]:min-w-0">
                 <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
                   <div className="font-bold text-slate-900  text-[11px] border-b pb-1">
                     {t(language, 'bo.borrowerProfile')}
@@ -799,7 +801,7 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
               </div>
 
               {/* Disbursement Bank Account & Guarantor Grid */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 [&>*]:min-w-0">
                 <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
                   <div className="font-bold text-slate-900 text-[11px] border-b pb-1 flex items-center justify-between">
                     <span>{t(language, 'bo.bankAccount')}</span>
@@ -840,14 +842,14 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
                     return (
                       <div className="space-y-2">
                         {list.map((g, idx) => (
-                          <div key={g.id || idx} className="p-2 rounded-xl bg-white border border-slate-200 text-xs space-y-1">
-                            <div className="flex items-center justify-between font-bold text-slate-800">
-                              <span>{t(language, 'bo.guarantorLine', { n: idx + 1, name: g.fullName })}</span>
+                          <div key={g.id || idx} className="p-2 rounded-xl bg-white border border-slate-200 text-xs space-y-1 min-w-0">
+                            <div className="flex flex-wrap items-center justify-between gap-x-2 font-bold text-slate-800">
+                              <span className="min-w-0 break-words">{t(language, 'bo.guarantorLine', { n: idx + 1, name: g.fullName })}</span>
                               <span className="text-[10px] font-normal text-slate-500">{optionLabel(language, 'relationship', g.relationship)}</span>
                             </div>
-                            <div className="grid grid-cols-2 gap-1 text-[11px] text-slate-600">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-[11px] text-slate-600 [&>*]:min-w-0">
                               <div>{t(language, 'bo.id')} <span className="font-mono font-semibold"><bdi dir="ltr">{g.passportOrIdNumber}</bdi></span></div>
-                              <div>{t(language, 'bo.tel')} <bdi dir="ltr">{g.mobilePhoneNumber}</bdi></div>
+                              <div>{t(language, 'bo.tel')} <bdi dir="ltr" className="whitespace-nowrap">{g.mobilePhoneNumber}</bdi></div>
                             </div>
                           </div>
                         ))}
