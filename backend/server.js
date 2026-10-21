@@ -1146,7 +1146,8 @@ app.all('/api/applications/:id/pdf', async (req, res) => {
   if (!canAccessUser(req, a.userId)) return res.status(403).json({ success: false, error: 'Forbidden' });
 
   try {
-    streamApplicationPdf(a, res, { includeRisk: isStaff(req) });
+    // ?lang=he|en picks the PDF language (staff send their UI language); default: the application's language.
+    streamApplicationPdf(a, res, { includeRisk: isStaff(req), lang: req.query.lang });
   } catch (err) {
     console.error('Error generating PDF:', err);
     if (!res.headersSent) {

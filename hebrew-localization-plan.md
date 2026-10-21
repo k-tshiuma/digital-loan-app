@@ -20,7 +20,8 @@ Goal: a user can switch between **English** and **Hebrew** at any point in the a
 | 4 Right-to-left layout | ✅ Done 2026-10-21. See notes below. |
 | 5 Numbers, currency and dates | ✅ Done 2026-10-21. See notes below. |
 | 6 Backend messages | ✅ Done 2026-10-21. See notes below. |
-| 6b, 7 | Not started |
+| 6b Hebrew PDF | ✅ Done 2026-10-21. See notes below. |
+| 7 | Not started |
 
 Phase 1 notes (where the build differs from the plan text):
 - The localStorage key is `quickloan_language` (matches the other `quickloan_*` keys).
@@ -72,6 +73,23 @@ Phase 6 notes:
 - The offline notification fallback in `storage.ts` follows the same language rule, translates status names in titles and translates the default rejection reason.
 - Not translated: a notification already sent stays in the language it was sent in. The reasons in the seeded demo applications (`storage.ts`) and the document reuse reasons (`evaluateReusableDocuments`, not shown anywhere in the UI) are still English. The simulated `qualityIssues` text in Step 8 is also never displayed.
 - Tests: `backend/test_i18n.js` T6.1–T6.4, plus language fallback, SMS segment counting, RTL email wrapping and the OTP SMS language. Frontend: `statusMessages.test.ts` (reason labels, the backend sync check, the offline notification fallback).
+
+Phase 6b notes:
+- `GET /api/applications/:id/pdf?lang=he|en`. Without `lang` the application's language is used. Anything other than `en`/`he` gives the English PDF. All four download buttons (Step 10, Step 11, My Applications, back office) send the language on screen, so a borrower who switched to English gets an English PDF too. This differs slightly from the plan text, which said borrowers get the application's language.
+- Fonts: `backend/assets/fonts/Heebo-Regular.ttf` and `Heebo-Bold.ttf`, static builds from the upstream Heebo project, with `Heebo-OFL.txt`. Hebrew PDFs use Heebo throughout. English PDFs use Helvetica, and a single value that contains Hebrew (an employer name or address, for example) is drawn in Heebo. Before, such values came out as garbage. An all-Latin English PDF does not embed Heebo, so it stays about 5 KB.
+- Labels: `services/pdfLabels.js`. `FIELDS` holds PDF-only labels. `VALUES` holds stored-value labels (dropdown options, document types, risk flags and levels, quality, status reasons), copied from the frontend under the same keys. `pdfLabels.test.ts` (frontend) fails if the wording drifts or the app gets a label the PDF lacks. Status names come from `messages.js`, and the same test checks them against the app.
+- Right-to-left text (`services/pdfRtl.js`): pdfkit has no bidi. Its font engine (fontkit) reverses any string whose first letter is Hebrew, which reversed numbers inside Hebrew text. pdfkit also splits text at spaces and lays out each word separately. The helper does four things:
+  1. Breaks lines itself.
+  2. Reorders each line with `bidi-js`, including bracket mirroring.
+  3. Splits each line into runs whose letters are all Hebrew or all Latin.
+  4. Pre-reverses the Hebrew runs and draws them with `features: []`, so pdfkit lays out each run in one piece.
+- Phone numbers and guarantor IDs are wrapped in left-to-right isolates (`ltr()`), so `+972…` keeps its plus sign in front, like `<bdi dir="ltr">` in the UI. Bidi control characters are removed before drawing.
+- Layout: in Hebrew, labels are on the right and values on the left, and the header is mirrored (the "generated" time is on the left). Dates are `21.10.2026` in Hebrew and `21/10/2026` in English, in Israel time. Amounts are `12,500 ₪` in Hebrew. English keeps `NIS 12,500`, because Helvetica has no `₪` glyph.
+- Metadata: `/Lang` is `he-IL` or `en-US`, the `Title` is in the chosen language, and a `Content-Language` header is sent. The download filename stays ASCII (the request number).
+- Branding: the header said "LendGlobal Israel". It now says QuickLoan Israel (Hebrew: QuickLoan ישראל).
+- Bidi side effects (standard behaviour): in a Hebrew line, punctuation at the end of an English phrase moves to the far left (`.Green Valley … Ltd`). A date with a time reads `11:14 ,20.10.2026` from left to right, which matches how the app shows it in Hebrew.
+- Not handled: scripts that Heebo does not cover (Thai, Chinese) inside values. Names are entered as in the passport (Latin), so this should not come up.
+- Tests: `test_i18n.js` T6b.1–T6b.6, plus a formatting check. T6b.7 manual check (rendered to images): a full Hebrew application with 2 guarantors, risk flags, a long mixed Hebrew/English employer name and a Hebrew staff note; the English version of the same application; an English one with Hebrew values; and a 45-entry status history spanning 4 pages. Text was right-aligned and readable, numbers and phone numbers read correctly, and nothing was clipped at page breaks.
 
 ## 1. Where things stand (audit, 2026-10-21)
 

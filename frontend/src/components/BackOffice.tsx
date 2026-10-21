@@ -741,7 +741,7 @@ export const BackOffice: React.FC<BackOfficeProps> = ({
                   onClick={async () => {
                     if (!selectedApp) return;
                     try {
-                      await apiService.downloadApplicationPdf(selectedApp, 'staff');
+                      await apiService.downloadApplicationPdf(selectedApp, 'staff', language);
                     } catch (e: any) {
                       setActionSuccessMessage(t(language, 'bo.msg.pdfFailed', { error: localizeError(e, language, 'err.pdfFailed') }));
                     }

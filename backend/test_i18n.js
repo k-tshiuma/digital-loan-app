@@ -256,6 +256,119 @@ async function runTests() {
     assert.ok(notif.message.includes(STATUS_MESSAGES.en.Approved), notif.message);
   });
 
+  // -------------------------------------------------------------------------
+  console.log('\n--- Phase 6b: Hebrew PDF summary ---');
+  const { visualOrder, wrapLines, splitRuns, forFontkit, ltr } = require('./services/pdfRtl');
+  const { FIELDS, VALUES } = require('./services/pdfLabels');
+  const { formatMoney, formatDate } = require('./services/pdfService');
+
+  /** GET a binary response. */
+  function getRaw(urlPath, headers = {}) {
+    return new Promise((resolve, reject) => {
+      http.get({ hostname: '127.0.0.1', port: TEST_PORT, path: urlPath, headers }, (res) => {
+        const chunks = [];
+        res.on('data', (c) => chunks.push(c));
+        res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body: Buffer.concat(chunks) }));
+      }).on('error', reject);
+    });
+  }
+
+  /** A borrower with a submitted application in `appLanguage`. Returns ids and auth headers. */
+  async function submittedApplication(appLanguage) {
+    const p = `+97254${Math.floor(1000000 + Math.random() * 9000000)}`;
+    await makeRequest('POST', '/api/users/request-otp', { phoneNumber: p });
+    const login = await makeRequest('POST', '/api/users/verify-otp', { phoneNumber: p, code: '123456', preferredLanguage: appLanguage });
+    const userAuth = { Authorization: `Bearer ${login.data.token}` };
+    const draft = (await makeRequest('GET', `/api/applications/active/${login.data.user.id}`, null, userAuth)).data.application;
+    const saved = await makeRequest('PUT', `/api/applications/${draft.id}`, {
+      ...draft,
+      language: appLanguage,
+      isSubmitted: true,
+      status: 'Received',
+      borrowerDetails: { fullName: 'Somchai Prasert', mobilePhoneNumber: p, countryOfOrigin: 'Thailand' },
+      loanRequest: { requestedAmountNis: 12500, repaymentPeriodMonths: 12 },
+    }, userAuth);
+    assert.strictEqual(saved.status, 200, JSON.stringify(saved.data));
+    return { id: draft.id, userAuth };
+  }
+
+  const isPdf = (res) => res.status === 200 && res.headers['content-type'] === 'application/pdf' && res.body.slice(0, 4).toString() === '%PDF';
+  const pdfLang = (res) => (/\/Lang \(([a-z]{2}-[A-Z]{2})\)/.exec(res.body.toString('latin1')) || [])[1];
+  const hasHeebo = (res) => res.body.includes('Heebo');
+
+  const heApp = await submittedApplication('he');
+  const enApp = await submittedApplication('en');
+
+  await test('T6b.1 ?lang=he returns a PDF with Heebo embedded and Lang he-IL', async () => {
+    const res = await getRaw(`/api/applications/${enApp.id}/pdf?lang=he`, enApp.userAuth);
+    assert.ok(isPdf(res), `status ${res.status}, type ${res.headers['content-type']}`);
+    assert.ok(hasHeebo(res), 'Heebo font not embedded');
+    assert.strictEqual(pdfLang(res), 'he-IL');
+    assert.strictEqual(res.headers['content-language'], 'he');
+    assert.ok(/filename="[A-Za-z0-9_-]+\.pdf"/.test(res.headers['content-disposition']), res.headers['content-disposition']);
+  });
+
+  await test('T6b.2 ?lang=en uses Helvetica only (no Heebo) for an all-Latin application', async () => {
+    const res = await getRaw(`/api/applications/${heApp.id}/pdf?lang=en`, heApp.userAuth);
+    assert.ok(isPdf(res));
+    assert.ok(!hasHeebo(res), 'Heebo should not be embedded');
+    assert.strictEqual(pdfLang(res), 'en-US');
+  });
+
+  await test('T6b.3 without ?lang the application language decides', async () => {
+    const he = await getRaw(`/api/applications/${heApp.id}/pdf`, heApp.userAuth);
+    const en = await getRaw(`/api/applications/${enApp.id}/pdf`, enApp.userAuth);
+    assert.strictEqual(pdfLang(he), 'he-IL');
+    assert.ok(hasHeebo(he));
+    assert.strictEqual(pdfLang(en), 'en-US');
+  });
+
+  await test('T6b.4 ?lang=xx and on-hold languages fall back to the English PDF', async () => {
+    for (const bad of ['xx', 'th']) {
+      const res = await getRaw(`/api/applications/${heApp.id}/pdf?lang=${bad}`, heApp.userAuth);
+      assert.ok(isPdf(res), `${bad}: status ${res.status}`);
+      assert.strictEqual(pdfLang(res), 'en-US', bad);
+    }
+  });
+
+  await test('T6b.5 bidi: a Latin request number stays one left-to-right run at the visual left', async () => {
+    assert.strictEqual(visualOrder('בקשה מספר QL-1234', 'rtl'), 'QL-1234 רפסמ השקב');
+    assert.strictEqual(visualOrder('סכום: 12,500 ₪', 'rtl'), '₪ 12,500 :םוכס');
+    assert.strictEqual(visualOrder('הערה (חשוב)', 'rtl'), '(בושח) הרעה', 'brackets are mirrored');
+    assert.strictEqual(visualOrder(`טל׳: ${ltr('+972501234567')}`, 'rtl'), '+972501234567 :׳לט', 'isolated phone keeps its + in front');
+    assert.deepStrictEqual(splitRuns('QL-1234 רפסמ'), ['QL-1234 ', 'רפסמ']);
+    assert.strictEqual(forFontkit('םש'), 'שם');
+    assert.strictEqual(forFontkit('QL-1234 '), 'QL-1234 ');
+  });
+
+  await test('T6b.5 wrapping: every line fits the width and no word is lost', async () => {
+    const measure = (s) => s.length * 5; // 5pt per character
+    const text = 'נא להעלות תלוש שכר עדכני ואישור העסקה חתום על ידי המעסיק כולל מספר טלפון ליצירת קשר';
+    const lines = wrapLines(text, 100, measure);
+    assert.ok(lines.length > 1);
+    lines.forEach((l) => assert.ok(measure(l) <= 100, `line too wide: ${l}`));
+    assert.strictEqual(lines.join(' '), text);
+    assert.deepStrictEqual(wrapLines('a'.repeat(50), 100, measure), ['a'.repeat(20), 'a'.repeat(20), 'a'.repeat(10)]);
+  });
+
+  await test('T6b.6 every PDF label in English also exists in Hebrew', async () => {
+    for (const table of [FIELDS, VALUES]) {
+      assert.deepStrictEqual(Object.keys(table.he).sort(), Object.keys(table.en).sort());
+      const params = (s) => (s.match(/\{\w+\}/g) || []).sort();
+      for (const k of Object.keys(table.en)) {
+        assert.deepStrictEqual(params(table.he[k]), params(table.en[k]), `placeholders differ for "${k}"`);
+      }
+    }
+  });
+
+  await test('PDF formatting: amounts and dates per language', async () => {
+    assert.strictEqual(formatMoney(12500, 'he'), '12,500 ₪');
+    assert.strictEqual(formatMoney(12500, 'en'), 'NIS 12,500');
+    assert.strictEqual(formatMoney(1121.5, 'he'), '1,121.50 ₪');
+    assert.strictEqual(formatDate('2026-10-21', 'he'), '21.10.2026');
+    assert.strictEqual(formatDate('2026-10-21', 'en'), '21/10/2026');
+  });
+
   console.log('\n================================================================');
   console.log(`TOTAL TESTS: ${passed + failed} | PASSED: ${passed} | FAILED: ${failed}`);
   console.log('================================================================\n');

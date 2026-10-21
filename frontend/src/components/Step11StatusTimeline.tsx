@@ -166,7 +166,7 @@ export const Step11StatusTimeline: React.FC<Step11StatusTimelineProps> = ({
   const handleDownloadPdf = async () => {
     setIsDownloadingPdf(true);
     try {
-      await apiService.downloadApplicationPdf(application);
+      await apiService.downloadApplicationPdf(application, 'borrower', language);
     } catch (err: any) {
       console.error('Failed to download PDF:', err);
       alert(localizeError(err, language, 'pdf.downloadFailed'));

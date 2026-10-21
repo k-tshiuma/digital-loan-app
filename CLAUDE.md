@@ -41,7 +41,7 @@ Frontend (from `frontend/`, port 3000):
   - `services/eligibilityScoring.js`: the indicative eligibility score. **It is mirrored in `frontend/src/services/eligibilityScoring.ts`.** Keep both in sync when you change factors or weights.
 - Uploads: multer writes to `backend/uploads/` (gitignored), metadata goes in the `uploaded_files` table, and files are served via `GET /api/uploads/:filename`.
 - Real-time: `GET /api/applications/:id/events` is SSE. Status changes in `PUT /api/applications/:id` broadcast to subscribers, and `Step11StatusTimeline` listens with `EventSource`.
-- `services/smsService.js` (Twilio) and `services/emailService.js` (SMTP) log mock output to the console when their env vars (`TWILIO_SID`/`TWILIO_TOKEN`, `SMTP_USER`/`SMTP_PASS`) are unset. Borrower-facing backend text (status SMS/notifications, OTP, password reset) lives in `services/messages.js` (en + he, falls back to English); add new texts there, not inline in `server.js`. `pdfService.js` streams an application summary PDF with pdfkit.
+- `services/smsService.js` (Twilio) and `services/emailService.js` (SMTP) log mock output to the console when their env vars (`TWILIO_SID`/`TWILIO_TOKEN`, `SMTP_USER`/`SMTP_PASS`) are unset. Borrower-facing backend text (status SMS/notifications, OTP, password reset) lives in `services/messages.js` (en + he, falls back to English); add new texts there, not inline in `server.js`. `pdfService.js` streams an application summary PDF with pdfkit, in English or Hebrew (`?lang=`). PDF labels are in `pdfLabels.js` (stored-value labels must match the frontend; a frontend test checks this). Hebrew text must go through `pdfRtl.js` (bidi reordering for pdfkit), and Heebo fonts are in `backend/assets/fonts/`.
 
 ## Frontend architecture
 

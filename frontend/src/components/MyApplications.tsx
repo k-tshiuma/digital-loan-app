@@ -69,7 +69,7 @@ export const MyApplications: React.FC<MyApplicationsProps> = ({
     e.stopPropagation();
     setDownloadingId(app.id);
     try {
-      await apiService.downloadApplicationPdf(app);
+      await apiService.downloadApplicationPdf(app, 'borrower', language);
     } catch (err) {
       console.error('Download failed:', err);
       alert(localizeError(err, language, 'pdf.downloadFailed'));

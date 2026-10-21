@@ -238,12 +238,18 @@ export const apiService = {
   },
 
   // --- PDF (Phase 7) -------------------------------------------------------
-  async downloadApplicationPdf(app: LoanApplication | Pick<LoanApplication, 'id' | 'requestNumber'>, scope: ApiScope = 'borrower'): Promise<void> {
+  /** `language` picks the PDF language (the language on screen); without it the backend uses the application's. */
+  async downloadApplicationPdf(
+    app: LoanApplication | Pick<LoanApplication, 'id' | 'requestNumber'>,
+    scope: ApiScope = 'borrower',
+    language?: Language
+  ): Promise<void> {
     const token = scope === 'staff' ? authTokens.getStaff() : authTokens.get();
+    const pdfUrl = `${API_BASE_URL}/applications/${app.id}/pdf${language ? `?lang=${encodeURIComponent(language)}` : ''}`;
     let res: Response | null = null;
 
     try {
-      res = await fetch(`${API_BASE_URL}/applications/${app.id}/pdf`, {
+      res = await fetch(pdfUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -257,7 +263,7 @@ export const apiService = {
 
     if (!res || !res.ok) {
       try {
-        res = await fetch(`${API_BASE_URL}/applications/${app.id}/pdf`, {
+        res = await fetch(pdfUrl, {
           method: 'GET',
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
