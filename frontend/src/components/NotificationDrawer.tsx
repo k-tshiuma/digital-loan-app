@@ -5,6 +5,7 @@ import { apiService } from '../services/api';
 import { storageService } from '../services/storage';
 import { t } from '../i18n/translations';
 import { formatDateTime } from '../i18n/format';
+import { LtrText } from '../i18n/LtrText';
 
 interface NotificationDrawerProps {
   isOpen: boolean;
@@ -179,12 +180,12 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
                   <div className="flex-1 pe-3">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-slate-900 leading-snug">
-                        {item.title}
+                        <LtrText text={item.title} />
                       </span>
                     </div>
 
                     <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                      {item.message}
+                      <LtrText text={item.message} />
                     </p>
 
                     <div className="flex items-center gap-2 mt-2 pt-1 border-t border-slate-100 text-[10px] text-slate-400">

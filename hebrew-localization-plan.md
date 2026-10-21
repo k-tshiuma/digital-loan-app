@@ -21,7 +21,7 @@ Goal: a user can switch between **English** and **Hebrew** at any point in the a
 | 5 Numbers, currency and dates | ✅ Done 2026-10-21. See notes below. |
 | 6 Backend messages | ✅ Done 2026-10-21. See notes below. |
 | 6b Hebrew PDF | ✅ Done 2026-10-21. See notes below. |
-| 7 | Not started |
+| 7 QA and release | ✅ Automated and browser QA done 2026-10-22. Native-speaker review pending (see notes). |
 
 Phase 1 notes (where the build differs from the plan text):
 - The localStorage key is `quickloan_language` (matches the other `quickloan_*` keys).
@@ -90,6 +90,27 @@ Phase 6b notes:
 - Bidi side effects (standard behaviour): in a Hebrew line, punctuation at the end of an English phrase moves to the far left (`.Green Valley … Ltd`). A date with a time reads `11:14 ,20.10.2026` from left to right, which matches how the app shows it in Hebrew.
 - Not handled: scripts that Heebo does not cover (Thai, Chinese) inside values. Names are entered as in the passport (Latin), so this should not come up.
 - Tests: `test_i18n.js` T6b.1–T6b.6, plus a formatting check. T6b.7 manual check (rendered to images): a full Hebrew application with 2 guarantors, risk flags, a long mixed Hebrew/English employer name and a Hebrew staff note; the English version of the same application; an English one with Hebrew values; and a 45-entry status history spanning 4 pages. Text was right-aligned and readable, numbers and phone numbers read correctly, and nothing was clipped at page breaks.
+
+Phase 7 notes:
+- Step 1, all suites green: `npm run lint`, `npm test` (197 tests) and `npm run build` in `frontend`. In `backend`: `test_verification.js` 32/32, `test_guarantors_and_scoring.js` 45/45, `test_returning_user_prefill.js` 8/8, `test_i18n.js` 30/30.
+  - The 3 long-standing failures in `test_guarantors_and_scoring.js` were a date-dependent test, not a regression. Three server-backed tests hard-coded a visa expiry of `2027-10-08`, which was exactly 12 months away on 2026-10-08 (when they were written) and less after that, so the visa factor dropped from 20 to 10. They now use a date two years from today.
+- Step 2, browser walkthrough: installed Chrome driven by Playwright, at 375x812 and 1280x800 (scripts and screenshots were in a scratch folder, not the repo). Four scenarios:
+  - A: a new visitor switches language, reloads, signs in with OTP in Hebrew, switches mid-form, signs out, and signs in on a second browser.
+  - B: Step 6 with an EN/HE switch.
+  - C: Step 9 review.
+  - D: a submitted and approved application. Covers the status screen, notification drawer, PDF from three places, My Applications and the back office in HE and EN.
+  - Every screen had the right `lang`/`dir`, no horizontal scroll, and no English on Hebrew screens except user data and brand names. All three PDF downloads came back in Hebrew (`he-IL`).
+  - Not covered: Safari (no Mac or iPhone available here). Real-device mobile was replaced by Chrome at 375px.
+- Fixed during QA:
+  - The notification drawer and bell never showed server notifications: `apiService.getNotifications()` returned `{ notifications }` but both callers expected a list, so they always fell back to the empty local list. It now returns the list, with `isRead` taken from the server's `read`. Covered by `notificationDrawer.test.tsx`.
+  - Request numbers and phone numbers inside notification text broke at a hyphen and came out in the wrong order in Hebrew. `i18n/LtrText.tsx` wraps them in `<bdi dir="ltr">` without wrapping (drawer and Step 11 notifications tab).
+- Found during QA and not fixed (not localization issues; they need a separate decision):
+  - After an OTP login the frontend saves a locally made-up user id (`user_<timestamp>`) as the current user, while the server id is different (`user_<timestamp>_<hex>`). After a page reload the app asks the server for that local id's active application and notifications, gets 403 and falls back to local data. Draft sync, notifications and My Applications only work until the first reload.
+  - Back office at 375px: a long guarantor phone number runs outside its card in the detail view (both languages).
+  - Native date inputs (`<input type="date">`) show the browser's own format (`mm/dd/yyyy` in an English-locale browser), whatever the app language. Fixing it would need a custom date picker.
+  - Stored values that are not one of the app's option codes (such as an old `visaType: "Work Visa"` record in the local database) are shown as stored, untranslated.
+  - The back office requests `/api/applications` once with the borrower token before a staff role is picked (a 403, then it loads after the role is chosen). `/favicon.ico` is missing (404).
+- Step 3, native-speaker review: `docs/hebrew-review.csv` lists every Hebrew string next to its English source, in this order: legal (23), borrower SMS and notifications (19), PDF labels, then the rest of the app (986 rows in all). It has empty columns for suggestions and notes, and is saved as UTF-8 with a BOM so Excel shows Hebrew correctly. Six legal rows already carry notes on problems found while preparing it: two meaning differences (`termsNotice` adds "and the Privacy Policy", `creditCheckConsent` adds "explicit" and drops "authorized"), masculine-only forms, two different Hebrew names for "Terms and Conditions", the term used for "default", and who certifies the uploaded copies. Still open: name the reviewer, then apply their changes to `i18n/messages/*.ts`, `translations.ts`, `backend/services/messages.js` and `pdfLabels.js`.
 
 ## 1. Where things stand (audit, 2026-10-21)
 
@@ -320,20 +341,22 @@ Conventions:
 
 ## 4. Manual QA checklist (per language: EN and HE)
 
-- [ ] Language choice survives reload, logout/login, and login on a second browser (it comes from the backend).
-- [ ] Toggle is reachable from every screen, including Step 2, Step 11 and the back office.
-- [ ] Switching mid-form keeps the current step and all entered values.
-- [ ] No English left on Hebrew screens (except brand names, user-entered data and numbers).
-- [ ] Layout mirrored: back/next buttons, icons, progress bar, drawers, modals, tooltips.
-- [ ] Phone numbers, IDs, emails and amounts read correctly (not reversed) in Hebrew.
-- [ ] Currency and dates formatted for the language.
-- [ ] Validation errors and server errors shown in the active language.
-- [ ] Status SMS/notification arrives in the user's language (check the backend console in mock mode).
-- [ ] PDF summary downloads in the selected language, from both the borrower status screen and the back office.
-- [ ] Back office: queue, filters, detail panel, actions, risk flags and analytics are fully in the selected language.
-- [ ] Only English and Hebrew appear in the language pickers.
-- [ ] No horizontal scroll at 375px width in Hebrew.
-- [ ] Screen reader announces Hebrew (`<html lang="he">`), and `aria-label`s are translated.
+Checked 2026-10-22 in Chrome at 375px and 1280px (see Phase 7 notes). Safari was not tested.
+
+- [x] Language choice survives reload, logout/login, and login on a second browser (it comes from the backend).
+- [x] Toggle is reachable from every screen, including Step 2, Step 11 and the back office.
+- [x] Switching mid-form keeps the current step and all entered values.
+- [x] No English left on Hebrew screens (except brand names, user-entered data and numbers).
+- [x] Layout mirrored: back/next buttons, icons, progress bar, drawers, modals, tooltips.
+- [x] Phone numbers, IDs, emails and amounts read correctly (not reversed) in Hebrew.
+- [x] Currency and dates formatted for the language. (Native date inputs follow the browser locale; see Phase 7 notes.)
+- [x] Validation errors and server errors shown in the active language.
+- [x] Status SMS/notification arrives in the user's language (check the backend console in mock mode).
+- [x] PDF summary downloads in the selected language, from both the borrower status screen and the back office.
+- [x] Back office: queue, filters, detail panel, actions, risk flags and analytics are fully in the selected language.
+- [x] Only English and Hebrew appear in the language pickers.
+- [x] No horizontal scroll at 375px width in Hebrew.
+- [x] Screen reader announces Hebrew (`<html lang="he">`), and `aria-label`s are translated. (Checked through the `lang` attribute and translated labels, not with a real screen reader.)
 
 ---
 

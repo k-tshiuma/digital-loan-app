@@ -22,6 +22,7 @@ import { t } from '../i18n/translations';
 import { optionLabel, statusLabel, statusReasonLabel } from '../i18n/options';
 import { localizeError } from '../i18n/apiErrors';
 import { formatCurrency, formatDate, formatTime } from '../i18n/format';
+import { LtrText } from '../i18n/LtrText';
 import { storageService } from '../services/storage';
 import { apiService } from '../services/api';
 import { calculateIndicativeEligibility } from '../services/eligibilityScoring';
@@ -427,12 +428,12 @@ export const Step11StatusTimeline: React.FC<Step11StatusTimelineProps> = ({
                 className="p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-1.5"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-900">{notif.title}</span>
+                  <span className="text-xs font-bold text-slate-900"><LtrText text={notif.title} /></span>
                   <span className="text-[10px] text-slate-400 font-mono">
                     {formatTime(notif.createdAt, language)}
                   </span>
                 </div>
-                <p className="text-xs text-slate-600 leading-relaxed">{notif.message}</p>
+                <p className="text-xs text-slate-600 leading-relaxed"><LtrText text={notif.message} /></p>
                 <div className="flex items-center gap-1.5 text-[10px] text-slate-400 pt-1 border-t border-slate-100">
                   <span className="uppercase font-semibold text-blue-900">{t(language, 'status.channel', { channel: notif.channel })}</span>
                   <span>•</span>

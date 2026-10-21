@@ -115,6 +115,11 @@
 
 ---
 
+## Hebrew / English localization [COMPLETED, native review pending]
+The app, back office, backend messages (SMS, notifications, OTP, password reset) and the PDF summary are available in English and Hebrew, with right-to-left layout and Israeli formatting. Thai, Chinese and Filipino are on hold. Details, decisions and QA results: `hebrew-localization-plan.md`. The Hebrew text still needs sign-off from a native speaker (`docs/hebrew-review.csv`).
+
+---
+
 ## Summary & Verification Status
 
 All 8 phases have passed automated backend verification (`scratch/smoke.js` with 31/31 assertions passed) and frontend type-checking (`tsc --noEmit`) and production bundling (`vite build` succeeded).

@@ -576,10 +576,14 @@ async function runTests() {
     assert.strictEqual(res.status, 400, 'Expected 400 for disguised file with bad magic bytes');
   });
 
+  // The server scores against today's date, so the visa expiry must be relative to today.
+  // (A fixed '2027-10-08' gave exactly 12 months on 2026-10-08 and fewer afterwards: 10 points instead of 20.)
+  const visaTwoYearsAhead = new Date(Date.now() + 2 * 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
   await asyncTest('Save application with 1 Guarantor and verify authoritative score', async () => {
     const payload = {
       borrowerDetails: { fullName: 'Apinya Srisai', passportNumber: 'TH8899001' },
-      residencyDetails: { visaType: 'b1_agri', visaExpiryDate: '2027-10-08', yearsOfResidency: 3.5 },
+      residencyDetails: { visaType: 'b1_agri', visaExpiryDate: visaTwoYearsAhead, yearsOfResidency: 3.5 },
       employmentDetails: { monthlySalaryNis: 8200, jobTenureMonths: 40 },
       loanRequest: { requestedAmountNis: 6000, repaymentPeriodMonths: 6 },
       guarantors: [
@@ -621,7 +625,7 @@ async function runTests() {
   await asyncTest('Update application to 2 Guarantors and verify score increases to 100', async () => {
     const payload = {
       borrowerDetails: { fullName: 'Apinya Srisai', passportNumber: 'TH8899001' },
-      residencyDetails: { visaType: 'b1_agri', visaExpiryDate: '2027-10-08', yearsOfResidency: 3.5 },
+      residencyDetails: { visaType: 'b1_agri', visaExpiryDate: visaTwoYearsAhead, yearsOfResidency: 3.5 },
       employmentDetails: { monthlySalaryNis: 8200, jobTenureMonths: 40 },
       loanRequest: { requestedAmountNis: 6000, repaymentPeriodMonths: 6 },
       guarantors: [
@@ -664,7 +668,7 @@ async function runTests() {
     const payload = {
       isSubmitted: true,
       borrowerDetails: { fullName: 'Apinya Srisai', passportNumber: 'TH8899001' },
-      residencyDetails: { visaType: 'b1_agri', visaExpiryDate: '2027-10-08', yearsOfResidency: 3.5 },
+      residencyDetails: { visaType: 'b1_agri', visaExpiryDate: visaTwoYearsAhead, yearsOfResidency: 3.5 },
       employmentDetails: { monthlySalaryNis: 8200, jobTenureMonths: 40 },
       loanRequest: { requestedAmountNis: 6000, repaymentPeriodMonths: 6 },
       guarantors: [

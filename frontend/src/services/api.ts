@@ -225,8 +225,10 @@ export const apiService = {
   },
 
   // --- Notifications (Phase 5) ---------------------------------------------
-  async getNotifications(userId: string): Promise<{ notifications: NotificationItem[]; unreadCount: number }> {
-    return request(`/notifications/${userId}`);
+  /** The user's notifications, newest first. The backend's `read` flag is exposed as `isRead`, like local ones. */
+  async getNotifications(userId: string): Promise<NotificationItem[]> {
+    const res = await request<{ notifications: NotificationItem[] }>(`/notifications/${userId}`);
+    return (res.notifications || []).map((n) => ({ ...n, isRead: n.isRead ?? !!n.read }));
   },
 
   async markNotificationRead(id: string): Promise<void> {
